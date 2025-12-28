@@ -11,6 +11,10 @@ import {
   CheckSquare,
   FileCheck2,
   Package,
+  FileSignature,
+  Wallet,
+  UserCircle,
+  BarChart3,
 } from "lucide-react";
 import {
   Sidebar,
@@ -78,6 +82,29 @@ const isnadNavItems = [
     title: "ISNAD Packages",
     url: "/isnad/packages",
     icon: Package,
+  },
+];
+
+const contractNavItems = [
+  {
+    title: "Contracts",
+    url: "/contracts",
+    icon: FileSignature,
+  },
+  {
+    title: "Installments",
+    url: "/contracts/installments",
+    icon: Wallet,
+  },
+  {
+    title: "Investors",
+    url: "/contracts/investors",
+    icon: UserCircle,
+  },
+  {
+    title: "Dashboard",
+    url: "/contracts/dashboard",
+    icon: BarChart3,
   },
 ];
 
@@ -162,6 +189,28 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url || location.startsWith(item.url + "/")}
+                  >
+                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs uppercase tracking-wide">
+            Contracts
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {contractNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === item.url || (item.url !== "/contracts" && location.startsWith(item.url))}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
                       <item.icon className="h-4 w-4" />

@@ -24,6 +24,15 @@ import {
   packageFiltersSchema,
   packageReviewSchema,
   notificationFiltersSchema,
+  insertInvestorSchema,
+  insertContractSchema,
+  updateContractSchema,
+  contractFiltersSchema,
+  cancelContractSchema,
+  insertInstallmentSchema,
+  updateInstallmentStatusSchema,
+  installmentPlanSchema,
+  ContractStatus,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -1195,6 +1204,426 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // =============================================
+  // Contract Management API Routes
+  // =============================================
+
+  // Investors
+  app.get("/api/investors", async (_req, res) => {
+    try {
+      const investors = await storage.getInvestors();
+      res.json(investors);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get investors" });
+    }
+  });
+
+  app.get("/api/investors/:id", async (req, res) => {
+    try {
+      const investor = await storage.getInvestor(req.params.id);
+      if (!investor) {
+        return res.status(404).json({ error: "Investor not found" });
+      }
+      res.json(investor);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get investor" });
+    }
+  });
+
+  app.post("/api/investors", async (req, res) => {
+    try {
+      const data = insertInvestorSchema.parse(req.body);
+      const investor = await storage.createInvestor(data);
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "investor_create",
+        entityType: "investor",
+        entityId: investor.id,
+        changes: { investorCode: investor.investorCode },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.status(201).json(investor);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create investor" });
+      }
+    }
+  });
+
+  app.patch("/api/investors/:id", async (req, res) => {
+    try {
+      const investor = await storage.updateInvestor(req.params.id, req.body);
+      if (!investor) {
+        return res.status(404).json({ error: "Investor not found" });
+      }
+      res.json(investor);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update investor" });
+    }
+  });
+
+  // Contracts
+  app.get("/api/contracts", async (req, res) => {
+    try {
+      const filters = contractFiltersSchema.parse({
+        search: req.query.search as string | undefined,
+        status: req.query.status as string | undefined,
+        investorId: req.query.investorId as string | undefined,
+        assetId: req.query.assetId as string | undefined,
+        signingDateFrom: req.query.signingDateFrom as string | undefined,
+        signingDateTo: req.query.signingDateTo as string | undefined,
+        endDateFrom: req.query.endDateFrom as string | undefined,
+        endDateTo: req.query.endDateTo as string | undefined,
+        paymentStatus: req.query.paymentStatus as string | undefined,
+        expiryWindow: req.query.expiryWindow ? parseInt(req.query.expiryWindow as string) : undefined,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 20,
+        sortBy: req.query.sortBy as string | undefined,
+        sortOrder: req.query.sortOrder as "asc" | "desc" | undefined,
+      });
+      const result = await storage.getContracts(filters);
+      res.json({
+        ...result,
+        page: filters.page,
+        limit: filters.limit,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to get contracts" });
+      }
+    }
+  });
+
+  app.get("/api/contracts/drafts", async (req, res) => {
+    try {
+      const drafts = await storage.getDraftContracts(req.query.createdBy as string | undefined);
+      res.json(drafts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get draft contracts" });
+    }
+  });
+
+  app.get("/api/contracts/dashboard", async (_req, res) => {
+    try {
+      const stats = await storage.getContractDashboardStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get contract dashboard stats" });
+    }
+  });
+
+  app.get("/api/contracts/:id", async (req, res) => {
+    try {
+      const contract = await storage.getContract(req.params.id);
+      if (!contract) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+      res.json(contract);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get contract" });
+    }
+  });
+
+  app.post("/api/contracts", async (req, res) => {
+    try {
+      const data = insertContractSchema.parse(req.body);
+
+      // Check if asset already has an active contract
+      const hasActiveContract = await storage.checkAssetHasActiveContract(data.assetId);
+      if (hasActiveContract) {
+        return res.status(400).json({ error: "Asset already has an active contract" });
+      }
+
+      const contract = await storage.createContract(data, "admin");
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "contract_create",
+        entityType: "contract",
+        entityId: contract.id,
+        changes: { contractCode: contract.contractCode },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.status(201).json(contract);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create contract" });
+      }
+    }
+  });
+
+  app.patch("/api/contracts/:id", async (req, res) => {
+    try {
+      const data = updateContractSchema.parse(req.body);
+      const contract = await storage.updateContract(req.params.id, data, "admin");
+      if (!contract) {
+        return res.status(404).json({ error: "Contract not found or cannot be updated" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "contract_update",
+        entityType: "contract",
+        entityId: contract.id,
+        changes: data,
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(contract);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update contract" });
+      }
+    }
+  });
+
+  app.post("/api/contracts/:id/activate", async (req, res) => {
+    try {
+      const contract = await storage.activateContract(req.params.id);
+      if (!contract) {
+        return res.status(400).json({ 
+          error: "Cannot activate contract. Ensure signed PDF and installment plan are uploaded." 
+        });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "contract_activate",
+        entityType: "contract",
+        entityId: contract.id,
+        changes: { status: "active" },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(contract);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to activate contract" });
+    }
+  });
+
+  app.post("/api/contracts/:id/archive", async (req, res) => {
+    try {
+      const contract = await storage.archiveContract(req.params.id, "admin");
+      if (!contract) {
+        return res.status(400).json({ error: "Cannot archive this contract" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "contract_archive",
+        entityType: "contract",
+        entityId: contract.id,
+        changes: { status: "archived" },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(contract);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to archive contract" });
+    }
+  });
+
+  app.post("/api/contracts/:id/unarchive", async (req, res) => {
+    try {
+      const contract = await storage.unarchiveContract(req.params.id);
+      if (!contract) {
+        return res.status(400).json({ error: "Cannot unarchive this contract" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "contract_unarchive",
+        entityType: "contract",
+        entityId: contract.id,
+        changes: { status: contract.status },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(contract);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to unarchive contract" });
+    }
+  });
+
+  app.post("/api/contracts/:id/cancel", async (req, res) => {
+    try {
+      const cancellation = cancelContractSchema.parse(req.body);
+      const contract = await storage.cancelContract(req.params.id, "admin", cancellation);
+      if (!contract) {
+        return res.status(400).json({ error: "Cannot cancel this contract" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "contract_cancel",
+        entityType: "contract",
+        entityId: contract.id,
+        changes: { status: "cancelled", reason: cancellation.reason },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(contract);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to cancel contract" });
+      }
+    }
+  });
+
+  // Installments
+  app.get("/api/contracts/:contractId/installments", async (req, res) => {
+    try {
+      const year = req.query.year ? parseInt(req.query.year as string) : undefined;
+      const installments = await storage.getInstallments(req.params.contractId, year);
+      res.json(installments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get installments" });
+    }
+  });
+
+  app.post("/api/contracts/:contractId/installment-plan", async (req, res) => {
+    try {
+      const plan = installmentPlanSchema.parse(req.body);
+      const contract = await storage.getContract(req.params.contractId);
+      if (!contract) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+
+      // Validate custom installment totals match contract amount
+      if (plan.type === "custom" && plan.customInstallments) {
+        const total = plan.customInstallments.reduce((sum, i) => sum + i.amount, 0);
+        if (Math.abs(total - contract.totalContractAmount) > 0.01) {
+          return res.status(400).json({ 
+            error: `Installment total (${total.toFixed(2)}) must equal contract amount (${contract.totalContractAmount.toFixed(2)})` 
+          });
+        }
+      }
+
+      const installments = await storage.createInstallmentPlan(
+        req.params.contractId,
+        plan,
+        contract.totalContractAmount,
+        contract.startDate
+      );
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "installment_plan_create",
+        entityType: "contract",
+        entityId: req.params.contractId,
+        changes: { planType: plan.type, installmentCount: installments.length },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(installments);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create installment plan" });
+      }
+    }
+  });
+
+  app.get("/api/installments/:id", async (req, res) => {
+    try {
+      const installment = await storage.getInstallment(req.params.id);
+      if (!installment) {
+        return res.status(404).json({ error: "Installment not found" });
+      }
+      res.json(installment);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get installment" });
+    }
+  });
+
+  app.patch("/api/installments/:id/status", async (req, res) => {
+    try {
+      const status = updateInstallmentStatusSchema.parse(req.body);
+      const installment = await storage.updateInstallmentStatus(req.params.id, status, "admin");
+      if (!installment) {
+        return res.status(400).json({ error: "Cannot update installment. Receipt required for 'paid' status." });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: `installment_${status.status}`,
+        entityType: "installment",
+        entityId: installment.id,
+        changes: { status: status.status },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(installment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update installment status" });
+      }
+    }
+  });
+
+  app.delete("/api/contracts/:contractId/installment-plan", async (req, res) => {
+    try {
+      const contract = await storage.getContract(req.params.contractId);
+      if (!contract) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+      if (contract.status !== "draft") {
+        return res.status(400).json({ error: "Can only delete installment plan for draft contracts" });
+      }
+
+      await storage.deleteInstallmentPlan(req.params.contractId);
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "installment_plan_delete",
+        entityType: "contract",
+        entityId: req.params.contractId,
+        changes: { action: "deleted" },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete installment plan" });
+    }
+  });
+
+  // Update overdue installments (can be called periodically)
+  app.post("/api/installments/update-overdue", async (_req, res) => {
+    try {
+      const count = await storage.updateOverdueInstallments();
+      res.json({ updated: count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update overdue installments" });
     }
   });
 

@@ -23,6 +23,11 @@ import IsnadForms from "@/pages/isnad-forms";
 import IsnadFormCreate from "@/pages/isnad-form-create";
 import IsnadFormDetail from "@/pages/isnad-form-detail";
 import IsnadPackages from "@/pages/isnad-packages";
+import Contracts from "@/pages/contracts";
+import ContractCreate from "@/pages/contract-create";
+import ContractDetail from "@/pages/contract-detail";
+import Investors from "@/pages/investors";
+import ContractsDashboard from "@/pages/contracts-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -44,6 +49,11 @@ function Router() {
       <Route path="/isnad/forms/new" component={IsnadFormCreate} />
       <Route path="/isnad/forms/:id" component={IsnadFormDetail} />
       <Route path="/isnad/packages" component={IsnadPackages} />
+      <Route path="/contracts" component={Contracts} />
+      <Route path="/contracts/new" component={ContractCreate} />
+      <Route path="/contracts/dashboard" component={ContractsDashboard} />
+      <Route path="/contracts/investors" component={Investors} />
+      <Route path="/contracts/:id" component={ContractDetail} />
       <Route component={NotFound} />
     </Switch>
   );

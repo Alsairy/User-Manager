@@ -967,3 +967,311 @@ export interface ExecutiveDashboardStats {
   averageApprovalTime: number;
   recentDecisions: IsnadPackageWithDetails[];
 }
+
+// =============================================================================
+// Contract Management Types
+// =============================================================================
+
+export const contractStatusEnum = [
+  "draft",
+  "incomplete",
+  "active",
+  "expiring",
+  "expired",
+  "archived",
+  "cancelled",
+] as const;
+export type ContractStatus = (typeof contractStatusEnum)[number];
+
+export const contractStatusLabels: Record<ContractStatus, string> = {
+  draft: "Draft",
+  incomplete: "Incomplete",
+  active: "Active",
+  expiring: "Expiring",
+  expired: "Expired",
+  archived: "Archived",
+  cancelled: "Cancelled",
+};
+
+export const installmentStatusEnum = [
+  "pending",
+  "overdue",
+  "partial",
+  "paid",
+] as const;
+export type InstallmentStatus = (typeof installmentStatusEnum)[number];
+
+export const installmentStatusLabels: Record<InstallmentStatus, string> = {
+  pending: "Pending",
+  overdue: "Overdue",
+  partial: "Partial",
+  paid: "Paid",
+};
+
+export const vatRateEnum = [0, 5, 15] as const;
+export type VatRate = (typeof vatRateEnum)[number];
+
+export const installmentPlanTypeEnum = ["equal", "custom"] as const;
+export type InstallmentPlanType = (typeof installmentPlanTypeEnum)[number];
+
+export const installmentFrequencyEnum = [
+  "monthly",
+  "quarterly",
+  "semi_annual",
+  "annual",
+] as const;
+export type InstallmentFrequency = (typeof installmentFrequencyEnum)[number];
+
+export const cancellationReasonEnum = [
+  "investor_default",
+  "asset_issues",
+  "mutual_agreement",
+  "legal_regulatory",
+  "force_majeure",
+  "other",
+] as const;
+export type CancellationReason = (typeof cancellationReasonEnum)[number];
+
+export const cancellationReasonLabels: Record<CancellationReason, string> = {
+  investor_default: "Investor Default",
+  asset_issues: "Asset Issues",
+  mutual_agreement: "Mutual Agreement",
+  legal_regulatory: "Legal/Regulatory",
+  force_majeure: "Force Majeure",
+  other: "Other",
+};
+
+export const investorStatusEnum = ["active", "inactive", "blacklisted"] as const;
+export type InvestorStatus = (typeof investorStatusEnum)[number];
+
+export interface Investor {
+  id: string;
+  investorCode: string;
+  nameAr: string;
+  nameEn: string;
+  contactPerson: string | null;
+  email: string | null;
+  phone: string | null;
+  companyRegistration: string | null;
+  taxId: string | null;
+  address: string | null;
+  city: string | null;
+  country: string;
+  status: InvestorStatus;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Contract {
+  id: string;
+  contractCode: string;
+  landCode: string;
+  assetId: string;
+  investorId: string;
+  assetNameAr: string;
+  assetNameEn: string;
+  investorNameAr: string;
+  investorNameEn: string;
+  annualRentalAmount: number;
+  vatRate: VatRate;
+  totalAnnualAmount: number;
+  contractDuration: number;
+  totalContractAmount: number;
+  currency: string;
+  signingDate: string;
+  startDate: string;
+  endDate: string;
+  status: ContractStatus;
+  installmentPlanType: InstallmentPlanType | null;
+  installmentCount: number | null;
+  installmentFrequency: InstallmentFrequency | null;
+  signedPdfUrl: string | null;
+  signedPdfUploadedAt: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
+  cancellationReason: CancellationReason | null;
+  cancellationJustification: string | null;
+  cancellationDocuments: string[];
+  notes: string | null;
+  specialConditions: string | null;
+  legalTermsReference: string | null;
+  approvalAuthority: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedBy: string | null;
+  updatedAt: string;
+  archivedAt: string | null;
+  archivedBy: string | null;
+}
+
+export interface ContractWithDetails extends Contract {
+  asset?: Asset;
+  investor?: Investor;
+  installments?: Installment[];
+  nextInstallment?: Installment | null;
+  paymentStatus?: InstallmentStatus;
+}
+
+export interface Installment {
+  id: string;
+  contractId: string;
+  installmentNumber: number;
+  amountDue: number;
+  dueDate: string;
+  status: InstallmentStatus;
+  paymentDate: string | null;
+  partialAmountPaid: number | null;
+  remainingBalance: number | null;
+  receiptFileUrl: string | null;
+  receiptFileName: string | null;
+  receiptUploadedAt: string | null;
+  receiptUploadedBy: string | null;
+  notes: string | null;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy: string | null;
+}
+
+export interface ContractVersion {
+  id: string;
+  contractId: string;
+  versionNumber: number;
+  contractData: Record<string, unknown>;
+  changedBy: string;
+  changedAt: string;
+  changeDescription: string | null;
+  changesMade: Record<string, unknown> | null;
+}
+
+// Contract Insert Schemas
+export const insertInvestorSchema = z.object({
+  investorCode: z.string().min(1, "Investor code is required"),
+  nameAr: z.string().min(1, "Arabic name is required"),
+  nameEn: z.string().min(1, "English name is required"),
+  contactPerson: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  companyRegistration: z.string().nullable().optional(),
+  taxId: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  country: z.string().default("Saudi Arabia"),
+  status: z.enum(investorStatusEnum).default("active"),
+  notes: z.string().nullable().optional(),
+});
+
+export type InsertInvestor = z.infer<typeof insertInvestorSchema>;
+
+export const landCodeRegex = /^[A-Z]{3}-\d{1,6}$/;
+
+export const insertContractSchema = z.object({
+  landCode: z.string().regex(landCodeRegex, "Land code must be format XXX-### (e.g., RYD-001)"),
+  assetId: z.string().min(1, "Asset is required"),
+  investorId: z.string().min(1, "Investor is required"),
+  assetNameAr: z.string().min(1, "Asset name (Arabic) is required"),
+  assetNameEn: z.string().min(1, "Asset name (English) is required"),
+  investorNameAr: z.string().min(1, "Investor name (Arabic) is required"),
+  investorNameEn: z.string().min(1, "Investor name (English) is required"),
+  annualRentalAmount: z.number().positive("Annual rental amount must be positive"),
+  vatRate: z.number().refine((v) => [0, 5, 15].includes(v), "VAT rate must be 0%, 5%, or 15%"),
+  contractDuration: z.number().int().positive("Contract duration must be at least 1 year"),
+  signingDate: z.string().min(1, "Signing date is required"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  installmentPlanType: z.enum(installmentPlanTypeEnum).nullable().optional(),
+  installmentCount: z.number().int().positive().nullable().optional(),
+  installmentFrequency: z.enum(installmentFrequencyEnum).nullable().optional(),
+  signedPdfUrl: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  specialConditions: z.string().nullable().optional(),
+  legalTermsReference: z.string().nullable().optional(),
+  approvalAuthority: z.string().nullable().optional(),
+});
+
+export type InsertContract = z.infer<typeof insertContractSchema>;
+
+export const updateContractSchema = insertContractSchema.partial().extend({
+  status: z.enum(contractStatusEnum).optional(),
+});
+
+export type UpdateContract = z.infer<typeof updateContractSchema>;
+
+export const insertInstallmentSchema = z.object({
+  contractId: z.string().min(1, "Contract is required"),
+  installmentNumber: z.number().int().positive(),
+  amountDue: z.number().positive("Amount must be positive"),
+  dueDate: z.string().min(1, "Due date is required"),
+  description: z.string().nullable().optional(),
+});
+
+export type InsertInstallment = z.infer<typeof insertInstallmentSchema>;
+
+export const updateInstallmentStatusSchema = z.object({
+  status: z.enum(installmentStatusEnum),
+  paymentDate: z.string().nullable().optional(),
+  partialAmountPaid: z.number().positive().nullable().optional(),
+  receiptFileUrl: z.string().nullable().optional(),
+  receiptFileName: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export type UpdateInstallmentStatus = z.infer<typeof updateInstallmentStatusSchema>;
+
+export const contractFiltersSchema = z.object({
+  search: z.string().optional(),
+  status: z.enum([...contractStatusEnum, "all"]).optional(),
+  investorId: z.string().optional(),
+  assetId: z.string().optional(),
+  signingDateFrom: z.string().optional(),
+  signingDateTo: z.string().optional(),
+  endDateFrom: z.string().optional(),
+  endDateTo: z.string().optional(),
+  paymentStatus: z.enum([...installmentStatusEnum, "all"]).optional(),
+  expiryWindow: z.number().optional(),
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(20),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+});
+
+export type ContractFilters = z.infer<typeof contractFiltersSchema>;
+
+export const cancelContractSchema = z.object({
+  reason: z.enum(cancellationReasonEnum),
+  justification: z.string().min(100, "Justification must be at least 100 characters"),
+  documents: z.array(z.string()).optional(),
+});
+
+export type CancelContract = z.infer<typeof cancelContractSchema>;
+
+export const installmentPlanSchema = z.object({
+  type: z.enum(installmentPlanTypeEnum),
+  count: z.number().int().positive().optional(),
+  frequency: z.enum(installmentFrequencyEnum).optional(),
+  customInstallments: z.array(z.object({
+    amount: z.number().positive(),
+    dueDate: z.string(),
+    description: z.string().optional(),
+  })).optional(),
+});
+
+export type InstallmentPlan = z.infer<typeof installmentPlanSchema>;
+
+// Contract Dashboard Types
+export interface ContractDashboardStats {
+  totalContracts: number;
+  activeContracts: number;
+  expiringContracts: number;
+  incompleteContracts: number;
+  cancelledContracts: number;
+  archivedContracts: number;
+  totalContractValue: number;
+  overdueInstallments: number;
+  overdueAmount: number;
+  paidThisMonth: number;
+  paidAmountThisMonth: number;
+  pendingInstallments: number;
+  installmentsDueToday: number;
+}

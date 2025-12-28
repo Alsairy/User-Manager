@@ -53,6 +53,21 @@ import type {
   NotificationFilters,
   NotificationType,
   SlaStatus,
+  Investor,
+  InsertInvestor,
+  Contract,
+  ContractWithDetails,
+  InsertContract,
+  UpdateContract,
+  ContractFilters,
+  CancelContract,
+  Installment,
+  InsertInstallment,
+  UpdateInstallmentStatus,
+  InstallmentPlan,
+  ContractDashboardStats,
+  ContractStatus,
+  InstallmentStatus,
 } from "@shared/schema";
 import { permissionGroups, workflowStageEnum, isnadStageEnum, slaDaysConfig } from "@shared/schema";
 
@@ -166,6 +181,34 @@ export interface IStorage {
   createNotification(notification: Omit<Notification, "id" | "createdAt" | "read" | "readAt" | "emailSent" | "emailSentAt">): Promise<Notification>;
   markNotificationRead(id: string): Promise<Notification | undefined>;
   markAllNotificationsRead(userId: string): Promise<void>;
+
+  // Investor Methods
+  getInvestor(id: string): Promise<Investor | undefined>;
+  getInvestors(): Promise<Investor[]>;
+  createInvestor(investor: InsertInvestor): Promise<Investor>;
+  updateInvestor(id: string, updates: Partial<Investor>): Promise<Investor | undefined>;
+
+  // Contract Methods
+  getContract(id: string): Promise<ContractWithDetails | undefined>;
+  getContracts(filters: ContractFilters): Promise<{ contracts: ContractWithDetails[]; total: number; statusCounts: Record<ContractStatus, number> }>;
+  getDraftContracts(createdBy?: string): Promise<ContractWithDetails[]>;
+  createContract(contract: InsertContract, createdBy: string): Promise<Contract>;
+  updateContract(id: string, updates: UpdateContract, updatedBy: string): Promise<Contract | undefined>;
+  activateContract(id: string): Promise<Contract | undefined>;
+  archiveContract(id: string, archivedBy: string): Promise<Contract | undefined>;
+  unarchiveContract(id: string): Promise<Contract | undefined>;
+  cancelContract(id: string, cancelledBy: string, cancellation: CancelContract): Promise<Contract | undefined>;
+  checkAssetHasActiveContract(assetId: string, excludeContractId?: string): Promise<boolean>;
+  generateContractCode(): Promise<string>;
+  getContractDashboardStats(): Promise<ContractDashboardStats>;
+
+  // Installment Methods
+  getInstallment(id: string): Promise<Installment | undefined>;
+  getInstallments(contractId: string, year?: number): Promise<Installment[]>;
+  createInstallmentPlan(contractId: string, plan: InstallmentPlan, totalAmount: number, startDate: string): Promise<Installment[]>;
+  updateInstallmentStatus(id: string, status: UpdateInstallmentStatus, updatedBy: string): Promise<Installment | undefined>;
+  deleteInstallmentPlan(contractId: string): Promise<void>;
+  updateOverdueInstallments(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -192,6 +235,10 @@ export class MemStorage implements IStorage {
   private notifications: Map<string, Notification>;
   private isnadCodeCounter: number;
   private packageCodeCounter: number;
+  private investors: Map<string, Investor>;
+  private contracts: Map<string, Contract>;
+  private installments: Map<string, Installment>;
+  private contractCodeCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -217,6 +264,10 @@ export class MemStorage implements IStorage {
     this.notifications = new Map();
     this.isnadCodeCounter = 1000;
     this.packageCodeCounter = 100;
+    this.investors = new Map();
+    this.contracts = new Map();
+    this.installments = new Map();
+    this.contractCodeCounter = 1000;
 
     this.seedData();
   }
@@ -2160,6 +2211,553 @@ export class MemStorage implements IStorage {
         this.notifications.set(notification.id, notification);
       }
     }
+  }
+
+  // Investor Methods
+  async getInvestor(id: string): Promise<Investor | undefined> {
+    return this.investors.get(id);
+  }
+
+  async getInvestors(): Promise<Investor[]> {
+    return Array.from(this.investors.values()).sort((a, b) =>
+      a.nameEn.localeCompare(b.nameEn)
+    );
+  }
+
+  async createInvestor(investor: InsertInvestor): Promise<Investor> {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    const newInvestor: Investor = {
+      id,
+      investorCode: investor.investorCode,
+      nameAr: investor.nameAr,
+      nameEn: investor.nameEn,
+      contactPerson: investor.contactPerson ?? null,
+      email: investor.email ?? null,
+      phone: investor.phone ?? null,
+      companyRegistration: investor.companyRegistration ?? null,
+      taxId: investor.taxId ?? null,
+      address: investor.address ?? null,
+      city: investor.city ?? null,
+      country: investor.country ?? "Saudi Arabia",
+      status: investor.status ?? "active",
+      notes: investor.notes ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.investors.set(id, newInvestor);
+    return newInvestor;
+  }
+
+  async updateInvestor(id: string, updates: Partial<Investor>): Promise<Investor | undefined> {
+    const investor = this.investors.get(id);
+    if (!investor) return undefined;
+    const updated: Investor = {
+      ...investor,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.investors.set(id, updated);
+    return updated;
+  }
+
+  // Contract Helper Methods
+  private enrichContract(contract: Contract): ContractWithDetails {
+    const asset = this.assets.get(contract.assetId);
+    const investor = this.investors.get(contract.investorId);
+    const installments = Array.from(this.installments.values())
+      .filter((i) => i.contractId === contract.id)
+      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+
+    const today = new Date().toISOString().split("T")[0];
+    const nextInstallment = installments.find(
+      (i) => i.status === "pending" || i.status === "overdue"
+    ) ?? null;
+
+    let paymentStatus: InstallmentStatus = "pending";
+    if (installments.length > 0) {
+      const hasOverdue = installments.some((i) => i.status === "overdue");
+      const hasPartial = installments.some((i) => i.status === "partial");
+      const allPaid = installments.every((i) => i.status === "paid");
+      if (hasOverdue) paymentStatus = "overdue";
+      else if (hasPartial) paymentStatus = "partial";
+      else if (allPaid) paymentStatus = "paid";
+    }
+
+    return {
+      ...contract,
+      asset,
+      investor,
+      installments,
+      nextInstallment,
+      paymentStatus,
+    };
+  }
+
+  async getContract(id: string): Promise<ContractWithDetails | undefined> {
+    const contract = this.contracts.get(id);
+    if (!contract) return undefined;
+    return this.enrichContract(contract);
+  }
+
+  async getContracts(filters: ContractFilters): Promise<{ contracts: ContractWithDetails[]; total: number; statusCounts: Record<ContractStatus, number> }> {
+    let contracts = Array.from(this.contracts.values()).filter(
+      (c) => c.status !== "draft"
+    );
+
+    // Calculate status counts before filtering
+    const allContracts = Array.from(this.contracts.values());
+    const statusCounts: Record<ContractStatus, number> = {
+      draft: allContracts.filter((c) => c.status === "draft").length,
+      incomplete: allContracts.filter((c) => c.status === "incomplete").length,
+      active: allContracts.filter((c) => c.status === "active").length,
+      expiring: allContracts.filter((c) => c.status === "expiring").length,
+      expired: allContracts.filter((c) => c.status === "expired").length,
+      archived: allContracts.filter((c) => c.status === "archived").length,
+      cancelled: allContracts.filter((c) => c.status === "cancelled").length,
+    };
+
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      contracts = contracts.filter(
+        (c) =>
+          c.contractCode.toLowerCase().includes(search) ||
+          c.landCode.toLowerCase().includes(search) ||
+          c.assetNameEn.toLowerCase().includes(search) ||
+          c.assetNameAr.includes(search) ||
+          c.investorNameEn.toLowerCase().includes(search) ||
+          c.investorNameAr.includes(search)
+      );
+    }
+
+    if (filters.status && filters.status !== "all") {
+      contracts = contracts.filter((c) => c.status === filters.status);
+    }
+
+    if (filters.investorId) {
+      contracts = contracts.filter((c) => c.investorId === filters.investorId);
+    }
+
+    if (filters.assetId) {
+      contracts = contracts.filter((c) => c.assetId === filters.assetId);
+    }
+
+    if (filters.signingDateFrom) {
+      contracts = contracts.filter((c) => c.signingDate >= filters.signingDateFrom!);
+    }
+
+    if (filters.signingDateTo) {
+      contracts = contracts.filter((c) => c.signingDate <= filters.signingDateTo!);
+    }
+
+    if (filters.endDateFrom) {
+      contracts = contracts.filter((c) => c.endDate >= filters.endDateFrom!);
+    }
+
+    if (filters.endDateTo) {
+      contracts = contracts.filter((c) => c.endDate <= filters.endDateTo!);
+    }
+
+    // Sort
+    const sortBy = filters.sortBy || "contractCode";
+    const sortOrder = filters.sortOrder || "desc";
+    contracts.sort((a, b) => {
+      let aVal = (a as Record<string, unknown>)[sortBy];
+      let bVal = (b as Record<string, unknown>)[sortBy];
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortOrder === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return 0;
+    });
+
+    const total = contracts.length;
+    const start = (filters.page - 1) * filters.limit;
+    const paginatedContracts = contracts.slice(start, start + filters.limit);
+
+    return {
+      contracts: paginatedContracts.map((c) => this.enrichContract(c)),
+      total,
+      statusCounts,
+    };
+  }
+
+  async getDraftContracts(createdBy?: string): Promise<ContractWithDetails[]> {
+    let drafts = Array.from(this.contracts.values()).filter(
+      (c) => c.status === "draft"
+    );
+    if (createdBy) {
+      drafts = drafts.filter((c) => c.createdBy === createdBy);
+    }
+    return drafts.map((c) => this.enrichContract(c));
+  }
+
+  async createContract(contract: InsertContract, createdBy: string): Promise<Contract> {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    const code = await this.generateContractCode();
+
+    const vatMultiplier = 1 + contract.vatRate / 100;
+    const totalAnnualAmount = contract.annualRentalAmount * vatMultiplier;
+    const totalContractAmount = totalAnnualAmount * contract.contractDuration;
+
+    const newContract: Contract = {
+      id,
+      contractCode: code,
+      landCode: contract.landCode,
+      assetId: contract.assetId,
+      investorId: contract.investorId,
+      assetNameAr: contract.assetNameAr,
+      assetNameEn: contract.assetNameEn,
+      investorNameAr: contract.investorNameAr,
+      investorNameEn: contract.investorNameEn,
+      annualRentalAmount: contract.annualRentalAmount,
+      vatRate: contract.vatRate as 0 | 5 | 15,
+      totalAnnualAmount,
+      contractDuration: contract.contractDuration,
+      totalContractAmount,
+      currency: "SAR",
+      signingDate: contract.signingDate,
+      startDate: contract.startDate,
+      endDate: contract.endDate,
+      status: "draft",
+      installmentPlanType: contract.installmentPlanType ?? null,
+      installmentCount: contract.installmentCount ?? null,
+      installmentFrequency: contract.installmentFrequency ?? null,
+      signedPdfUrl: contract.signedPdfUrl ?? null,
+      signedPdfUploadedAt: contract.signedPdfUrl ? now : null,
+      cancelledAt: null,
+      cancelledBy: null,
+      cancellationReason: null,
+      cancellationJustification: null,
+      cancellationDocuments: [],
+      notes: contract.notes ?? null,
+      specialConditions: contract.specialConditions ?? null,
+      legalTermsReference: contract.legalTermsReference ?? null,
+      approvalAuthority: contract.approvalAuthority ?? null,
+      createdBy,
+      createdAt: now,
+      updatedBy: null,
+      updatedAt: now,
+      archivedAt: null,
+      archivedBy: null,
+    };
+
+    this.contracts.set(id, newContract);
+    return newContract;
+  }
+
+  async updateContract(id: string, updates: UpdateContract, updatedBy: string): Promise<Contract | undefined> {
+    const contract = this.contracts.get(id);
+    if (!contract) return undefined;
+    if (contract.status === "archived" || contract.status === "cancelled") return undefined;
+
+    let totalAnnualAmount = contract.totalAnnualAmount;
+    let totalContractAmount = contract.totalContractAmount;
+
+    if (updates.annualRentalAmount !== undefined || updates.vatRate !== undefined || updates.contractDuration !== undefined) {
+      const amount = updates.annualRentalAmount ?? contract.annualRentalAmount;
+      const vat = updates.vatRate ?? contract.vatRate;
+      const duration = updates.contractDuration ?? contract.contractDuration;
+      const vatMultiplier = 1 + vat / 100;
+      totalAnnualAmount = amount * vatMultiplier;
+      totalContractAmount = totalAnnualAmount * duration;
+    }
+
+    const updated: Contract = {
+      ...contract,
+      ...updates,
+      totalAnnualAmount,
+      totalContractAmount,
+      updatedBy,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.contracts.set(id, updated);
+    return updated;
+  }
+
+  async activateContract(id: string): Promise<Contract | undefined> {
+    const contract = this.contracts.get(id);
+    if (!contract) return undefined;
+    if (contract.status !== "draft" && contract.status !== "incomplete") return undefined;
+
+    // Check if has PDF and installment plan
+    const installments = Array.from(this.installments.values()).filter(
+      (i) => i.contractId === id
+    );
+    if (!contract.signedPdfUrl || installments.length === 0) {
+      return undefined;
+    }
+
+    contract.status = "active";
+    contract.updatedAt = new Date().toISOString();
+    this.contracts.set(id, contract);
+    return contract;
+  }
+
+  async archiveContract(id: string, archivedBy: string): Promise<Contract | undefined> {
+    const contract = this.contracts.get(id);
+    if (!contract) return undefined;
+    if (contract.status !== "expired" && contract.status !== "active") return undefined;
+
+    const now = new Date().toISOString();
+    contract.status = "archived";
+    contract.archivedAt = now;
+    contract.archivedBy = archivedBy;
+    contract.updatedAt = now;
+    this.contracts.set(id, contract);
+    return contract;
+  }
+
+  async unarchiveContract(id: string): Promise<Contract | undefined> {
+    const contract = this.contracts.get(id);
+    if (!contract) return undefined;
+    if (contract.status !== "archived") return undefined;
+
+    const now = new Date().toISOString();
+    const endDate = new Date(contract.endDate);
+    const today = new Date();
+
+    if (endDate < today) {
+      contract.status = "expired";
+    } else {
+      const daysUntilEnd = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      contract.status = daysUntilEnd <= 90 ? "expiring" : "active";
+    }
+
+    contract.archivedAt = null;
+    contract.archivedBy = null;
+    contract.updatedAt = now;
+    this.contracts.set(id, contract);
+    return contract;
+  }
+
+  async cancelContract(id: string, cancelledBy: string, cancellation: CancelContract): Promise<Contract | undefined> {
+    const contract = this.contracts.get(id);
+    if (!contract) return undefined;
+    if (contract.status !== "active" && contract.status !== "expiring") return undefined;
+
+    const now = new Date().toISOString();
+    contract.status = "cancelled";
+    contract.cancelledAt = now;
+    contract.cancelledBy = cancelledBy;
+    contract.cancellationReason = cancellation.reason;
+    contract.cancellationJustification = cancellation.justification;
+    contract.cancellationDocuments = cancellation.documents ?? [];
+    contract.updatedAt = now;
+    this.contracts.set(id, contract);
+    return contract;
+  }
+
+  async checkAssetHasActiveContract(assetId: string, excludeContractId?: string): Promise<boolean> {
+    return Array.from(this.contracts.values()).some(
+      (c) =>
+        c.assetId === assetId &&
+        (c.status === "active" || c.status === "expiring") &&
+        c.id !== excludeContractId
+    );
+  }
+
+  async generateContractCode(): Promise<string> {
+    const year = new Date().getFullYear();
+    const code = `CNT-${year}-${String(this.contractCodeCounter).padStart(4, "0")}`;
+    this.contractCodeCounter++;
+    return code;
+  }
+
+  async getContractDashboardStats(): Promise<ContractDashboardStats> {
+    const contracts = Array.from(this.contracts.values());
+    const installments = Array.from(this.installments.values());
+    const today = new Date().toISOString().split("T")[0];
+    const thisMonth = today.substring(0, 7);
+
+    const activeContracts = contracts.filter((c) => c.status === "active");
+    const overdueInstallments = installments.filter((i) => i.status === "overdue");
+    const paidThisMonth = installments.filter(
+      (i) => i.status === "paid" && i.paymentDate?.startsWith(thisMonth)
+    );
+
+    return {
+      totalContracts: contracts.length,
+      activeContracts: activeContracts.length,
+      expiringContracts: contracts.filter((c) => c.status === "expiring").length,
+      incompleteContracts: contracts.filter((c) => c.status === "incomplete").length,
+      cancelledContracts: contracts.filter((c) => c.status === "cancelled").length,
+      archivedContracts: contracts.filter((c) => c.status === "archived").length,
+      totalContractValue: activeContracts.reduce((sum, c) => sum + c.totalContractAmount, 0),
+      overdueInstallments: overdueInstallments.length,
+      overdueAmount: overdueInstallments.reduce((sum, i) => sum + i.amountDue, 0),
+      paidThisMonth: paidThisMonth.length,
+      paidAmountThisMonth: paidThisMonth.reduce((sum, i) => sum + i.amountDue, 0),
+      pendingInstallments: installments.filter((i) => i.status === "pending").length,
+      installmentsDueToday: installments.filter((i) => i.dueDate === today && i.status === "pending").length,
+    };
+  }
+
+  // Installment Methods
+  async getInstallment(id: string): Promise<Installment | undefined> {
+    return this.installments.get(id);
+  }
+
+  async getInstallments(contractId: string, year?: number): Promise<Installment[]> {
+    let installments = Array.from(this.installments.values())
+      .filter((i) => i.contractId === contractId)
+      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+
+    if (year) {
+      installments = installments.filter((i) => i.dueDate.startsWith(String(year)));
+    }
+
+    return installments;
+  }
+
+  async createInstallmentPlan(contractId: string, plan: InstallmentPlan, totalAmount: number, startDate: string): Promise<Installment[]> {
+    // Delete existing installments
+    await this.deleteInstallmentPlan(contractId);
+
+    const installments: Installment[] = [];
+    const now = new Date().toISOString();
+
+    if (plan.type === "equal" && plan.count && plan.frequency) {
+      const amountPerInstallment = totalAmount / plan.count;
+      const start = new Date(startDate);
+
+      for (let i = 0; i < plan.count; i++) {
+        const dueDate = new Date(start);
+        switch (plan.frequency) {
+          case "monthly":
+            dueDate.setMonth(dueDate.getMonth() + i);
+            break;
+          case "quarterly":
+            dueDate.setMonth(dueDate.getMonth() + i * 3);
+            break;
+          case "semi_annual":
+            dueDate.setMonth(dueDate.getMonth() + i * 6);
+            break;
+          case "annual":
+            dueDate.setFullYear(dueDate.getFullYear() + i);
+            break;
+        }
+
+        const id = randomUUID();
+        const installment: Installment = {
+          id,
+          contractId,
+          installmentNumber: i + 1,
+          amountDue: Math.round(amountPerInstallment * 100) / 100,
+          dueDate: dueDate.toISOString().split("T")[0],
+          status: "pending",
+          paymentDate: null,
+          partialAmountPaid: null,
+          remainingBalance: null,
+          receiptFileUrl: null,
+          receiptFileName: null,
+          receiptUploadedAt: null,
+          receiptUploadedBy: null,
+          notes: null,
+          description: null,
+          createdAt: now,
+          updatedAt: now,
+          updatedBy: null,
+        };
+        this.installments.set(id, installment);
+        installments.push(installment);
+      }
+    } else if (plan.type === "custom" && plan.customInstallments) {
+      for (let i = 0; i < plan.customInstallments.length; i++) {
+        const custom = plan.customInstallments[i];
+        const id = randomUUID();
+        const installment: Installment = {
+          id,
+          contractId,
+          installmentNumber: i + 1,
+          amountDue: custom.amount,
+          dueDate: custom.dueDate,
+          status: "pending",
+          paymentDate: null,
+          partialAmountPaid: null,
+          remainingBalance: null,
+          receiptFileUrl: null,
+          receiptFileName: null,
+          receiptUploadedAt: null,
+          receiptUploadedBy: null,
+          notes: null,
+          description: custom.description ?? null,
+          createdAt: now,
+          updatedAt: now,
+          updatedBy: null,
+        };
+        this.installments.set(id, installment);
+        installments.push(installment);
+      }
+    }
+
+    // Update contract with plan info
+    const contract = this.contracts.get(contractId);
+    if (contract) {
+      contract.installmentPlanType = plan.type;
+      contract.installmentCount = installments.length;
+      contract.installmentFrequency = plan.frequency ?? null;
+      contract.updatedAt = now;
+      this.contracts.set(contractId, contract);
+    }
+
+    return installments;
+  }
+
+  async updateInstallmentStatus(id: string, status: UpdateInstallmentStatus, updatedBy: string): Promise<Installment | undefined> {
+    const installment = this.installments.get(id);
+    if (!installment) return undefined;
+
+    const now = new Date().toISOString();
+
+    // Validate: cannot mark as paid without receipt
+    if (status.status === "paid" && !status.receiptFileUrl && !installment.receiptFileUrl) {
+      return undefined;
+    }
+
+    installment.status = status.status;
+    if (status.paymentDate) installment.paymentDate = status.paymentDate;
+    if (status.partialAmountPaid !== undefined) {
+      installment.partialAmountPaid = status.partialAmountPaid;
+      installment.remainingBalance = installment.amountDue - (status.partialAmountPaid ?? 0);
+    }
+    if (status.receiptFileUrl) {
+      installment.receiptFileUrl = status.receiptFileUrl;
+      installment.receiptFileName = status.receiptFileName ?? null;
+      installment.receiptUploadedAt = now;
+      installment.receiptUploadedBy = updatedBy;
+    }
+    if (status.notes !== undefined) installment.notes = status.notes;
+    installment.updatedAt = now;
+    installment.updatedBy = updatedBy;
+
+    this.installments.set(id, installment);
+    return installment;
+  }
+
+  async deleteInstallmentPlan(contractId: string): Promise<void> {
+    for (const [id, installment] of this.installments.entries()) {
+      if (installment.contractId === contractId) {
+        this.installments.delete(id);
+      }
+    }
+  }
+
+  async updateOverdueInstallments(): Promise<number> {
+    const today = new Date().toISOString().split("T")[0];
+    let count = 0;
+
+    for (const installment of this.installments.values()) {
+      if (installment.status === "pending" && installment.dueDate < today) {
+        installment.status = "overdue";
+        installment.updatedAt = new Date().toISOString();
+        this.installments.set(installment.id, installment);
+        count++;
+      }
+    }
+
+    return count;
   }
 }
 
