@@ -37,6 +37,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 
 const mainNavItems = [
   {
@@ -166,6 +167,15 @@ const settingsItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { toast } = useToast();
+
+  const handleLogout = () => {
+    toast({
+      title: "Logged out successfully",
+      description: "You have been signed out of your account",
+    });
+    window.location.href = "/";
+  };
 
   return (
     <Sidebar>
@@ -354,6 +364,7 @@ export function AppSidebar() {
             size="sm"
             className="h-8 w-8 p-0"
             data-testid="button-logout"
+            onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
           </SidebarMenuButton>
