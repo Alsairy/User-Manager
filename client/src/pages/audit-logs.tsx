@@ -127,9 +127,19 @@ export default function AuditLogs() {
   const [actionFilter, setActionFilter] = useState("all");
   const [entityFilter, setEntityFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const limit = 25;
+
+  const queryParams = new URLSearchParams();
+  if (search) queryParams.set("search", search);
+  if (actionFilter && actionFilter !== "all") queryParams.set("actionType", actionFilter);
+  if (entityFilter && entityFilter !== "all") queryParams.set("entityType", entityFilter);
+  queryParams.set("page", String(page));
+  queryParams.set("limit", String(limit));
+  const queryString = queryParams.toString();
 
   const { data: logsData, isLoading } = useQuery<AuditLogsResponse>({
-    queryKey: ["/api/audit-logs", { search, actionType: actionFilter, entityType: entityFilter, page }],
+    queryKey: ["/api/audit-logs", queryString],
+    queryFn: () => fetch(`/api/audit-logs?${queryString}`).then((r) => r.json()),
   });
 
   const logs = logsData?.logs ?? [];

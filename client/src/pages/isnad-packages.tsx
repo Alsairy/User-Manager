@@ -92,14 +92,15 @@ export default function IsnadPackagesPage() {
     ...(statusFilter !== "all" && { status: statusFilter }),
   });
 
+  const queryString = queryParams.toString();
   const { data, isLoading } = useQuery<{
     packages: IsnadPackageWithDetails[];
     total: number;
     page: number;
     limit: number;
   }>({
-    queryKey: ["/api/isnad/packages", { page, search, statusFilter }],
-    queryFn: () => fetch(`/api/isnad/packages?${queryParams}`).then((r) => r.json()),
+    queryKey: ["/api/isnad/packages", queryString],
+    queryFn: () => fetch(`/api/isnad/packages?${queryString}`).then((r) => r.json()),
   });
 
   const { data: formsForPackaging, isLoading: loadingForms } = useQuery<IsnadFormWithDetails[]>({

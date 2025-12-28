@@ -30,13 +30,22 @@ export default function CrmInvestors() {
   const [page, setPage] = useState(1);
   const limit = 25;
 
+  const queryParams = new URLSearchParams();
+  if (search) queryParams.set("search", search);
+  if (status && status !== "all") queryParams.set("status", status);
+  if (accountType && accountType !== "all") queryParams.set("accountType", accountType);
+  queryParams.set("page", String(page));
+  queryParams.set("limit", String(limit));
+  const queryString = queryParams.toString();
+
   const { data, isLoading } = useQuery<{
     accounts: InvestorAccount[];
     total: number;
     page: number;
     limit: number;
   }>({
-    queryKey: ["/api/crm/investors", { search, status, accountType, page, limit }],
+    queryKey: ["/api/crm/investors", queryString],
+    queryFn: () => fetch(`/api/crm/investors?${queryString}`).then((r) => r.json()),
   });
 
   const totalPages = data ? Math.ceil(data.total / limit) : 0;

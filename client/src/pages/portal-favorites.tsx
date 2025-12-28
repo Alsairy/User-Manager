@@ -14,8 +14,10 @@ const DEMO_INVESTOR_ACCOUNT_ID = "demo-investor-001";
 export default function PortalFavorites() {
   const { toast } = useToast();
 
+  const queryString = `investorAccountId=${DEMO_INVESTOR_ACCOUNT_ID}`;
   const { data: favorites, isLoading } = useQuery<InvestorFavoriteWithAsset[]>({
-    queryKey: ["/api/portal/favorites", { investorAccountId: DEMO_INVESTOR_ACCOUNT_ID }],
+    queryKey: ["/api/portal/favorites", queryString],
+    queryFn: () => fetch(`/api/portal/favorites?${queryString}`).then((r) => r.json()),
   });
 
   const removeFavoriteMutation = useMutation({

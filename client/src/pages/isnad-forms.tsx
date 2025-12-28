@@ -96,14 +96,15 @@ export default function IsnadFormsPage() {
     ...(stageFilter !== "all" && { stage: stageFilter }),
   });
 
+  const queryString = queryParams.toString();
   const { data, isLoading } = useQuery<{
     forms: IsnadFormWithDetails[];
     total: number;
     page: number;
     limit: number;
   }>({
-    queryKey: ["/api/isnad/forms", { page, search, statusFilter, stageFilter }],
-    queryFn: () => fetch(`/api/isnad/forms?${queryParams}`).then((r) => r.json()),
+    queryKey: ["/api/isnad/forms", queryString],
+    queryFn: () => fetch(`/api/isnad/forms?${queryString}`).then((r) => r.json()),
   });
 
   const submitMutation = useMutation({

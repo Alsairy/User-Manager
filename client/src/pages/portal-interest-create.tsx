@@ -55,7 +55,8 @@ export default function PortalInterestCreate() {
   });
 
   const { data: assetsData } = useQuery<{ assets: AssetWithDetails[]; total: number }>({
-    queryKey: ["/api/portal/assets", { limit: 100 }],
+    queryKey: ["/api/portal/assets", "limit=100"],
+    queryFn: () => fetch("/api/portal/assets?limit=100").then((r) => r.json()),
   });
 
   const selectedAssetId = form.watch("assetId");

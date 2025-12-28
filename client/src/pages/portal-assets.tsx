@@ -24,13 +24,15 @@ export default function PortalAssets() {
   queryParams.set("page", page.toString());
   queryParams.set("limit", limit.toString());
 
+  const queryString = queryParams.toString();
   const { data, isLoading } = useQuery<{
     assets: AssetWithDetails[];
     total: number;
     page: number;
     limit: number;
   }>({
-    queryKey: ["/api/portal/assets", { search, assetType, sortBy, page }],
+    queryKey: ["/api/portal/assets", queryString],
+    queryFn: () => fetch(`/api/portal/assets?${queryString}`).then((r) => r.json()),
   });
 
   const totalPages = data ? Math.ceil(data.total / limit) : 0;

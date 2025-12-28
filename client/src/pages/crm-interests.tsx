@@ -36,13 +36,20 @@ export default function CrmInterests() {
   const limit = 25;
   const { toast } = useToast();
 
+  const queryParams = new URLSearchParams();
+  if (status && status !== "all") queryParams.set("status", status);
+  queryParams.set("page", String(page));
+  queryParams.set("limit", String(limit));
+  const queryString = queryParams.toString();
+
   const { data, isLoading } = useQuery<{
     interests: InvestorInterestWithDetails[];
     total: number;
     page: number;
     limit: number;
   }>({
-    queryKey: ["/api/crm/interests", { status, page, limit }],
+    queryKey: ["/api/crm/interests", queryString],
+    queryFn: () => fetch(`/api/crm/interests?${queryString}`).then((r) => r.json()),
   });
 
   const reviewMutation = useMutation({

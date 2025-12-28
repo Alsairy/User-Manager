@@ -29,8 +29,10 @@ const programTypeLabels: Record<string, string> = {
 };
 
 export default function PortalIstifada() {
+  const queryString = `investorAccountId=${DEMO_INVESTOR_ACCOUNT_ID}`;
   const { data: requests, isLoading } = useQuery<IstifadaRequestWithDetails[]>({
-    queryKey: ["/api/portal/istifada", { investorAccountId: DEMO_INVESTOR_ACCOUNT_ID }],
+    queryKey: ["/api/portal/istifada", queryString],
+    queryFn: () => fetch(`/api/portal/istifada?${queryString}`).then((r) => r.json()),
   });
 
   return (

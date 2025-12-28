@@ -19,8 +19,10 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 };
 
 export default function PortalInterests() {
+  const queryString = `investorAccountId=${DEMO_INVESTOR_ACCOUNT_ID}`;
   const { data: interests, isLoading } = useQuery<InvestorInterestWithDetails[]>({
-    queryKey: ["/api/portal/interests", { investorAccountId: DEMO_INVESTOR_ACCOUNT_ID }],
+    queryKey: ["/api/portal/interests", queryString],
+    queryFn: () => fetch(`/api/portal/interests?${queryString}`).then((r) => r.json()),
   });
 
   return (

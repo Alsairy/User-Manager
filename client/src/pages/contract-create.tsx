@@ -71,7 +71,8 @@ export default function ContractCreatePage() {
   const [step, setStep] = useState(1);
 
   const { data: assetsData, isLoading: isLoadingAssets } = useQuery<{ assets: AssetWithDetails[]; total: number }>({
-    queryKey: ["/api/assets/bank", { status: "approved", page: 1, limit: 100 }],
+    queryKey: ["/api/assets/bank", "status=approved&page=1&limit=100"],
+    queryFn: () => fetch("/api/assets/bank?status=approved&page=1&limit=100").then((r) => r.json()),
   });
 
   const { data: investors = [], isLoading: isLoadingInvestors } = useQuery<Investor[]>({

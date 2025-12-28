@@ -19,8 +19,10 @@ export default function PortalAssetDetail() {
     queryKey: ["/api/portal/assets", id],
   });
 
+  const favoriteCheckQuery = `investorAccountId=${DEMO_INVESTOR_ACCOUNT_ID}&assetId=${id}`;
   const { data: favoriteCheck } = useQuery<{ isFavorited: boolean }>({
-    queryKey: ["/api/portal/favorites/check", { investorAccountId: DEMO_INVESTOR_ACCOUNT_ID, assetId: id }],
+    queryKey: ["/api/portal/favorites/check", favoriteCheckQuery],
+    queryFn: () => fetch(`/api/portal/favorites/check?${favoriteCheckQuery}`).then((r) => r.json()),
     enabled: !!id,
   });
 
