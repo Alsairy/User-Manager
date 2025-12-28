@@ -170,6 +170,7 @@ export function AppSidebar() {
   const { toast } = useToast();
 
   const handleLogout = () => {
+    localStorage.removeItem("isLoggedIn");
     toast({
       title: "Logged out successfully",
       description: "You have been signed out of your account",
