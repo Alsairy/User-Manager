@@ -22,6 +22,7 @@ import {
   UserCheck,
   TrendingUp,
 } from "lucide-react";
+import madaresLogo from "@assets/madares_business_1766959895640.png";
 import {
   Sidebar,
   SidebarContent,
@@ -170,13 +171,12 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary">
-            <span className="text-lg font-bold text-primary-foreground">M</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">Madares Admin</span>
-            <span className="text-xs text-muted-foreground">User Management</span>
-          </div>
+          <img 
+            src={madaresLogo} 
+            alt="Madares Business" 
+            className="h-10 w-auto"
+            data-testid="img-logo"
+          />
         </div>
       </SidebarHeader>
       <SidebarSeparator />
