@@ -6,11 +6,14 @@ This is a comprehensive User Management System for the Madares Business platform
 
 ## Recent Changes (December 28, 2025)
 
+- Added complete ISNAD Workflow System with 9-stage approval process
+- Created ISNAD Forms pages: list with filtering/search, 3-step creation wizard, detail view with approve/reject/return dialogs
+- Implemented ISNAD Packages management with creation interface and executive review workflow
+- Added notifications dropdown in header with real-time notification display, mark as read, and error handling
+- Added updateIsnadFormSchema to prevent unauthorized status/stage mutations in update routes
+- Updated sidebar navigation with ISNAD Workflow section
 - Fixed user edit page to properly pre-populate all form fields (organization, work unit, role, status)
-- Fixed users list pagination API to return page and limit in response
 - Fixed query keys to use proper URL format with query parameters
-- Updated cache invalidation to use predicate matching for flexible query invalidation
-- Added loading states that wait for all dependent data before rendering forms
 
 ## User Preferences
 
