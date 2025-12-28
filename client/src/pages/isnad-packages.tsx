@@ -1,0 +1,474 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Search,
+  Plus,
+  Package,
+  Eye,
+  Send,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  DollarSign,
+  Building2,
+} from "lucide-react";
+import {
+  IsnadPackageWithDetails,
+  IsnadFormWithDetails,
+  packageStatusLabels,
+  PackageStatus,
+  PackagePriority,
+} from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+const statusColors: Record<PackageStatus, string> = {
+  draft: "bg-muted text-muted-foreground",
+  pending_ceo: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  ceo_approved: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  pending_minister: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  minister_approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  rejected_ceo: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  rejected_minister: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+};
+
+const priorityColors: Record<string, string> = {
+  low: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+  medium: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  high: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+};
+
+export default function IsnadPackagesPage() {
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const limit = 25;
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [packageName, setPackageName] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<PackagePriority>("medium");
+  const [selectedForms, setSelectedForms] = useState<string[]>([]);
+
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    ...(search && { search }),
+    ...(statusFilter !== "all" && { status: statusFilter }),
+  });
+
+  const { data, isLoading } = useQuery<{
+    packages: IsnadPackageWithDetails[];
+    total: number;
+    page: number;
+    limit: number;
+  }>({
+    queryKey: ["/api/isnad/packages", { page, search, statusFilter }],
+    queryFn: () => fetch(`/api/isnad/packages?${queryParams}`).then((r) => r.json()),
+  });
+
+  const { data: formsForPackaging, isLoading: loadingForms } = useQuery<IsnadFormWithDetails[]>({
+    queryKey: ["/api/isnad/forms-for-packaging"],
+    enabled: createOpen,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/isnad/packages", {
+        packageName,
+        description,
+        priority,
+        formIds: selectedForms,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Package created successfully" });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
+      setCreateOpen(false);
+      resetForm();
+    },
+    onError: () => {
+      toast({ title: "Failed to create package", variant: "destructive" });
+    },
+  });
+
+  const submitToCeoMutation = useMutation({
+    mutationFn: async (packageId: string) => {
+      return apiRequest("POST", `/api/isnad/packages/${packageId}/submit-ceo`);
+    },
+    onSuccess: () => {
+      toast({ title: "Package submitted to CEO for review" });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
+    },
+  });
+
+  const resetForm = () => {
+    setPackageName("");
+    setDescription("");
+    setPriority("medium");
+    setSelectedForms([]);
+  };
+
+  const toggleForm = (formId: string) => {
+    setSelectedForms((prev) =>
+      prev.includes(formId) ? prev.filter((id) => id !== formId) : [...prev, formId]
+    );
+  };
+
+  const totalPages = Math.ceil((data?.total || 0) / limit);
+
+  return (
+    <div className="p-6 space-y-6" data-testid="page-isnad-packages">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">ISNAD Packages</h1>
+          <p className="text-muted-foreground">Group approved assets for executive review</p>
+        </div>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button data-testid="button-create-package">
+              <Plus className="w-4 h-4 mr-2" />
+              New Package
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create Investment Package</DialogTitle>
+              <DialogDescription>Bundle approved ISNAD forms for CEO and Minister review</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="packageName">Package Name</Label>
+                <Input
+                  id="packageName"
+                  value={packageName}
+                  onChange={(e) => setPackageName(e.target.value)}
+                  placeholder="e.g., Q1 2025 Investment Package"
+                  data-testid="input-package-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Brief description of the package..."
+                  data-testid="input-package-description"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select value={priority} onValueChange={(v) => setPriority(v as PackagePriority)}>
+                  <SelectTrigger data-testid="select-priority">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Select Approved ISNAD Forms</Label>
+                {loadingForms ? (
+                  <Skeleton className="h-32 w-full" />
+                ) : formsForPackaging && formsForPackaging.length > 0 ? (
+                  <div className="border rounded-md max-h-60 overflow-auto">
+                    {formsForPackaging.map((form) => (
+                      <div
+                        key={form.id}
+                        className="flex items-center gap-3 p-3 border-b last:border-b-0 hover-elevate"
+                        data-testid={`form-option-${form.id}`}
+                      >
+                        <Checkbox
+                          checked={selectedForms.includes(form.id)}
+                          onCheckedChange={() => toggleForm(form.id)}
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium">{form.asset?.assetNameEn}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {form.formCode} - {form.asset?.assetType}
+                          </p>
+                        </div>
+                        {form.financialAnalysis && (
+                          <span className="text-sm text-muted-foreground">
+                            SAR {form.financialAnalysis.currentValuation.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="border rounded-md p-8 text-center text-muted-foreground">
+                    <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No approved forms available for packaging</p>
+                    <p className="text-sm">Forms must be approved by Investment Agency to be packaged</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button
+                onClick={() => createMutation.mutate()}
+                disabled={createMutation.isPending || !packageName || selectedForms.length === 0}
+                data-testid="button-confirm-create"
+              >
+                Create Package
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-muted rounded-md">
+                <Package className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">{data?.total || 0}</p>
+                <p className="text-sm text-muted-foreground">Total Packages</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-md">
+                <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">
+                  {data?.packages?.filter((p) => p.status === "pending_ceo").length || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">Pending CEO</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-md">
+                <Send className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">
+                  {data?.packages?.filter((p) => p.status === "ceo_approved" || p.status === "pending_minister").length || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">Pending Minister</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-md">
+                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">
+                  {data?.packages?.filter((p) => p.status === "minister_approved").length || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">Approved</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">All Packages</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-4">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by package code or name..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-10"
+                data-testid="input-search"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[180px]" data-testid="select-status-filter">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="pending_ceo">Pending CEO</SelectItem>
+                <SelectItem value="ceo_approved">CEO Approved</SelectItem>
+                <SelectItem value="pending_minister">Pending Minister</SelectItem>
+                <SelectItem value="minister_approved">Approved</SelectItem>
+                <SelectItem value="rejected_ceo">Rejected by CEO</SelectItem>
+                <SelectItem value="rejected_minister">Rejected by Minister</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isLoading ? (
+            <div className="space-y-2">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Package Code</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Assets</TableHead>
+                    <TableHead>Total Value</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[120px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data?.packages?.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>No packages found</p>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    data?.packages?.map((pkg) => (
+                      <TableRow key={pkg.id} data-testid={`row-package-${pkg.id}`}>
+                        <TableCell>
+                          <span className="font-mono font-medium">{pkg.packageCode}</span>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium">{pkg.packageName}</p>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Building2 className="w-4 h-4 text-muted-foreground" />
+                            <span>{pkg.totalAssets}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="w-4 h-4 text-muted-foreground" />
+                            <span>SAR {pkg.totalValuation.toLocaleString()}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={priorityColors[pkg.priority] || priorityColors.medium}>
+                            {pkg.priority}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={statusColors[pkg.status]}>
+                            {packageStatusLabels[pkg.status]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" data-testid={`button-view-${pkg.id}`}>
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {pkg.status === "draft" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => submitToCeoMutation.mutate(pkg.id)}
+                                disabled={submitToCeoMutation.isPending}
+                                data-testid={`button-submit-${pkg.id}`}
+                              >
+                                <Send className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, data?.total || 0)} of {data?.total || 0} packages
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                  data-testid="button-prev-page"
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(page + 1)}
+                  data-testid="button-next-page"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

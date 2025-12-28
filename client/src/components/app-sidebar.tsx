@@ -9,6 +9,8 @@ import {
   FileText,
   Building2,
   CheckSquare,
+  FileCheck2,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -63,6 +65,19 @@ const assetNavItems = [
     title: "Asset Bank",
     url: "/assets/bank",
     icon: Building2,
+  },
+];
+
+const isnadNavItems = [
+  {
+    title: "ISNAD Forms",
+    url: "/isnad/forms",
+    icon: FileCheck2,
+  },
+  {
+    title: "ISNAD Packages",
+    url: "/isnad/packages",
+    icon: Package,
   },
 ];
 
@@ -121,6 +136,28 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {assetNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === item.url || location.startsWith(item.url + "/")}
+                  >
+                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs uppercase tracking-wide">
+            ISNAD Workflow
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {isnadNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild

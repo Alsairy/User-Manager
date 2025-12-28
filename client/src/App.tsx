@@ -18,6 +18,10 @@ import AssetCreate from "@/pages/asset-create";
 import AssetBank from "@/pages/asset-bank";
 import AssetBankDetail from "@/pages/asset-bank-detail";
 import ReviewQueue from "@/pages/review-queue";
+import IsnadForms from "@/pages/isnad-forms";
+import IsnadFormCreate from "@/pages/isnad-form-create";
+import IsnadFormDetail from "@/pages/isnad-form-detail";
+import IsnadPackages from "@/pages/isnad-packages";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -35,6 +39,10 @@ function Router() {
       <Route path="/assets/reviews" component={ReviewQueue} />
       <Route path="/assets/bank" component={AssetBank} />
       <Route path="/assets/bank/:id" component={AssetBankDetail} />
+      <Route path="/isnad/forms" component={IsnadForms} />
+      <Route path="/isnad/forms/new" component={IsnadFormCreate} />
+      <Route path="/isnad/forms/:id" component={IsnadFormDetail} />
+      <Route path="/isnad/packages" component={IsnadPackages} />
       <Route component={NotFound} />
     </Switch>
   );

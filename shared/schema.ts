@@ -507,3 +507,463 @@ export interface ReviewQueueItem {
   slaStatus: "on_time" | "warning" | "urgent" | "overdue";
   submittedDate: string;
 }
+
+// =============================================================================
+// ISNAD Workflow System Types & Schemas
+// =============================================================================
+
+export const isnadStatusEnum = [
+  "draft",
+  "submitted",
+  "in_department_review",
+  "investment_agency_review",
+  "in_package",
+  "pending_ceo",
+  "pending_minister",
+  "approved",
+  "rejected",
+  "returned",
+  "cancelled",
+] as const;
+export type IsnadStatus = (typeof isnadStatusEnum)[number];
+
+export const isnadStatusLabels: Record<IsnadStatus, string> = {
+  draft: "Draft",
+  submitted: "Submitted",
+  in_department_review: "In Department Review",
+  investment_agency_review: "Investment Agency Review",
+  in_package: "In Executive Package",
+  pending_ceo: "Pending CEO Approval",
+  pending_minister: "Pending Minister Approval",
+  approved: "Approved for Investment",
+  rejected: "Rejected",
+  returned: "Returned for Modification",
+  cancelled: "Cancelled",
+};
+
+export const isnadStageEnum = [
+  "ip_initiation",
+  "school_planning",
+  "asset_management",
+  "shared_services",
+  "education_dept",
+  "investment_agency",
+  "tbc_packaging",
+  "ceo_approval",
+  "minister_approval",
+] as const;
+export type IsnadStage = (typeof isnadStageEnum)[number];
+
+export const isnadStageLabels: Record<IsnadStage, string> = {
+  ip_initiation: "I&P Initiation",
+  school_planning: "School Planning Review",
+  asset_management: "Asset Management Review",
+  shared_services: "Shared Services Review",
+  education_dept: "Education Dept Review",
+  investment_agency: "Investment Agency Approval",
+  tbc_packaging: "TBC Packaging",
+  ceo_approval: "CEO Approval",
+  minister_approval: "Minister Approval",
+};
+
+export const isnadActionEnum = [
+  "created",
+  "submitted",
+  "approved",
+  "rejected",
+  "returned",
+  "request_info",
+  "info_provided",
+  "cancelled",
+  "packaged",
+] as const;
+export type IsnadAction = (typeof isnadActionEnum)[number];
+
+export const isnadActionLabels: Record<IsnadAction, string> = {
+  created: "Created",
+  submitted: "Submitted for Review",
+  approved: "Approved",
+  rejected: "Rejected",
+  returned: "Returned for Modification",
+  request_info: "Additional Info Requested",
+  info_provided: "Information Provided",
+  cancelled: "Cancelled",
+  packaged: "Added to Package",
+};
+
+export const slaStatusEnum = ["on_time", "warning", "urgent", "overdue"] as const;
+export type SlaStatus = (typeof slaStatusEnum)[number];
+
+export const slaDaysConfig: Record<IsnadStage, number> = {
+  ip_initiation: 0,
+  school_planning: 5,
+  asset_management: 5,
+  shared_services: 5,
+  education_dept: 5,
+  investment_agency: 7,
+  tbc_packaging: 0,
+  ceo_approval: 3,
+  minister_approval: 5,
+};
+
+export interface InvestmentCriteria {
+  investmentPurpose: string;
+  revenueProjection: string;
+  projectTimeline: string;
+  requiredModifications: string;
+  complianceRequirements: string;
+  riskAssessment: string;
+}
+
+export interface TechnicalAssessment {
+  structuralCondition: string;
+  utilitiesAvailability: string;
+  accessInfrastructure: string;
+  environmentalConsiderations: string;
+  zoningCompliance: string;
+}
+
+export interface FinancialAnalysis {
+  currentValuation: number;
+  outstandingDues: number;
+  maintenanceCosts: number;
+  expectedReturns: number;
+  breakEvenAnalysis: string;
+}
+
+export interface IsnadForm {
+  id: string;
+  formCode: string;
+  assetId: string;
+  status: IsnadStatus;
+  currentStage: IsnadStage;
+  currentAssigneeId: string | null;
+  investmentCriteria: InvestmentCriteria | null;
+  technicalAssessment: TechnicalAssessment | null;
+  financialAnalysis: FinancialAnalysis | null;
+  attachments: string[];
+  submittedAt: string | null;
+  completedAt: string | null;
+  returnCount: number;
+  slaDeadline: string | null;
+  slaStatus: SlaStatus | null;
+  packageId: string | null;
+  cancellationReason: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IsnadFormWithDetails extends IsnadForm {
+  asset?: AssetWithDetails;
+  createdByUser?: User;
+  currentAssignee?: User;
+  approvalHistory?: IsnadApproval[];
+}
+
+export interface IsnadApproval {
+  id: string;
+  formId: string;
+  stage: IsnadStage;
+  approverId: string;
+  approverRole: string | null;
+  action: IsnadAction;
+  comments: string | null;
+  rejectionReason: string | null;
+  rejectionJustification: string | null;
+  attachments: string[];
+  assignedAt: string;
+  actionTakenAt: string | null;
+  durationHours: number | null;
+  slaCompliant: boolean | null;
+  createdAt: string;
+}
+
+export interface IsnadApprovalWithDetails extends IsnadApproval {
+  approver?: User;
+}
+
+export const insertIsnadFormSchema = z.object({
+  assetId: z.string().min(1, "Asset is required"),
+  investmentCriteria: z.object({
+    investmentPurpose: z.string().min(1, "Investment purpose is required"),
+    revenueProjection: z.string().optional().default(""),
+    projectTimeline: z.string().min(1, "Project timeline is required"),
+    requiredModifications: z.string().optional().default(""),
+    complianceRequirements: z.string().optional().default(""),
+    riskAssessment: z.string().min(1, "Risk assessment is required"),
+  }).optional(),
+  technicalAssessment: z.object({
+    structuralCondition: z.string().optional().default(""),
+    utilitiesAvailability: z.string().optional().default(""),
+    accessInfrastructure: z.string().optional().default(""),
+    environmentalConsiderations: z.string().optional().default(""),
+    zoningCompliance: z.string().optional().default(""),
+  }).optional(),
+  financialAnalysis: z.object({
+    currentValuation: z.number().min(0).default(0),
+    outstandingDues: z.number().min(0).default(0),
+    maintenanceCosts: z.number().min(0).default(0),
+    expectedReturns: z.number().min(0).default(0),
+    breakEvenAnalysis: z.string().optional().default(""),
+  }).optional(),
+});
+
+export type InsertIsnadForm = z.infer<typeof insertIsnadFormSchema>;
+
+export const isnadReviewActionSchema = z.object({
+  action: z.enum(["approve", "reject", "return", "request_info", "info_provided"]),
+  comments: z.string().optional(),
+  rejectionReason: z.string().optional(),
+  rejectionJustification: z.string().min(50, "Justification must be at least 50 characters").optional(),
+});
+
+export type IsnadReviewAction = z.infer<typeof isnadReviewActionSchema>;
+
+export const updateIsnadFormSchema = z.object({
+  investmentCriteria: z.object({
+    investmentPurpose: z.string(),
+    revenueProjection: z.string(),
+    projectTimeline: z.string(),
+    requiredModifications: z.string(),
+    complianceRequirements: z.string(),
+    riskAssessment: z.string(),
+  }).optional(),
+  technicalAssessment: z.object({
+    infrastructureCondition: z.string(),
+    accessibilityScore: z.number(),
+    utilityStatus: z.string(),
+    environmentalCompliance: z.boolean(),
+    safetyCompliance: z.boolean(),
+    requiredUpgrades: z.string().array(),
+  }).optional(),
+  financialAnalysis: z.object({
+    currentValuation: z.number(),
+    outstandingDues: z.number(),
+    maintenanceCosts: z.number(),
+    expectedReturns: z.number(),
+    breakEvenAnalysis: z.string(),
+  }).optional(),
+  attachments: z.array(z.object({
+    url: z.string(),
+    fileName: z.string(),
+    fileType: z.string(),
+    uploadedAt: z.string(),
+    uploadedBy: z.string(),
+  })).optional(),
+});
+
+export type UpdateIsnadForm = z.infer<typeof updateIsnadFormSchema>;
+
+export const isnadFiltersSchema = z.object({
+  search: z.string().optional(),
+  status: z.enum([...isnadStatusEnum, "all"]).optional(),
+  stage: z.enum([...isnadStageEnum, "all"]).optional(),
+  assetId: z.string().optional(),
+  createdBy: z.string().optional(),
+  assigneeId: z.string().optional(),
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(25),
+});
+
+export type IsnadFilters = z.infer<typeof isnadFiltersSchema>;
+
+// =============================================================================
+// ISNAD Package Types & Schemas
+// =============================================================================
+
+export const packageStatusEnum = [
+  "draft",
+  "pending_ceo",
+  "ceo_approved",
+  "pending_minister",
+  "minister_approved",
+  "rejected_ceo",
+  "rejected_minister",
+] as const;
+export type PackageStatus = (typeof packageStatusEnum)[number];
+
+export const packageStatusLabels: Record<PackageStatus, string> = {
+  draft: "Draft",
+  pending_ceo: "Pending CEO Approval",
+  ceo_approved: "CEO Approved",
+  pending_minister: "Pending Minister Approval",
+  minister_approved: "Minister Approved",
+  rejected_ceo: "Rejected by CEO",
+  rejected_minister: "Rejected by Minister",
+};
+
+export const packagePriorityEnum = ["high", "medium", "low"] as const;
+export type PackagePriority = (typeof packagePriorityEnum)[number];
+
+export interface IsnadPackage {
+  id: string;
+  packageCode: string;
+  packageName: string;
+  description: string | null;
+  investmentStrategy: string | null;
+  priority: PackagePriority;
+  status: PackageStatus;
+  expectedRevenue: number;
+  totalValuation: number;
+  totalAssets: number;
+  ceoApprovedAt: string | null;
+  ceoComments: string | null;
+  ministerApprovedAt: string | null;
+  ministerComments: string | null;
+  rejectionReason: string | null;
+  packageDocumentUrl: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export interface PackageAsset {
+  id: string;
+  packageId: string;
+  assetId: string;
+  formId: string;
+  addedAt: string;
+}
+
+export interface IsnadPackageWithDetails extends IsnadPackage {
+  createdByUser?: User;
+  assets?: AssetWithDetails[];
+  forms?: IsnadFormWithDetails[];
+}
+
+export const insertPackageSchema = z.object({
+  packageName: z.string().min(1, "Package name is required"),
+  description: z.string().optional(),
+  investmentStrategy: z.string().optional(),
+  priority: z.enum(packagePriorityEnum).default("medium"),
+  formIds: z.array(z.string()).min(1, "At least one ISNAD form is required"),
+});
+
+export type InsertPackage = z.infer<typeof insertPackageSchema>;
+
+export const packageReviewSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+  comments: z.string().optional(),
+  rejectionReason: z.string().optional(),
+});
+
+export type PackageReview = z.infer<typeof packageReviewSchema>;
+
+export const packageFiltersSchema = z.object({
+  search: z.string().optional(),
+  status: z.enum([...packageStatusEnum, "all"]).optional(),
+  priority: z.enum([...packagePriorityEnum, "all"]).optional(),
+  createdBy: z.string().optional(),
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(25),
+});
+
+export type PackageFilters = z.infer<typeof packageFiltersSchema>;
+
+// =============================================================================
+// Notification System Types & Schemas
+// =============================================================================
+
+export const notificationTypeEnum = [
+  "form_submitted",
+  "approval_needed",
+  "form_approved",
+  "form_rejected",
+  "form_returned",
+  "info_requested",
+  "sla_warning",
+  "sla_urgent",
+  "sla_overdue",
+  "package_created",
+  "package_approved",
+  "package_rejected",
+  "comment_added",
+  "assigned_reviewer",
+] as const;
+export type NotificationType = (typeof notificationTypeEnum)[number];
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string | null;
+  formId: string | null;
+  packageId: string | null;
+  assetId: string | null;
+  actionUrl: string | null;
+  read: boolean;
+  readAt: string | null;
+  emailSent: boolean;
+  emailSentAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationWithDetails extends Notification {
+  form?: IsnadForm;
+  package?: IsnadPackage;
+  asset?: Asset;
+}
+
+export const notificationFiltersSchema = z.object({
+  type: z.enum([...notificationTypeEnum, "all"]).optional(),
+  read: z.boolean().optional(),
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(25),
+});
+
+export type NotificationFilters = z.infer<typeof notificationFiltersSchema>;
+
+// =============================================================================
+// Dashboard Types for ISNAD
+// =============================================================================
+
+export interface IsnadDashboardStats {
+  totalForms: number;
+  draftForms: number;
+  inReviewForms: number;
+  approvedForms: number;
+  rejectedForms: number;
+  returnedForms: number;
+  pendingMyAction: number;
+  byStage: Record<IsnadStage, number>;
+  slaCompliance: {
+    onTime: number;
+    warning: number;
+    urgent: number;
+    overdue: number;
+  };
+  recentForms: IsnadFormWithDetails[];
+}
+
+export interface PackageDashboardStats {
+  totalPackages: number;
+  draftPackages: number;
+  pendingCeo: number;
+  pendingMinister: number;
+  approved: number;
+  rejected: number;
+  totalValueApproved: number;
+  recentPackages: IsnadPackageWithDetails[];
+}
+
+export interface IsnadReviewQueueItem {
+  form: IsnadFormWithDetails;
+  daysPending: number;
+  slaStatus: SlaStatus;
+  submittedDate: string;
+}
+
+export interface ExecutiveDashboardStats {
+  pendingPackages: number;
+  approvedPackages: number;
+  rejectedPackages: number;
+  totalApprovedValue: number;
+  totalApprovedAssets: number;
+  averageApprovalTime: number;
+  recentDecisions: IsnadPackageWithDetails[];
+}

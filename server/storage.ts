@@ -32,8 +32,29 @@ import type {
   WorkflowAction,
   AssetDashboardStats,
   ReviewQueueItem,
+  IsnadForm,
+  IsnadFormWithDetails,
+  InsertIsnadForm,
+  IsnadApproval,
+  IsnadFilters,
+  IsnadStage,
+  IsnadAction,
+  IsnadReviewAction,
+  IsnadDashboardStats,
+  IsnadReviewQueueItem,
+  IsnadPackage,
+  IsnadPackageWithDetails,
+  InsertPackage,
+  PackageAsset,
+  PackageFilters,
+  PackageReview,
+  PackageDashboardStats,
+  Notification,
+  NotificationFilters,
+  NotificationType,
+  SlaStatus,
 } from "@shared/schema";
-import { permissionGroups, workflowStageEnum } from "@shared/schema";
+import { permissionGroups, workflowStageEnum, isnadStageEnum, slaDaysConfig } from "@shared/schema";
 
 export interface IStorage {
   getUser(id: string): Promise<UserWithDetails | undefined>;
@@ -115,6 +136,36 @@ export interface IStorage {
 
   generateAssetCode(): Promise<string>;
   checkDuplicateAssetName(nameAr: string, nameEn: string, districtId: string, excludeId?: string): Promise<boolean>;
+
+  // ISNAD Form Methods
+  getIsnadForm(id: string): Promise<IsnadFormWithDetails | undefined>;
+  getIsnadForms(filters: IsnadFilters): Promise<{ forms: IsnadFormWithDetails[]; total: number }>;
+  createIsnadForm(form: InsertIsnadForm, createdBy: string): Promise<IsnadForm>;
+  updateIsnadForm(id: string, updates: Partial<IsnadForm>): Promise<IsnadForm | undefined>;
+  submitIsnadForm(id: string): Promise<IsnadForm | undefined>;
+  processIsnadAction(id: string, reviewerId: string, action: IsnadReviewAction): Promise<IsnadForm | undefined>;
+  cancelIsnadForm(id: string, userId: string, reason: string): Promise<IsnadForm | undefined>;
+  getIsnadReviewQueue(stage: IsnadStage): Promise<IsnadReviewQueueItem[]>;
+  getIsnadDashboardStats(userId?: string): Promise<IsnadDashboardStats>;
+  getIsnadApprovals(formId: string): Promise<IsnadApproval[]>;
+  generateIsnadCode(): Promise<string>;
+
+  // ISNAD Package Methods
+  getPackage(id: string): Promise<IsnadPackageWithDetails | undefined>;
+  getPackages(filters: PackageFilters): Promise<{ packages: IsnadPackageWithDetails[]; total: number }>;
+  createPackage(pkg: InsertPackage, createdBy: string): Promise<IsnadPackage>;
+  updatePackage(id: string, updates: Partial<IsnadPackage>): Promise<IsnadPackage | undefined>;
+  submitPackageToCeo(id: string): Promise<IsnadPackage | undefined>;
+  processPackageReview(id: string, reviewerId: string, reviewerRole: "ceo" | "minister", action: PackageReview): Promise<IsnadPackage | undefined>;
+  getPackageDashboardStats(): Promise<PackageDashboardStats>;
+  getApprovedFormsForPackaging(): Promise<IsnadFormWithDetails[]>;
+  generatePackageCode(): Promise<string>;
+
+  // Notification Methods
+  getNotifications(userId: string, filters: NotificationFilters): Promise<{ notifications: Notification[]; total: number; unreadCount: number }>;
+  createNotification(notification: Omit<Notification, "id" | "createdAt" | "read" | "readAt" | "emailSent" | "emailSentAt">): Promise<Notification>;
+  markNotificationRead(id: string): Promise<Notification | undefined>;
+  markAllNotificationsRead(userId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -134,6 +185,13 @@ export class MemStorage implements IStorage {
   private assetVisibilityHistory: Map<string, AssetVisibilityHistory>;
   private assetComments: Map<string, AssetComment>;
   private assetCodeCounter: number;
+  private isnadForms: Map<string, IsnadForm>;
+  private isnadApprovals: Map<string, IsnadApproval>;
+  private isnadPackages: Map<string, IsnadPackage>;
+  private packageAssets: Map<string, PackageAsset>;
+  private notifications: Map<string, Notification>;
+  private isnadCodeCounter: number;
+  private packageCodeCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -152,6 +210,13 @@ export class MemStorage implements IStorage {
     this.assetVisibilityHistory = new Map();
     this.assetComments = new Map();
     this.assetCodeCounter = 1000;
+    this.isnadForms = new Map();
+    this.isnadApprovals = new Map();
+    this.isnadPackages = new Map();
+    this.packageAssets = new Map();
+    this.notifications = new Map();
+    this.isnadCodeCounter = 1000;
+    this.packageCodeCounter = 100;
 
     this.seedData();
   }
@@ -1420,6 +1485,681 @@ export class MemStorage implements IStorage {
         a.districtId === districtId &&
         (a.assetNameAr === nameAr || a.assetNameEn.toLowerCase() === nameEn.toLowerCase())
     );
+  }
+
+  // ISNAD Form Methods
+  private enrichIsnadForm(form: IsnadForm): IsnadFormWithDetails {
+    const asset = this.assets.get(form.assetId);
+    const createdByUser = this.users.get(form.createdBy);
+    const currentAssignee = form.currentAssigneeId ? this.users.get(form.currentAssigneeId) : undefined;
+    const approvalHistory = Array.from(this.isnadApprovals.values())
+      .filter((a) => a.formId === form.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return {
+      ...form,
+      asset: asset ? this.enrichAsset(asset) : undefined,
+      createdByUser,
+      currentAssignee,
+      approvalHistory,
+    };
+  }
+
+  async getIsnadForm(id: string): Promise<IsnadFormWithDetails | undefined> {
+    const form = this.isnadForms.get(id);
+    if (!form) return undefined;
+    return this.enrichIsnadForm(form);
+  }
+
+  async getIsnadForms(filters: IsnadFilters): Promise<{ forms: IsnadFormWithDetails[]; total: number }> {
+    let forms = Array.from(this.isnadForms.values());
+
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      forms = forms.filter((f) => {
+        const asset = this.assets.get(f.assetId);
+        return (
+          f.formCode.toLowerCase().includes(search) ||
+          (asset && (asset.assetNameEn.toLowerCase().includes(search) || asset.assetNameAr.includes(search)))
+        );
+      });
+    }
+
+    if (filters.status && filters.status !== "all") {
+      forms = forms.filter((f) => f.status === filters.status);
+    }
+
+    if (filters.stage && filters.stage !== "all") {
+      forms = forms.filter((f) => f.currentStage === filters.stage);
+    }
+
+    if (filters.assetId) {
+      forms = forms.filter((f) => f.assetId === filters.assetId);
+    }
+
+    if (filters.createdBy) {
+      forms = forms.filter((f) => f.createdBy === filters.createdBy);
+    }
+
+    if (filters.assigneeId) {
+      forms = forms.filter((f) => f.currentAssigneeId === filters.assigneeId);
+    }
+
+    forms.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const total = forms.length;
+    const start = (filters.page - 1) * filters.limit;
+    const paginatedForms = forms.slice(start, start + filters.limit);
+
+    return { forms: paginatedForms.map((f) => this.enrichIsnadForm(f)), total };
+  }
+
+  async createIsnadForm(insertForm: InsertIsnadForm, createdBy: string): Promise<IsnadForm> {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    const formCode = await this.generateIsnadCode();
+
+    const form: IsnadForm = {
+      id,
+      formCode,
+      assetId: insertForm.assetId,
+      status: "draft",
+      currentStage: "ip_initiation",
+      currentAssigneeId: createdBy,
+      investmentCriteria: insertForm.investmentCriteria || null,
+      technicalAssessment: insertForm.technicalAssessment || null,
+      financialAnalysis: insertForm.financialAnalysis || null,
+      attachments: [],
+      submittedAt: null,
+      completedAt: null,
+      returnCount: 0,
+      slaDeadline: null,
+      slaStatus: null,
+      packageId: null,
+      cancellationReason: null,
+      cancelledAt: null,
+      cancelledBy: null,
+      createdBy,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.isnadForms.set(id, form);
+
+    const asset = this.assets.get(insertForm.assetId);
+    if (asset) {
+      asset.hasActiveIsnad = true;
+      this.assets.set(asset.id, asset);
+    }
+
+    return form;
+  }
+
+  async updateIsnadForm(id: string, updates: Partial<IsnadForm>): Promise<IsnadForm | undefined> {
+    const form = this.isnadForms.get(id);
+    if (!form) return undefined;
+
+    const updatedForm: IsnadForm = {
+      ...form,
+      ...updates,
+      id: form.id,
+      formCode: form.formCode,
+      createdBy: form.createdBy,
+      createdAt: form.createdAt,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.isnadForms.set(id, updatedForm);
+    return updatedForm;
+  }
+
+  async submitIsnadForm(id: string): Promise<IsnadForm | undefined> {
+    const form = this.isnadForms.get(id);
+    if (!form || form.status !== "draft") return undefined;
+
+    const now = new Date().toISOString();
+    const slaDays = slaDaysConfig.school_planning;
+    const slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
+
+    form.status = "submitted";
+    form.currentStage = "school_planning";
+    form.submittedAt = now;
+    form.slaDeadline = slaDeadline;
+    form.slaStatus = "on_time";
+    form.updatedAt = now;
+
+    this.isnadForms.set(id, form);
+
+    const approvalId = randomUUID();
+    this.isnadApprovals.set(approvalId, {
+      id: approvalId,
+      formId: id,
+      stage: "ip_initiation",
+      approverId: form.createdBy,
+      approverRole: "I&P",
+      action: "submitted",
+      comments: null,
+      rejectionReason: null,
+      rejectionJustification: null,
+      attachments: [],
+      assignedAt: now,
+      actionTakenAt: now,
+      durationHours: 0,
+      slaCompliant: true,
+      createdAt: now,
+    });
+
+    return form;
+  }
+
+  private getNextIsnadStage(currentStage: IsnadStage): IsnadStage | null {
+    const stageOrder: IsnadStage[] = [
+      "ip_initiation",
+      "school_planning",
+      "asset_management",
+      "shared_services",
+      "education_dept",
+      "investment_agency",
+    ];
+    const currentIndex = stageOrder.indexOf(currentStage);
+    if (currentIndex < 0 || currentIndex >= stageOrder.length - 1) return null;
+    return stageOrder[currentIndex + 1];
+  }
+
+  async processIsnadAction(id: string, reviewerId: string, action: IsnadReviewAction): Promise<IsnadForm | undefined> {
+    const form = this.isnadForms.get(id);
+    if (!form || form.status === "draft" || form.status === "approved" || form.status === "rejected" || form.status === "cancelled") {
+      return undefined;
+    }
+
+    const now = new Date().toISOString();
+    const reviewer = this.users.get(reviewerId);
+
+    const approvalId = randomUUID();
+    const approval: IsnadApproval = {
+      id: approvalId,
+      formId: id,
+      stage: form.currentStage,
+      approverId: reviewerId,
+      approverRole: reviewer?.email || null,
+      action: action.action as IsnadAction,
+      comments: action.comments || null,
+      rejectionReason: action.rejectionReason || null,
+      rejectionJustification: action.rejectionJustification || null,
+      attachments: [],
+      assignedAt: form.updatedAt,
+      actionTakenAt: now,
+      durationHours: (new Date(now).getTime() - new Date(form.updatedAt).getTime()) / (1000 * 60 * 60),
+      slaCompliant: form.slaStatus !== "overdue",
+      createdAt: now,
+    };
+    this.isnadApprovals.set(approvalId, approval);
+
+    if (action.action === "approve") {
+      const nextStage = this.getNextIsnadStage(form.currentStage);
+      if (nextStage) {
+        form.currentStage = nextStage;
+        form.status = nextStage === "investment_agency" ? "investment_agency_review" : "in_department_review";
+        const slaDays = slaDaysConfig[nextStage];
+        form.slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
+        form.slaStatus = "on_time";
+      } else {
+        form.status = "approved";
+        form.currentStage = "investment_agency";
+        form.completedAt = now;
+        form.slaDeadline = null;
+        form.slaStatus = null;
+      }
+    } else if (action.action === "reject") {
+      form.status = "rejected";
+      form.completedAt = now;
+      form.slaDeadline = null;
+      form.slaStatus = null;
+
+      const asset = this.assets.get(form.assetId);
+      if (asset) {
+        asset.hasActiveIsnad = false;
+        this.assets.set(asset.id, asset);
+      }
+    } else if (action.action === "return") {
+      form.status = "returned";
+      form.currentStage = "ip_initiation";
+      form.returnCount += 1;
+      form.slaDeadline = null;
+      form.slaStatus = null;
+    } else if (action.action === "request_info") {
+      form.slaDeadline = null;
+      form.slaStatus = null;
+    } else if (action.action === "info_provided") {
+      const slaDays = slaDaysConfig[form.currentStage];
+      form.slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
+      form.slaStatus = "on_time";
+    }
+
+    form.updatedAt = now;
+    this.isnadForms.set(id, form);
+    return form;
+  }
+
+  async cancelIsnadForm(id: string, userId: string, reason: string): Promise<IsnadForm | undefined> {
+    const form = this.isnadForms.get(id);
+    if (!form || form.status === "approved" || form.status === "cancelled") return undefined;
+
+    const now = new Date().toISOString();
+    form.status = "cancelled";
+    form.cancellationReason = reason;
+    form.cancelledAt = now;
+    form.cancelledBy = userId;
+    form.updatedAt = now;
+
+    this.isnadForms.set(id, form);
+
+    const asset = this.assets.get(form.assetId);
+    if (asset) {
+      asset.hasActiveIsnad = false;
+      this.assets.set(asset.id, asset);
+    }
+
+    return form;
+  }
+
+  async getIsnadReviewQueue(stage: IsnadStage): Promise<IsnadReviewQueueItem[]> {
+    const forms = Array.from(this.isnadForms.values()).filter(
+      (f) => (f.status === "submitted" || f.status === "in_department_review" || f.status === "investment_agency_review") && f.currentStage === stage
+    );
+
+    const now = new Date();
+    const slaDays = slaDaysConfig[stage] || 5;
+
+    return forms.map((form) => {
+      const submittedDate = form.submittedAt || form.createdAt;
+      const daysPending = Math.ceil((now.getTime() - new Date(submittedDate).getTime()) / (1000 * 60 * 60 * 24));
+      const slaPercent = (daysPending / slaDays) * 100;
+
+      let slaStatus: SlaStatus;
+      if (slaPercent > 100) slaStatus = "overdue";
+      else if (slaPercent > 80) slaStatus = "urgent";
+      else if (slaPercent > 50) slaStatus = "warning";
+      else slaStatus = "on_time";
+
+      return {
+        form: this.enrichIsnadForm(form),
+        daysPending,
+        slaStatus,
+        submittedDate,
+      };
+    });
+  }
+
+  async getIsnadDashboardStats(userId?: string): Promise<IsnadDashboardStats> {
+    let forms = Array.from(this.isnadForms.values());
+
+    if (userId) {
+      forms = forms.filter((f) => f.createdBy === userId);
+    }
+
+    const byStage: Record<IsnadStage, number> = {} as Record<IsnadStage, number>;
+    for (const stage of isnadStageEnum) {
+      byStage[stage] = forms.filter((f) => f.currentStage === stage).length;
+    }
+
+    const slaCompliance = {
+      onTime: forms.filter((f) => f.slaStatus === "on_time").length,
+      warning: forms.filter((f) => f.slaStatus === "warning").length,
+      urgent: forms.filter((f) => f.slaStatus === "urgent").length,
+      overdue: forms.filter((f) => f.slaStatus === "overdue").length,
+    };
+
+    return {
+      totalForms: forms.length,
+      draftForms: forms.filter((f) => f.status === "draft").length,
+      inReviewForms: forms.filter((f) => ["submitted", "in_department_review", "investment_agency_review"].includes(f.status)).length,
+      approvedForms: forms.filter((f) => f.status === "approved").length,
+      rejectedForms: forms.filter((f) => f.status === "rejected").length,
+      returnedForms: forms.filter((f) => f.status === "returned").length,
+      pendingMyAction: 0,
+      byStage,
+      slaCompliance,
+      recentForms: forms.slice(0, 5).map((f) => this.enrichIsnadForm(f)),
+    };
+  }
+
+  async getIsnadApprovals(formId: string): Promise<IsnadApproval[]> {
+    return Array.from(this.isnadApprovals.values())
+      .filter((a) => a.formId === formId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async generateIsnadCode(): Promise<string> {
+    const year = new Date().getFullYear();
+    const code = `ISNAD-${year}-${String(this.isnadCodeCounter).padStart(4, "0")}`;
+    this.isnadCodeCounter++;
+    return code;
+  }
+
+  // ISNAD Package Methods
+  private enrichPackage(pkg: IsnadPackage): IsnadPackageWithDetails {
+    const createdByUser = this.users.get(pkg.createdBy);
+    const packageAssetsRecs = Array.from(this.packageAssets.values()).filter((pa) => pa.packageId === pkg.id);
+    const assets = packageAssetsRecs.map((pa) => this.assets.get(pa.assetId)).filter(Boolean) as Asset[];
+    const forms = packageAssetsRecs.map((pa) => this.isnadForms.get(pa.formId)).filter(Boolean) as IsnadForm[];
+
+    return {
+      ...pkg,
+      createdByUser,
+      assets: assets.map((a) => this.enrichAsset(a)),
+      forms: forms.map((f) => this.enrichIsnadForm(f)),
+    };
+  }
+
+  async getPackage(id: string): Promise<IsnadPackageWithDetails | undefined> {
+    const pkg = this.isnadPackages.get(id);
+    if (!pkg) return undefined;
+    return this.enrichPackage(pkg);
+  }
+
+  async getPackages(filters: PackageFilters): Promise<{ packages: IsnadPackageWithDetails[]; total: number }> {
+    let packages = Array.from(this.isnadPackages.values());
+
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      packages = packages.filter((p) => p.packageCode.toLowerCase().includes(search) || p.packageName.toLowerCase().includes(search));
+    }
+
+    if (filters.status && filters.status !== "all") {
+      packages = packages.filter((p) => p.status === filters.status);
+    }
+
+    if (filters.priority && filters.priority !== "all") {
+      packages = packages.filter((p) => p.priority === filters.priority);
+    }
+
+    if (filters.createdBy) {
+      packages = packages.filter((p) => p.createdBy === filters.createdBy);
+    }
+
+    packages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const total = packages.length;
+    const start = (filters.page - 1) * filters.limit;
+    const paginatedPackages = packages.slice(start, start + filters.limit);
+
+    return { packages: paginatedPackages.map((p) => this.enrichPackage(p)), total };
+  }
+
+  async createPackage(insertPkg: InsertPackage, createdBy: string): Promise<IsnadPackage> {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    const packageCode = await this.generatePackageCode();
+
+    let totalValuation = 0;
+    let expectedRevenue = 0;
+
+    for (const formId of insertPkg.formIds) {
+      const form = this.isnadForms.get(formId);
+      if (form && form.financialAnalysis) {
+        totalValuation += form.financialAnalysis.currentValuation || 0;
+        expectedRevenue += form.financialAnalysis.expectedReturns || 0;
+      }
+    }
+
+    const pkg: IsnadPackage = {
+      id,
+      packageCode,
+      packageName: insertPkg.packageName,
+      description: insertPkg.description || null,
+      investmentStrategy: insertPkg.investmentStrategy || null,
+      priority: insertPkg.priority,
+      status: "draft",
+      expectedRevenue,
+      totalValuation,
+      totalAssets: insertPkg.formIds.length,
+      ceoApprovedAt: null,
+      ceoComments: null,
+      ministerApprovedAt: null,
+      ministerComments: null,
+      rejectionReason: null,
+      packageDocumentUrl: null,
+      createdBy,
+      createdAt: now,
+      updatedAt: now,
+      completedAt: null,
+    };
+
+    this.isnadPackages.set(id, pkg);
+
+    for (const formId of insertPkg.formIds) {
+      const form = this.isnadForms.get(formId);
+      if (form) {
+        const paId = randomUUID();
+        this.packageAssets.set(paId, {
+          id: paId,
+          packageId: id,
+          assetId: form.assetId,
+          formId,
+          addedAt: now,
+        });
+        form.packageId = id;
+        form.status = "in_package";
+        this.isnadForms.set(formId, form);
+      }
+    }
+
+    return pkg;
+  }
+
+  async updatePackage(id: string, updates: Partial<IsnadPackage>): Promise<IsnadPackage | undefined> {
+    const pkg = this.isnadPackages.get(id);
+    if (!pkg) return undefined;
+
+    const updatedPkg: IsnadPackage = {
+      ...pkg,
+      ...updates,
+      id: pkg.id,
+      packageCode: pkg.packageCode,
+      createdBy: pkg.createdBy,
+      createdAt: pkg.createdAt,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.isnadPackages.set(id, updatedPkg);
+    return updatedPkg;
+  }
+
+  async submitPackageToCeo(id: string): Promise<IsnadPackage | undefined> {
+    const pkg = this.isnadPackages.get(id);
+    if (!pkg || pkg.status !== "draft") return undefined;
+
+    pkg.status = "pending_ceo";
+    pkg.updatedAt = new Date().toISOString();
+    this.isnadPackages.set(id, pkg);
+
+    const packageAssetRecs = Array.from(this.packageAssets.values()).filter((pa) => pa.packageId === id);
+    for (const pa of packageAssetRecs) {
+      const form = this.isnadForms.get(pa.formId);
+      if (form) {
+        form.currentStage = "ceo_approval";
+        form.status = "pending_ceo";
+        this.isnadForms.set(form.id, form);
+      }
+    }
+
+    return pkg;
+  }
+
+  async processPackageReview(id: string, reviewerId: string, reviewerRole: "ceo" | "minister", action: PackageReview): Promise<IsnadPackage | undefined> {
+    const pkg = this.isnadPackages.get(id);
+    if (!pkg) return undefined;
+
+    const now = new Date().toISOString();
+
+    if (reviewerRole === "ceo") {
+      if (pkg.status !== "pending_ceo") return undefined;
+
+      if (action.action === "approve") {
+        pkg.status = "ceo_approved";
+        pkg.ceoApprovedAt = now;
+        pkg.ceoComments = action.comments || null;
+
+        const packageAssetRecs = Array.from(this.packageAssets.values()).filter((pa) => pa.packageId === id);
+        for (const pa of packageAssetRecs) {
+          const form = this.isnadForms.get(pa.formId);
+          if (form) {
+            form.currentStage = "minister_approval";
+            form.status = "pending_minister";
+            this.isnadForms.set(form.id, form);
+          }
+        }
+      } else {
+        pkg.status = "rejected_ceo";
+        pkg.rejectionReason = action.rejectionReason || null;
+        pkg.completedAt = now;
+
+        const packageAssetRecs = Array.from(this.packageAssets.values()).filter((pa) => pa.packageId === id);
+        for (const pa of packageAssetRecs) {
+          const form = this.isnadForms.get(pa.formId);
+          if (form) {
+            form.status = "rejected";
+            form.completedAt = now;
+            this.isnadForms.set(form.id, form);
+          }
+        }
+      }
+    } else if (reviewerRole === "minister") {
+      if (pkg.status !== "ceo_approved" && pkg.status !== "pending_minister") return undefined;
+
+      pkg.status = "pending_minister";
+
+      if (action.action === "approve") {
+        pkg.status = "minister_approved";
+        pkg.ministerApprovedAt = now;
+        pkg.ministerComments = action.comments || null;
+        pkg.completedAt = now;
+
+        const packageAssetRecs = Array.from(this.packageAssets.values()).filter((pa) => pa.packageId === id);
+        for (const pa of packageAssetRecs) {
+          const form = this.isnadForms.get(pa.formId);
+          const asset = this.assets.get(pa.assetId);
+          if (form) {
+            form.status = "approved";
+            form.completedAt = now;
+            this.isnadForms.set(form.id, form);
+          }
+          if (asset) {
+            asset.status = "completed";
+            asset.visibleToInvestors = true;
+            this.assets.set(asset.id, asset);
+          }
+        }
+      } else {
+        pkg.status = "rejected_minister";
+        pkg.rejectionReason = action.rejectionReason || null;
+        pkg.completedAt = now;
+
+        const packageAssetRecs = Array.from(this.packageAssets.values()).filter((pa) => pa.packageId === id);
+        for (const pa of packageAssetRecs) {
+          const form = this.isnadForms.get(pa.formId);
+          if (form) {
+            form.status = "rejected";
+            form.completedAt = now;
+            this.isnadForms.set(form.id, form);
+          }
+        }
+      }
+    }
+
+    pkg.updatedAt = now;
+    this.isnadPackages.set(id, pkg);
+    return pkg;
+  }
+
+  async getPackageDashboardStats(): Promise<PackageDashboardStats> {
+    const packages = Array.from(this.isnadPackages.values());
+
+    const approved = packages.filter((p) => p.status === "minister_approved");
+
+    return {
+      totalPackages: packages.length,
+      draftPackages: packages.filter((p) => p.status === "draft").length,
+      pendingCeo: packages.filter((p) => p.status === "pending_ceo").length,
+      pendingMinister: packages.filter((p) => p.status === "ceo_approved" || p.status === "pending_minister").length,
+      approved: approved.length,
+      rejected: packages.filter((p) => p.status === "rejected_ceo" || p.status === "rejected_minister").length,
+      totalValueApproved: approved.reduce((sum, p) => sum + p.totalValuation, 0),
+      recentPackages: packages.slice(0, 5).map((p) => this.enrichPackage(p)),
+    };
+  }
+
+  async getApprovedFormsForPackaging(): Promise<IsnadFormWithDetails[]> {
+    const forms = Array.from(this.isnadForms.values()).filter(
+      (f) => f.status === "approved" && !f.packageId && f.currentStage === "investment_agency"
+    );
+    return forms.map((f) => this.enrichIsnadForm(f));
+  }
+
+  async generatePackageCode(): Promise<string> {
+    const year = new Date().getFullYear();
+    const code = `PKG-${year}-${String(this.packageCodeCounter).padStart(3, "0")}`;
+    this.packageCodeCounter++;
+    return code;
+  }
+
+  // Notification Methods
+  async getNotifications(userId: string, filters: NotificationFilters): Promise<{ notifications: Notification[]; total: number; unreadCount: number }> {
+    let notifications = Array.from(this.notifications.values()).filter((n) => n.userId === userId);
+
+    if (filters.type && filters.type !== "all") {
+      notifications = notifications.filter((n) => n.type === filters.type);
+    }
+
+    if (filters.read !== undefined) {
+      notifications = notifications.filter((n) => n.read === filters.read);
+    }
+
+    notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const unreadCount = notifications.filter((n) => !n.read).length;
+    const total = notifications.length;
+    const start = (filters.page - 1) * filters.limit;
+    const paginatedNotifications = notifications.slice(start, start + filters.limit);
+
+    return { notifications: paginatedNotifications, total, unreadCount };
+  }
+
+  async createNotification(notif: Omit<Notification, "id" | "createdAt" | "read" | "readAt" | "emailSent" | "emailSentAt">): Promise<Notification> {
+    const id = randomUUID();
+    const notification: Notification = {
+      id,
+      ...notif,
+      read: false,
+      readAt: null,
+      emailSent: false,
+      emailSentAt: null,
+      createdAt: new Date().toISOString(),
+    };
+    this.notifications.set(id, notification);
+    return notification;
+  }
+
+  async markNotificationRead(id: string): Promise<Notification | undefined> {
+    const notification = this.notifications.get(id);
+    if (!notification) return undefined;
+
+    notification.read = true;
+    notification.readAt = new Date().toISOString();
+    this.notifications.set(id, notification);
+    return notification;
+  }
+
+  async markAllNotificationsRead(userId: string): Promise<void> {
+    const now = new Date().toISOString();
+    for (const notification of this.notifications.values()) {
+      if (notification.userId === userId && !notification.read) {
+        notification.read = true;
+        notification.readAt = now;
+        this.notifications.set(notification.id, notification);
+      }
+    }
   }
 }
 

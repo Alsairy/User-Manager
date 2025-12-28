@@ -14,6 +14,16 @@ import {
   workflowStageEnum,
   predefinedFeatures,
   featureLabels,
+  insertIsnadFormSchema,
+  updateIsnadFormSchema,
+  isnadFiltersSchema,
+  isnadReviewActionSchema,
+  IsnadStage,
+  isnadStageEnum,
+  insertPackageSchema,
+  packageFiltersSchema,
+  packageReviewSchema,
+  notificationFiltersSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -756,6 +766,435 @@ export async function registerRoutes(
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to get asset lifecycle" });
+    }
+  });
+
+  // ISNAD Forms API Routes
+  app.get("/api/isnad/dashboard/stats", async (req, res) => {
+    try {
+      const userId = req.query.userId as string | undefined;
+      const stats = await storage.getIsnadDashboardStats(userId);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get ISNAD dashboard stats" });
+    }
+  });
+
+  app.get("/api/isnad/forms", async (req, res) => {
+    try {
+      const filters = isnadFiltersSchema.parse({
+        search: req.query.search as string | undefined,
+        status: req.query.status as string | undefined,
+        stage: req.query.stage as string | undefined,
+        assetId: req.query.assetId as string | undefined,
+        createdBy: req.query.createdBy as string | undefined,
+        assigneeId: req.query.assigneeId as string | undefined,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 25,
+      });
+      const result = await storage.getIsnadForms(filters);
+      res.json({
+        ...result,
+        page: filters.page,
+        limit: filters.limit,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get ISNAD forms" });
+    }
+  });
+
+  app.post("/api/isnad/forms", async (req, res) => {
+    try {
+      const data = insertIsnadFormSchema.parse(req.body);
+      
+      const asset = await storage.getAsset(data.assetId);
+      if (!asset) {
+        return res.status(400).json({ error: "Asset not found" });
+      }
+      if (asset.hasActiveIsnad) {
+        return res.status(400).json({ error: "Asset already has an active ISNAD form" });
+      }
+      if (asset.status !== "completed") {
+        return res.status(400).json({ error: "Asset must be completed before creating ISNAD" });
+      }
+
+      const form = await storage.createIsnadForm(data, "admin");
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "isnad_created",
+        entityType: "isnad_form",
+        entityId: form.id,
+        changes: { formCode: form.formCode, assetId: form.assetId },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.status(201).json(form);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create ISNAD form" });
+      }
+    }
+  });
+
+  app.get("/api/isnad/forms/:id", async (req, res) => {
+    try {
+      const form = await storage.getIsnadForm(req.params.id);
+      if (!form) {
+        return res.status(404).json({ error: "ISNAD form not found" });
+      }
+      res.json(form);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get ISNAD form" });
+    }
+  });
+
+  app.put("/api/isnad/forms/:id", async (req, res) => {
+    try {
+      const form = await storage.getIsnadForm(req.params.id);
+      if (!form) {
+        return res.status(404).json({ error: "ISNAD form not found" });
+      }
+      if (form.status !== "draft" && form.status !== "returned") {
+        return res.status(400).json({ error: "Can only update draft or returned forms" });
+      }
+
+      const validatedData = updateIsnadFormSchema.parse(req.body);
+      const updated = await storage.updateIsnadForm(req.params.id, validatedData);
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "isnad_updated",
+        entityType: "isnad_form",
+        entityId: req.params.id,
+        changes: validatedData,
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update ISNAD form" });
+      }
+    }
+  });
+
+  app.post("/api/isnad/forms/:id/submit", async (req, res) => {
+    try {
+      const form = await storage.submitIsnadForm(req.params.id);
+      if (!form) {
+        return res.status(400).json({ error: "Cannot submit ISNAD form" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "isnad_submitted",
+        entityType: "isnad_form",
+        entityId: req.params.id,
+        changes: { status: form.status, currentStage: form.currentStage },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(form);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to submit ISNAD form" });
+    }
+  });
+
+  app.post("/api/isnad/forms/:id/review", async (req, res) => {
+    try {
+      const action = isnadReviewActionSchema.parse(req.body);
+      const form = await storage.processIsnadAction(req.params.id, "admin", action);
+      if (!form) {
+        return res.status(400).json({ error: "Cannot process review action" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: `isnad_${action.action}`,
+        entityType: "isnad_form",
+        entityId: req.params.id,
+        changes: { action: action.action, status: form.status },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(form);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to process review action" });
+      }
+    }
+  });
+
+  app.post("/api/isnad/forms/:id/cancel", async (req, res) => {
+    try {
+      const { reason } = req.body;
+      if (!reason) {
+        return res.status(400).json({ error: "Cancellation reason is required" });
+      }
+
+      const form = await storage.cancelIsnadForm(req.params.id, "admin", reason);
+      if (!form) {
+        return res.status(400).json({ error: "Cannot cancel ISNAD form" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "isnad_cancelled",
+        entityType: "isnad_form",
+        entityId: req.params.id,
+        changes: { status: "cancelled", reason },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(form);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to cancel ISNAD form" });
+    }
+  });
+
+  app.get("/api/isnad/forms/:id/approvals", async (req, res) => {
+    try {
+      const approvals = await storage.getIsnadApprovals(req.params.id);
+      res.json(approvals);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get ISNAD approvals" });
+    }
+  });
+
+  app.get("/api/isnad/reviews/queue/:stage", async (req, res) => {
+    try {
+      const stage = req.params.stage as IsnadStage;
+      if (!isnadStageEnum.includes(stage)) {
+        return res.status(400).json({ error: "Invalid stage" });
+      }
+      const queue = await storage.getIsnadReviewQueue(stage);
+      res.json(queue);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get ISNAD review queue" });
+    }
+  });
+
+  app.get("/api/isnad/forms-for-packaging", async (_req, res) => {
+    try {
+      const forms = await storage.getApprovedFormsForPackaging();
+      res.json(forms);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get forms for packaging" });
+    }
+  });
+
+  // ISNAD Packages API Routes
+  app.get("/api/isnad/packages/dashboard/stats", async (_req, res) => {
+    try {
+      const stats = await storage.getPackageDashboardStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get package dashboard stats" });
+    }
+  });
+
+  app.get("/api/isnad/packages", async (req, res) => {
+    try {
+      const filters = packageFiltersSchema.parse({
+        search: req.query.search as string | undefined,
+        status: req.query.status as string | undefined,
+        priority: req.query.priority as string | undefined,
+        createdBy: req.query.createdBy as string | undefined,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 25,
+      });
+      const result = await storage.getPackages(filters);
+      res.json({
+        ...result,
+        page: filters.page,
+        limit: filters.limit,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get ISNAD packages" });
+    }
+  });
+
+  app.post("/api/isnad/packages", async (req, res) => {
+    try {
+      const data = insertPackageSchema.parse(req.body);
+      const pkg = await storage.createPackage(data, "admin");
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "package_created",
+        entityType: "isnad_package",
+        entityId: pkg.id,
+        changes: { packageCode: pkg.packageCode, totalAssets: pkg.totalAssets },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.status(201).json(pkg);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create ISNAD package" });
+      }
+    }
+  });
+
+  app.get("/api/isnad/packages/:id", async (req, res) => {
+    try {
+      const pkg = await storage.getPackage(req.params.id);
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      res.json(pkg);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get package" });
+    }
+  });
+
+  app.put("/api/isnad/packages/:id", async (req, res) => {
+    try {
+      const pkg = await storage.getPackage(req.params.id);
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      if (pkg.status !== "draft") {
+        return res.status(400).json({ error: "Can only update draft packages" });
+      }
+
+      const updated = await storage.updatePackage(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update package" });
+    }
+  });
+
+  app.post("/api/isnad/packages/:id/submit-ceo", async (req, res) => {
+    try {
+      const pkg = await storage.submitPackageToCeo(req.params.id);
+      if (!pkg) {
+        return res.status(400).json({ error: "Cannot submit package to CEO" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: "package_submitted_ceo",
+        entityType: "isnad_package",
+        entityId: req.params.id,
+        changes: { status: pkg.status },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(pkg);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to submit package to CEO" });
+    }
+  });
+
+  app.post("/api/isnad/packages/:id/review-ceo", async (req, res) => {
+    try {
+      const action = packageReviewSchema.parse(req.body);
+      const pkg = await storage.processPackageReview(req.params.id, "admin", "ceo", action);
+      if (!pkg) {
+        return res.status(400).json({ error: "Cannot process CEO review" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: `package_ceo_${action.action}`,
+        entityType: "isnad_package",
+        entityId: req.params.id,
+        changes: { action: action.action, status: pkg.status },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(pkg);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to process CEO review" });
+      }
+    }
+  });
+
+  app.post("/api/isnad/packages/:id/review-minister", async (req, res) => {
+    try {
+      const action = packageReviewSchema.parse(req.body);
+      const pkg = await storage.processPackageReview(req.params.id, "admin", "minister", action);
+      if (!pkg) {
+        return res.status(400).json({ error: "Cannot process Minister review" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: `package_minister_${action.action}`,
+        entityType: "isnad_package",
+        entityId: req.params.id,
+        changes: { action: action.action, status: pkg.status },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(pkg);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to process Minister review" });
+      }
+    }
+  });
+
+  // Notifications API Routes
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      const filters = notificationFiltersSchema.parse({
+        type: req.query.type as string | undefined,
+        read: req.query.read === "true" ? true : req.query.read === "false" ? false : undefined,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 25,
+      });
+      const userId = "admin";
+      const result = await storage.getNotifications(userId, filters);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get notifications" });
+    }
+  });
+
+  app.put("/api/notifications/:id/read", async (req, res) => {
+    try {
+      const notification = await storage.markNotificationRead(req.params.id);
+      if (!notification) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      res.json(notification);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  app.put("/api/notifications/read-all", async (req, res) => {
+    try {
+      const userId = "admin";
+      await storage.markAllNotificationsRead(userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark all notifications as read" });
     }
   });
 
