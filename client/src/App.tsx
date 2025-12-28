@@ -28,6 +28,7 @@ import ContractCreate from "@/pages/contract-create";
 import ContractDetail from "@/pages/contract-detail";
 import Investors from "@/pages/investors";
 import ContractsDashboard from "@/pages/contracts-dashboard";
+import Installments from "@/pages/installments";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/contracts/new" component={ContractCreate} />
       <Route path="/contracts/dashboard" component={ContractsDashboard} />
       <Route path="/contracts/investors" component={Investors} />
+      <Route path="/contracts/installments" component={Installments} />
       <Route path="/contracts/:id" component={ContractDetail} />
       <Route component={NotFound} />
     </Switch>
