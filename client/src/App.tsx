@@ -16,6 +16,7 @@ import AuditLogs from "@/pages/audit-logs";
 import Settings from "@/pages/settings";
 import AssetRegistrations from "@/pages/asset-registrations";
 import AssetCreate from "@/pages/asset-create";
+import AssetRegistrationDetail from "@/pages/asset-registration-detail";
 import AssetBank from "@/pages/asset-bank";
 import AssetBankDetail from "@/pages/asset-bank-detail";
 import ReviewQueue from "@/pages/review-queue";
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/assets/registrations" component={AssetRegistrations} />
       <Route path="/assets/registrations/create" component={AssetCreate} />
+      <Route path="/assets/registrations/:id" component={AssetRegistrationDetail} />
       <Route path="/assets/reviews" component={ReviewQueue} />
       <Route path="/assets/bank" component={AssetBank} />
       <Route path="/assets/bank/:id" component={AssetBankDetail} />
