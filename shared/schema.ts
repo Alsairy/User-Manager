@@ -1275,3 +1275,377 @@ export interface ContractDashboardStats {
   pendingInstallments: number;
   installmentsDueToday: number;
 }
+
+// =============================================================================
+// Investor Portal & CRM Types & Schemas
+// =============================================================================
+
+export const investorAccountStatusEnum = ["active", "inactive", "blocked"] as const;
+export type InvestorAccountStatus = (typeof investorAccountStatusEnum)[number];
+
+export const investorAccountTypeEnum = ["individual", "company"] as const;
+export type InvestorAccountType = (typeof investorAccountTypeEnum)[number];
+
+export const interestStatusEnum = ["new", "under_review", "approved", "rejected", "converted"] as const;
+export type InterestStatus = (typeof interestStatusEnum)[number];
+
+export const interestStatusLabels: Record<InterestStatus, string> = {
+  new: "New",
+  under_review: "Under Review",
+  approved: "Approved",
+  rejected: "Rejected",
+  converted: "Converted to Contract",
+};
+
+export const investmentPurposeEnum = [
+  "commercial_development",
+  "residential_project",
+  "mixed_use",
+  "educational_facility",
+  "healthcare_facility",
+  "retail_center",
+  "industrial_warehouse",
+  "other",
+] as const;
+export type InvestmentPurpose = (typeof investmentPurposeEnum)[number];
+
+export const investmentPurposeLabels: Record<InvestmentPurpose, string> = {
+  commercial_development: "Commercial Development",
+  residential_project: "Residential Project",
+  mixed_use: "Mixed Use",
+  educational_facility: "Educational Facility",
+  healthcare_facility: "Healthcare Facility",
+  retail_center: "Retail Center",
+  industrial_warehouse: "Industrial/Warehouse",
+  other: "Other",
+};
+
+export const investmentAmountRangeEnum = [
+  "under_1m",
+  "1m_5m",
+  "5m_10m",
+  "10m_50m",
+  "50m_100m",
+  "over_100m",
+] as const;
+export type InvestmentAmountRange = (typeof investmentAmountRangeEnum)[number];
+
+export const investmentAmountRangeLabels: Record<InvestmentAmountRange, string> = {
+  under_1m: "< 1M SAR",
+  "1m_5m": "1M - 5M SAR",
+  "5m_10m": "5M - 10M SAR",
+  "10m_50m": "10M - 50M SAR",
+  "50m_100m": "50M - 100M SAR",
+  over_100m: "> 100M SAR",
+};
+
+export const investmentTimelineEnum = [
+  "immediate",
+  "short_term",
+  "mid_term",
+  "long_term",
+  "over_2_years",
+] as const;
+export type InvestmentTimeline = (typeof investmentTimelineEnum)[number];
+
+export const investmentTimelineLabels: Record<InvestmentTimeline, string> = {
+  immediate: "Immediate (0-3 months)",
+  short_term: "Short-term (3-6 months)",
+  mid_term: "Mid-term (6-12 months)",
+  long_term: "Long-term (1-2 years)",
+  over_2_years: "2+ years",
+};
+
+export const istifadaStatusEnum = [
+  "new",
+  "under_review",
+  "additional_info_requested",
+  "approved",
+  "rejected",
+  "completed",
+] as const;
+export type IstifadaStatus = (typeof istifadaStatusEnum)[number];
+
+export const istifadaStatusLabels: Record<IstifadaStatus, string> = {
+  new: "New",
+  under_review: "Under Review",
+  additional_info_requested: "Info Requested",
+  approved: "Approved",
+  rejected: "Rejected",
+  completed: "Completed",
+};
+
+export const istifadaProgramTypeEnum = [
+  "educational_services",
+  "community_programs",
+  "sports_activities",
+  "cultural_events",
+  "other",
+] as const;
+export type IstifadaProgramType = (typeof istifadaProgramTypeEnum)[number];
+
+export const istifadaProgramTypeLabels: Record<IstifadaProgramType, string> = {
+  educational_services: "Educational Services",
+  community_programs: "Community Programs",
+  sports_activities: "Sports Activities",
+  cultural_events: "Cultural Events",
+  other: "Other",
+};
+
+// Portal Investor Account (linked to SSO)
+export interface InvestorAccount {
+  id: string;
+  ssoUserId: string;
+  investorId: string | null;
+  accountType: InvestorAccountType;
+  fullNameAr: string;
+  fullNameEn: string;
+  nationalIdOrCr: string;
+  email: string;
+  phone: string | null;
+  companyName: string | null;
+  contactPerson: string | null;
+  verificationStatus: string;
+  status: InvestorAccountStatus;
+  registrationDate: string;
+  lastLoginAt: string | null;
+  totalInterests: number;
+  totalContracts: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Asset Favorites
+export interface InvestorFavorite {
+  id: string;
+  investorAccountId: string;
+  assetId: string;
+  createdAt: string;
+}
+
+export interface InvestorFavoriteWithAsset extends InvestorFavorite {
+  asset?: AssetWithDetails;
+}
+
+// Investment Interest Submission
+export interface InvestorInterest {
+  id: string;
+  referenceNumber: string;
+  investorAccountId: string;
+  assetId: string;
+  investmentPurpose: InvestmentPurpose;
+  proposedUseDescription: string;
+  investmentAmountRange: InvestmentAmountRange;
+  expectedTimeline: InvestmentTimeline;
+  additionalComments: string | null;
+  attachments: string[];
+  status: InterestStatus;
+  assignedToId: string | null;
+  reviewNotes: string | null;
+  rejectionReason: string | null;
+  convertedContractId: string | null;
+  submittedAt: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvestorInterestWithDetails extends InvestorInterest {
+  investorAccount?: InvestorAccount;
+  asset?: AssetWithDetails;
+  assignedTo?: User;
+  reviewedByUser?: User;
+}
+
+// Istifada Program Request
+export interface IstifadaRequest {
+  id: string;
+  referenceNumber: string;
+  investorAccountId: string;
+  assetId: string | null;
+  programType: IstifadaProgramType;
+  programTitle: string;
+  programDescription: string;
+  targetBeneficiaries: string | null;
+  startDate: string;
+  endDate: string;
+  budgetEstimate: string | null;
+  proposalDocuments: string[];
+  financialPlanDocuments: string[];
+  organizationCredentials: string[];
+  additionalDocuments: string[];
+  status: IstifadaStatus;
+  assignedToId: string | null;
+  reviewNotes: string | null;
+  rejectionReason: string | null;
+  additionalInfoRequest: string | null;
+  submittedAt: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IstifadaRequestWithDetails extends IstifadaRequest {
+  investorAccount?: InvestorAccount;
+  asset?: AssetWithDetails;
+  assignedTo?: User;
+  reviewedByUser?: User;
+}
+
+// CRM Investor Notes
+export interface InvestorNote {
+  id: string;
+  investorAccountId: string;
+  noteType: string;
+  content: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface InvestorNoteWithUser extends InvestorNote {
+  createdByUser?: User;
+}
+
+// Insert Schemas
+export const insertInvestorAccountSchema = z.object({
+  ssoUserId: z.string().min(1, "SSO User ID is required"),
+  investorId: z.string().nullable().optional(),
+  accountType: z.enum(investorAccountTypeEnum),
+  fullNameAr: z.string().min(1, "Arabic name is required"),
+  fullNameEn: z.string().min(1, "English name is required"),
+  nationalIdOrCr: z.string().min(1, "National ID or CR is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().nullable().optional(),
+  companyName: z.string().nullable().optional(),
+  contactPerson: z.string().nullable().optional(),
+  verificationStatus: z.string().default("pending"),
+  status: z.enum(investorAccountStatusEnum).default("active"),
+});
+
+export type InsertInvestorAccount = z.infer<typeof insertInvestorAccountSchema>;
+
+export const insertInvestorInterestSchema = z.object({
+  assetId: z.string().min(1, "Asset is required"),
+  investmentPurpose: z.enum(investmentPurposeEnum),
+  proposedUseDescription: z.string().min(500, "Description must be at least 500 characters"),
+  investmentAmountRange: z.enum(investmentAmountRangeEnum),
+  expectedTimeline: z.enum(investmentTimelineEnum),
+  additionalComments: z.string().nullable().optional(),
+  attachments: z.array(z.string()).default([]),
+});
+
+export type InsertInvestorInterest = z.infer<typeof insertInvestorInterestSchema>;
+
+export const insertIstifadaRequestSchema = z.object({
+  assetId: z.string().nullable().optional(),
+  programType: z.enum(istifadaProgramTypeEnum),
+  programTitle: z.string().min(1, "Program title is required"),
+  programDescription: z.string().min(1000, "Description must be at least 1000 characters"),
+  targetBeneficiaries: z.string().nullable().optional(),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  budgetEstimate: z.string().nullable().optional(),
+  proposalDocuments: z.array(z.string()).min(1, "Program proposal is required"),
+  financialPlanDocuments: z.array(z.string()).min(1, "Financial plan is required"),
+  organizationCredentials: z.array(z.string()).default([]),
+  additionalDocuments: z.array(z.string()).default([]),
+});
+
+export type InsertIstifadaRequest = z.infer<typeof insertIstifadaRequestSchema>;
+
+export const interestReviewActionSchema = z.object({
+  action: z.enum(["approve", "reject", "convert"]),
+  reviewNotes: z.string().optional(),
+  rejectionReason: z.string().optional(),
+});
+
+export type InterestReviewAction = z.infer<typeof interestReviewActionSchema>;
+
+export const istifadaReviewActionSchema = z.object({
+  action: z.enum(["approve", "reject", "request_info", "complete"]),
+  reviewNotes: z.string().optional(),
+  rejectionReason: z.string().optional(),
+  additionalInfoRequest: z.string().optional(),
+});
+
+export type IstifadaReviewAction = z.infer<typeof istifadaReviewActionSchema>;
+
+// Filter Schemas
+export const portalAssetFiltersSchema = z.object({
+  search: z.string().optional(),
+  cityId: z.string().optional(),
+  districtId: z.string().optional(),
+  assetType: z.enum([...assetTypeEnum, "all"]).optional(),
+  areaMin: z.number().optional(),
+  areaMax: z.number().optional(),
+  classification: z.string().optional(),
+  sortBy: z.enum(["newest", "name", "area_asc", "area_desc"]).optional(),
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(48).default(12),
+});
+
+export type PortalAssetFilters = z.infer<typeof portalAssetFiltersSchema>;
+
+export const crmInvestorFiltersSchema = z.object({
+  search: z.string().optional(),
+  status: z.enum([...investorAccountStatusEnum, "all"]).optional(),
+  accountType: z.enum([...investorAccountTypeEnum, "all"]).optional(),
+  hasActiveInterests: z.boolean().optional(),
+  hasContracts: z.boolean().optional(),
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(25),
+});
+
+export type CrmInvestorFilters = z.infer<typeof crmInvestorFiltersSchema>;
+
+export const interestFiltersSchema = z.object({
+  search: z.string().optional(),
+  status: z.enum([...interestStatusEnum, "all"]).optional(),
+  investorAccountId: z.string().optional(),
+  assetId: z.string().optional(),
+  assignedToId: z.string().optional(),
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(25),
+});
+
+export type InterestFilters = z.infer<typeof interestFiltersSchema>;
+
+export const istifadaFiltersSchema = z.object({
+  search: z.string().optional(),
+  status: z.enum([...istifadaStatusEnum, "all"]).optional(),
+  programType: z.enum([...istifadaProgramTypeEnum, "all"]).optional(),
+  investorAccountId: z.string().optional(),
+  assetId: z.string().optional(),
+  assignedToId: z.string().optional(),
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(25),
+});
+
+export type IstifadaFilters = z.infer<typeof istifadaFiltersSchema>;
+
+// Dashboard Stats
+export interface PortalDashboardStats {
+  exposedAssets: number;
+  totalFavorites: number;
+  myInterests: number;
+  myRequests: number;
+  pendingActions: number;
+}
+
+export interface CrmDashboardStats {
+  totalInvestorAccounts: number;
+  activeInvestors: number;
+  blockedInvestors: number;
+  totalInterests: number;
+  newInterests: number;
+  underReviewInterests: number;
+  approvedInterests: number;
+  convertedInterests: number;
+  totalIstifadaRequests: number;
+  pendingIstifadaRequests: number;
+  mostFavoritedAssets: { assetId: string; assetName: string; count: number }[];
+  interestsByPurpose: { purpose: InvestmentPurpose; count: number }[];
+  conversionRate: number;
+}
