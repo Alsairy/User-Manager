@@ -72,6 +72,16 @@ export default function ContractsPage() {
   const [page, setPage] = useState(1);
   const limit = 20;
 
+  const buildContractsUrl = () => {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (statusFilter !== "all") params.append("status", statusFilter);
+    if (investorFilter !== "all") params.append("investorId", investorFilter);
+    params.append("page", String(page));
+    params.append("limit", String(limit));
+    return `/api/contracts?${params.toString()}`;
+  };
+
   const { data: contractsData, isLoading: isLoadingContracts } = useQuery<{
     contracts: ContractWithDetails[];
     total: number;
@@ -79,7 +89,7 @@ export default function ContractsPage() {
     page: number;
     limit: number;
   }>({
-    queryKey: ["/api/contracts", { search, status: statusFilter, investorId: investorFilter === "all" ? undefined : investorFilter, page, limit }],
+    queryKey: [buildContractsUrl()],
   });
 
   const { data: investors = [] } = useQuery<Investor[]>({

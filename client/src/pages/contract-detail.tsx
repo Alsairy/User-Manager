@@ -89,12 +89,12 @@ export default function ContractDetailPage() {
   const [planFrequency, setPlanFrequency] = useState<"monthly" | "quarterly" | "semi_annual" | "annual">("monthly");
 
   const { data: contract, isLoading } = useQuery<ContractWithDetails>({
-    queryKey: ["/api/contracts", params?.id],
+    queryKey: [`/api/contracts/${params?.id}`],
     enabled: !!params?.id,
   });
 
   const { data: installments = [] } = useQuery<Installment[]>({
-    queryKey: ["/api/contracts", params?.id, "installments"],
+    queryKey: [`/api/contracts/${params?.id}/installments`],
     enabled: !!params?.id,
   });
 
@@ -103,7 +103,7 @@ export default function ContractDetailPage() {
       await apiRequest("POST", `/api/contracts/${params?.id}/archive`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/contracts", params?.id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contracts/${params?.id}`] });
       toast({ title: "Contract archived successfully" });
     },
     onError: () => {
@@ -116,7 +116,7 @@ export default function ContractDetailPage() {
       await apiRequest("POST", `/api/contracts/${params?.id}/activate`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/contracts", params?.id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contracts/${params?.id}`] });
       toast({ title: "Contract activated successfully" });
     },
     onError: () => {
@@ -132,7 +132,7 @@ export default function ContractDetailPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/contracts", params?.id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contracts/${params?.id}`] });
       setCancelDialogOpen(false);
       toast({ title: "Contract cancelled successfully" });
     },
@@ -150,8 +150,8 @@ export default function ContractDetailPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/contracts", params?.id, "installments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/contracts", params?.id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contracts/${params?.id}/installments`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contracts/${params?.id}`] });
       setInstallmentPlanDialogOpen(false);
       toast({ title: "Installment plan created successfully" });
     },
@@ -182,7 +182,7 @@ export default function ContractDetailPage() {
     return (
       <div className="p-6">
         <p className="text-muted-foreground">Contract not found</p>
-        <Button variant="link" onClick={() => setLocation("/contracts")}>
+        <Button variant="ghost" onClick={() => setLocation("/contracts")}>
           Back to Contracts
         </Button>
       </div>

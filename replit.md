@@ -6,6 +6,18 @@ This is a comprehensive User Management System for the Madares Business platform
 
 ## Recent Changes (December 28, 2025)
 
+### Contract Management Module
+- Added complete Contract Management system with investor and installment tracking
+- Created contracts list page with filtering by status, investor, search, and pagination
+- Implemented 6-step contract creation wizard (asset selection, investor, terms, dates, notes, review)
+- Built contract detail page with overview, installments tab, and documents tab
+- Added installment plan creation (equal installments with frequency options)
+- Implemented contract lifecycle: draft -> incomplete -> active -> expiring -> expired -> archived/cancelled
+- Created investors management page with CRUD operations
+- Added contracts dashboard with statistics (total value, overdue amounts, paid this month)
+- Updated sidebar navigation with Contracts section (4 menu items)
+
+### Previous Updates
 - Added complete ISNAD Workflow System with 9-stage approval process
 - Created ISNAD Forms pages: list with filtering/search, 3-step creation wizard, detail view with approve/reject/return dialogs
 - Implemented ISNAD Packages management with creation interface and executive review workflow
