@@ -33,6 +33,15 @@ import {
   updateInstallmentStatusSchema,
   installmentPlanSchema,
   ContractStatus,
+  insertInvestorAccountSchema,
+  crmInvestorFiltersSchema,
+  portalAssetFiltersSchema,
+  insertInvestorInterestSchema,
+  interestFiltersSchema,
+  interestReviewActionSchema,
+  insertIstifadaRequestSchema,
+  istifadaFiltersSchema,
+  istifadaReviewActionSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -1624,6 +1633,409 @@ export async function registerRoutes(
       res.json({ updated: count });
     } catch (error) {
       res.status(500).json({ error: "Failed to update overdue installments" });
+    }
+  });
+
+  // =============================================================================
+  // Investor Portal API Routes
+  // =============================================================================
+
+  // Portal exposed assets (visible to investors)
+  app.get("/api/portal/assets", async (req, res) => {
+    try {
+      const filters = portalAssetFiltersSchema.parse({
+        search: req.query.search as string | undefined,
+        cityId: req.query.cityId as string | undefined,
+        districtId: req.query.districtId as string | undefined,
+        assetType: req.query.assetType as string | undefined,
+        areaMin: req.query.areaMin ? parseFloat(req.query.areaMin as string) : undefined,
+        areaMax: req.query.areaMax ? parseFloat(req.query.areaMax as string) : undefined,
+        sortBy: req.query.sortBy as string | undefined,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 12,
+      });
+      const result = await storage.getExposedAssets(filters);
+      res.json({ ...result, page: filters.page, limit: filters.limit });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get exposed assets" });
+    }
+  });
+
+  app.get("/api/portal/assets/:id", async (req, res) => {
+    try {
+      const asset = await storage.getExposedAsset(req.params.id);
+      if (!asset) {
+        return res.status(404).json({ error: "Asset not found or not available" });
+      }
+      res.json(asset);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get asset" });
+    }
+  });
+
+  // Investor account endpoints
+  app.get("/api/portal/account", async (req, res) => {
+    try {
+      const ssoUserId = req.query.ssoUserId as string;
+      if (!ssoUserId) {
+        return res.status(400).json({ error: "SSO user ID required" });
+      }
+      const account = await storage.getInvestorAccountBySsoId(ssoUserId);
+      if (!account) {
+        return res.status(404).json({ error: "Account not found" });
+      }
+      res.json(account);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get account" });
+    }
+  });
+
+  app.post("/api/portal/account", async (req, res) => {
+    try {
+      const data = insertInvestorAccountSchema.parse(req.body);
+      const account = await storage.createInvestorAccount(data);
+      res.status(201).json(account);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create account" });
+      }
+    }
+  });
+
+  // Favorites
+  app.get("/api/portal/favorites", async (req, res) => {
+    try {
+      const investorAccountId = req.query.investorAccountId as string;
+      if (!investorAccountId) {
+        return res.status(400).json({ error: "Investor account ID required" });
+      }
+      const favorites = await storage.getFavorites(investorAccountId);
+      res.json(favorites);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get favorites" });
+    }
+  });
+
+  app.post("/api/portal/favorites", async (req, res) => {
+    try {
+      const { investorAccountId, assetId } = req.body;
+      if (!investorAccountId || !assetId) {
+        return res.status(400).json({ error: "Investor account ID and asset ID required" });
+      }
+      const favorite = await storage.addFavorite(investorAccountId, assetId);
+      res.status(201).json(favorite);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add favorite" });
+    }
+  });
+
+  app.delete("/api/portal/favorites", async (req, res) => {
+    try {
+      const { investorAccountId, assetId } = req.body;
+      if (!investorAccountId || !assetId) {
+        return res.status(400).json({ error: "Investor account ID and asset ID required" });
+      }
+      await storage.removeFavorite(investorAccountId, assetId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove favorite" });
+    }
+  });
+
+  app.get("/api/portal/favorites/check", async (req, res) => {
+    try {
+      const investorAccountId = req.query.investorAccountId as string;
+      const assetId = req.query.assetId as string;
+      if (!investorAccountId || !assetId) {
+        return res.status(400).json({ error: "Investor account ID and asset ID required" });
+      }
+      const isFavorited = await storage.isFavorited(investorAccountId, assetId);
+      res.json({ isFavorited });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check favorite status" });
+    }
+  });
+
+  // Portal interests (investor's own interests)
+  app.get("/api/portal/interests", async (req, res) => {
+    try {
+      const investorAccountId = req.query.investorAccountId as string;
+      if (!investorAccountId) {
+        return res.status(400).json({ error: "Investor account ID required" });
+      }
+      const interests = await storage.getMyInterests(investorAccountId);
+      res.json(interests);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get interests" });
+    }
+  });
+
+  app.post("/api/portal/interests", async (req, res) => {
+    try {
+      const { investorAccountId, ...interestData } = req.body;
+      if (!investorAccountId) {
+        return res.status(400).json({ error: "Investor account ID required" });
+      }
+      const data = insertInvestorInterestSchema.parse(interestData);
+      const interest = await storage.createInvestorInterest(data, investorAccountId);
+      res.status(201).json(interest);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to submit interest" });
+      }
+    }
+  });
+
+  // Portal Istifada requests (investor's own requests)
+  app.get("/api/portal/istifada", async (req, res) => {
+    try {
+      const investorAccountId = req.query.investorAccountId as string;
+      if (!investorAccountId) {
+        return res.status(400).json({ error: "Investor account ID required" });
+      }
+      const requests = await storage.getMyIstifadaRequests(investorAccountId);
+      res.json(requests);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get Istifada requests" });
+    }
+  });
+
+  app.post("/api/portal/istifada", async (req, res) => {
+    try {
+      const { investorAccountId, ...requestData } = req.body;
+      if (!investorAccountId) {
+        return res.status(400).json({ error: "Investor account ID required" });
+      }
+      const data = insertIstifadaRequestSchema.parse(requestData);
+      const request = await storage.createIstifadaRequest(data, investorAccountId);
+      res.status(201).json(request);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to submit Istifada request" });
+      }
+    }
+  });
+
+  // Portal dashboard stats
+  app.get("/api/portal/dashboard", async (req, res) => {
+    try {
+      const investorAccountId = req.query.investorAccountId as string;
+      if (!investorAccountId) {
+        return res.status(400).json({ error: "Investor account ID required" });
+      }
+      const stats = await storage.getPortalDashboardStats(investorAccountId);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get portal dashboard stats" });
+    }
+  });
+
+  // =============================================================================
+  // Investor CRM API Routes (Admin)
+  // =============================================================================
+
+  // CRM Dashboard
+  app.get("/api/crm/dashboard", async (_req, res) => {
+    try {
+      const stats = await storage.getCrmDashboardStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get CRM dashboard stats" });
+    }
+  });
+
+  // CRM Investor accounts management
+  app.get("/api/crm/investors", async (req, res) => {
+    try {
+      const filters = crmInvestorFiltersSchema.parse({
+        search: req.query.search as string | undefined,
+        status: req.query.status as string | undefined,
+        accountType: req.query.accountType as string | undefined,
+        verificationStatus: req.query.verificationStatus as string | undefined,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 25,
+      });
+      const result = await storage.getInvestorAccounts(filters);
+      res.json({ ...result, page: filters.page, limit: filters.limit });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get investor accounts" });
+    }
+  });
+
+  app.get("/api/crm/investors/:id", async (req, res) => {
+    try {
+      const account = await storage.getInvestorAccount(req.params.id);
+      if (!account) {
+        return res.status(404).json({ error: "Investor account not found" });
+      }
+      res.json(account);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get investor account" });
+    }
+  });
+
+  app.patch("/api/crm/investors/:id", async (req, res) => {
+    try {
+      const account = await storage.updateInvestorAccount(req.params.id, req.body);
+      if (!account) {
+        return res.status(404).json({ error: "Investor account not found" });
+      }
+      res.json(account);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update investor account" });
+    }
+  });
+
+  app.post("/api/crm/investors/:id/block", async (req, res) => {
+    try {
+      const account = await storage.blockInvestorAccount(req.params.id);
+      if (!account) {
+        return res.status(404).json({ error: "Investor account not found" });
+      }
+      res.json(account);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to block investor account" });
+    }
+  });
+
+  // CRM Investor notes
+  app.get("/api/crm/investors/:id/notes", async (req, res) => {
+    try {
+      const notes = await storage.getInvestorNotes(req.params.id);
+      res.json(notes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get investor notes" });
+    }
+  });
+
+  app.post("/api/crm/investors/:id/notes", async (req, res) => {
+    try {
+      const { noteType, content, createdBy } = req.body;
+      if (!noteType || !content || !createdBy) {
+        return res.status(400).json({ error: "Note type, content, and created by required" });
+      }
+      const note = await storage.createInvestorNote(req.params.id, noteType, content, createdBy);
+      res.status(201).json(note);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create investor note" });
+    }
+  });
+
+  // CRM Interest pipeline
+  app.get("/api/crm/interests", async (req, res) => {
+    try {
+      const filters = interestFiltersSchema.parse({
+        status: req.query.status as string | undefined,
+        investorAccountId: req.query.investorAccountId as string | undefined,
+        assetId: req.query.assetId as string | undefined,
+        assignedToId: req.query.assignedToId as string | undefined,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 25,
+      });
+      const result = await storage.getInvestorInterests(filters);
+      res.json({ ...result, page: filters.page, limit: filters.limit });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get investor interests" });
+    }
+  });
+
+  app.get("/api/crm/interests/:id", async (req, res) => {
+    try {
+      const interest = await storage.getInvestorInterest(req.params.id);
+      if (!interest) {
+        return res.status(404).json({ error: "Interest not found" });
+      }
+      res.json(interest);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get interest" });
+    }
+  });
+
+  app.post("/api/crm/interests/:id/review", async (req, res) => {
+    try {
+      const { reviewerId, ...actionData } = req.body;
+      if (!reviewerId) {
+        return res.status(400).json({ error: "Reviewer ID required" });
+      }
+      const action = interestReviewActionSchema.parse(actionData);
+      const interest = await storage.processInterestReview(req.params.id, reviewerId, action);
+      if (!interest) {
+        return res.status(404).json({ error: "Interest not found" });
+      }
+      res.json(interest);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to process interest review" });
+      }
+    }
+  });
+
+  // CRM Istifada requests management
+  app.get("/api/crm/istifada", async (req, res) => {
+    try {
+      const filters = istifadaFiltersSchema.parse({
+        status: req.query.status as string | undefined,
+        programType: req.query.programType as string | undefined,
+        investorAccountId: req.query.investorAccountId as string | undefined,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 25,
+      });
+      const result = await storage.getIstifadaRequests(filters);
+      res.json({ ...result, page: filters.page, limit: filters.limit });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get Istifada requests" });
+    }
+  });
+
+  app.get("/api/crm/istifada/:id", async (req, res) => {
+    try {
+      const request = await storage.getIstifadaRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Istifada request not found" });
+      }
+      res.json(request);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get Istifada request" });
+    }
+  });
+
+  app.post("/api/crm/istifada/:id/review", async (req, res) => {
+    try {
+      const { reviewerId, ...actionData } = req.body;
+      if (!reviewerId) {
+        return res.status(400).json({ error: "Reviewer ID required" });
+      }
+      const action = istifadaReviewActionSchema.parse(actionData);
+      const request = await storage.processIstifadaReview(req.params.id, reviewerId, action);
+      if (!request) {
+        return res.status(404).json({ error: "Istifada request not found" });
+      }
+      res.json(request);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to process Istifada review" });
+      }
+    }
+  });
+
+  // Most favorited assets (for CRM analytics)
+  app.get("/api/crm/analytics/most-favorited", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const mostFavorited = await storage.getMostFavoritedAssets(limit);
+      res.json(mostFavorited);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get most favorited assets" });
     }
   });
 

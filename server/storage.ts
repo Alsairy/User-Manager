@@ -68,8 +68,30 @@ import type {
   ContractDashboardStats,
   ContractStatus,
   InstallmentStatus,
+  InvestorAccount,
+  InsertInvestorAccount,
+  InvestorFavorite,
+  InvestorFavoriteWithAsset,
+  InvestorInterest,
+  InvestorInterestWithDetails,
+  InsertInvestorInterest,
+  IstifadaRequest,
+  IstifadaRequestWithDetails,
+  InsertIstifadaRequest,
+  InvestorNote,
+  InvestorNoteWithUser,
+  PortalAssetFilters,
+  CrmInvestorFilters,
+  InterestFilters,
+  IstifadaFilters,
+  PortalDashboardStats,
+  CrmDashboardStats,
+  InterestReviewAction,
+  IstifadaReviewAction,
 } from "@shared/schema";
 import { permissionGroups, workflowStageEnum, isnadStageEnum, slaDaysConfig } from "@shared/schema";
+import { db, schema } from "./db";
+import { eq, and, or, ilike, desc, count, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<UserWithDetails | undefined>;
@@ -209,6 +231,50 @@ export interface IStorage {
   updateInstallmentStatus(id: string, status: UpdateInstallmentStatus, updatedBy: string): Promise<Installment | undefined>;
   deleteInstallmentPlan(contractId: string): Promise<void>;
   updateOverdueInstallments(): Promise<number>;
+
+  // Investor Portal Methods (PostgreSQL)
+  getInvestorAccount(id: string): Promise<InvestorAccount | undefined>;
+  getInvestorAccountBySsoId(ssoUserId: string): Promise<InvestorAccount | undefined>;
+  getInvestorAccounts(filters: CrmInvestorFilters): Promise<{ accounts: InvestorAccount[]; total: number }>;
+  createInvestorAccount(account: InsertInvestorAccount): Promise<InvestorAccount>;
+  updateInvestorAccount(id: string, updates: Partial<InvestorAccount>): Promise<InvestorAccount | undefined>;
+  blockInvestorAccount(id: string): Promise<InvestorAccount | undefined>;
+  
+  // Portal Asset Methods
+  getExposedAssets(filters: PortalAssetFilters): Promise<{ assets: AssetWithDetails[]; total: number }>;
+  getExposedAsset(id: string): Promise<AssetWithDetails | undefined>;
+
+  // Favorites Methods
+  getFavorites(investorAccountId: string): Promise<InvestorFavoriteWithAsset[]>;
+  addFavorite(investorAccountId: string, assetId: string): Promise<InvestorFavorite>;
+  removeFavorite(investorAccountId: string, assetId: string): Promise<boolean>;
+  isFavorited(investorAccountId: string, assetId: string): Promise<boolean>;
+  getFavoriteCount(assetId: string): Promise<number>;
+  getMostFavoritedAssets(limit?: number): Promise<{ assetId: string; assetName: string; count: number }[]>;
+
+  // Investor Interest Methods
+  getInvestorInterest(id: string): Promise<InvestorInterestWithDetails | undefined>;
+  getInvestorInterests(filters: InterestFilters): Promise<{ interests: InvestorInterestWithDetails[]; total: number }>;
+  getMyInterests(investorAccountId: string): Promise<InvestorInterestWithDetails[]>;
+  createInvestorInterest(interest: InsertInvestorInterest, investorAccountId: string): Promise<InvestorInterest>;
+  processInterestReview(id: string, reviewerId: string, action: InterestReviewAction): Promise<InvestorInterest | undefined>;
+  generateInterestRefNumber(): Promise<string>;
+
+  // Istifada Request Methods
+  getIstifadaRequest(id: string): Promise<IstifadaRequestWithDetails | undefined>;
+  getIstifadaRequests(filters: IstifadaFilters): Promise<{ requests: IstifadaRequestWithDetails[]; total: number }>;
+  getMyIstifadaRequests(investorAccountId: string): Promise<IstifadaRequestWithDetails[]>;
+  createIstifadaRequest(request: InsertIstifadaRequest, investorAccountId: string): Promise<IstifadaRequest>;
+  processIstifadaReview(id: string, reviewerId: string, action: IstifadaReviewAction): Promise<IstifadaRequest | undefined>;
+  generateIstifadaRefNumber(): Promise<string>;
+
+  // CRM Notes
+  getInvestorNotes(investorAccountId: string): Promise<InvestorNoteWithUser[]>;
+  createInvestorNote(investorAccountId: string, noteType: string, content: string, createdBy: string): Promise<InvestorNote>;
+
+  // Portal/CRM Dashboard Stats
+  getPortalDashboardStats(investorAccountId: string): Promise<PortalDashboardStats>;
+  getCrmDashboardStats(): Promise<CrmDashboardStats>;
 }
 
 export class MemStorage implements IStorage {
@@ -239,6 +305,8 @@ export class MemStorage implements IStorage {
   private contracts: Map<string, Contract>;
   private installments: Map<string, Installment>;
   private contractCodeCounter: number;
+  private interestRefCounter: number;
+  private istifadaRefCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -268,6 +336,8 @@ export class MemStorage implements IStorage {
     this.contracts = new Map();
     this.installments = new Map();
     this.contractCodeCounter = 1000;
+    this.interestRefCounter = 1000;
+    this.istifadaRefCounter = 1000;
 
     this.seedData();
   }
@@ -2759,6 +2829,696 @@ export class MemStorage implements IStorage {
 
     return count;
   }
+
+  // =============================================================================
+  // Investor Portal Methods (PostgreSQL)
+  // =============================================================================
+
+  private mapDbToInvestorAccount(row: typeof schema.investorAccounts.$inferSelect): InvestorAccount {
+    return {
+      id: row.id,
+      ssoUserId: row.ssoUserId,
+      investorId: row.investorId,
+      accountType: row.accountType,
+      fullNameAr: row.fullNameAr,
+      fullNameEn: row.fullNameEn,
+      nationalIdOrCr: row.nationalIdOrCr,
+      email: row.email,
+      phone: row.phone,
+      companyName: row.companyName,
+      contactPerson: row.contactPerson,
+      verificationStatus: row.verificationStatus,
+      status: row.status,
+      registrationDate: row.registrationDate.toISOString(),
+      lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
+      totalInterests: row.totalInterests,
+      totalContracts: row.totalContracts,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  async getInvestorAccount(id: string): Promise<InvestorAccount | undefined> {
+    const result = await db.select().from(schema.investorAccounts).where(eq(schema.investorAccounts.id, id)).limit(1);
+    return result[0] ? this.mapDbToInvestorAccount(result[0]) : undefined;
+  }
+
+  async getInvestorAccountBySsoId(ssoUserId: string): Promise<InvestorAccount | undefined> {
+    const result = await db.select().from(schema.investorAccounts).where(eq(schema.investorAccounts.ssoUserId, ssoUserId)).limit(1);
+    return result[0] ? this.mapDbToInvestorAccount(result[0]) : undefined;
+  }
+
+  async getInvestorAccounts(filters: CrmInvestorFilters): Promise<{ accounts: InvestorAccount[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters.search) {
+      conditions.push(or(
+        ilike(schema.investorAccounts.fullNameEn, `%${filters.search}%`),
+        ilike(schema.investorAccounts.fullNameAr, `%${filters.search}%`),
+        ilike(schema.investorAccounts.email, `%${filters.search}%`),
+        ilike(schema.investorAccounts.nationalIdOrCr, `%${filters.search}%`)
+      ));
+    }
+    if (filters.status && filters.status !== "all") {
+      conditions.push(eq(schema.investorAccounts.status, filters.status));
+    }
+    if (filters.accountType && filters.accountType !== "all") {
+      conditions.push(eq(schema.investorAccounts.accountType, filters.accountType));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const [countResult, rows] = await Promise.all([
+      db.select({ count: count() }).from(schema.investorAccounts).where(whereClause),
+      db.select().from(schema.investorAccounts).where(whereClause).orderBy(desc(schema.investorAccounts.createdAt))
+        .limit(filters.limit ?? 25).offset(((filters.page ?? 1) - 1) * (filters.limit ?? 25))
+    ]);
+
+    return {
+      accounts: rows.map(row => this.mapDbToInvestorAccount(row)),
+      total: countResult[0]?.count ?? 0,
+    };
+  }
+
+  async createInvestorAccount(account: InsertInvestorAccount): Promise<InvestorAccount> {
+    const [result] = await db.insert(schema.investorAccounts).values({
+      ssoUserId: account.ssoUserId,
+      investorId: account.investorId ?? null,
+      accountType: account.accountType,
+      fullNameAr: account.fullNameAr,
+      fullNameEn: account.fullNameEn,
+      nationalIdOrCr: account.nationalIdOrCr,
+      email: account.email,
+      phone: account.phone ?? null,
+      companyName: account.companyName ?? null,
+      contactPerson: account.contactPerson ?? null,
+      verificationStatus: account.verificationStatus ?? "pending",
+      status: account.status ?? "active",
+    }).returning();
+    return this.mapDbToInvestorAccount(result);
+  }
+
+  async updateInvestorAccount(id: string, updates: Partial<InvestorAccount>): Promise<InvestorAccount | undefined> {
+    const [result] = await db.update(schema.investorAccounts)
+      .set({ ...updates, updatedAt: new Date() } as any)
+      .where(eq(schema.investorAccounts.id, id))
+      .returning();
+    return result ? this.mapDbToInvestorAccount(result) : undefined;
+  }
+
+  async blockInvestorAccount(id: string): Promise<InvestorAccount | undefined> {
+    return this.updateInvestorAccount(id, { status: "blocked" });
+  }
+
+  // Portal Asset Methods (uses in-memory assets with visibleToInvestors filter)
+  async getExposedAssets(filters: PortalAssetFilters): Promise<{ assets: AssetWithDetails[]; total: number }> {
+    let assets = Array.from(this.assets.values())
+      .filter(a => a.visibleToInvestors && a.status === "completed");
+
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      assets = assets.filter(a => 
+        a.assetNameEn.toLowerCase().includes(search) || 
+        a.assetNameAr.includes(search)
+      );
+    }
+    if (filters.cityId) {
+      assets = assets.filter(a => a.cityId === filters.cityId);
+    }
+    if (filters.districtId) {
+      assets = assets.filter(a => a.districtId === filters.districtId);
+    }
+    if (filters.assetType && filters.assetType !== "all") {
+      assets = assets.filter(a => a.assetType === filters.assetType);
+    }
+    if (filters.areaMin !== undefined) {
+      assets = assets.filter(a => a.totalArea >= filters.areaMin!);
+    }
+    if (filters.areaMax !== undefined) {
+      assets = assets.filter(a => a.totalArea <= filters.areaMax!);
+    }
+
+    switch (filters.sortBy) {
+      case "name":
+        assets.sort((a, b) => a.assetNameEn.localeCompare(b.assetNameEn));
+        break;
+      case "area_asc":
+        assets.sort((a, b) => a.totalArea - b.totalArea);
+        break;
+      case "area_desc":
+        assets.sort((a, b) => b.totalArea - a.totalArea);
+        break;
+      case "newest":
+      default:
+        assets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    const total = assets.length;
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 12;
+    assets = assets.slice((page - 1) * limit, page * limit);
+
+    const assetsWithDetails = assets.map(asset => ({
+      ...asset,
+      region: this.regions.get(asset.regionId),
+      city: this.cities.get(asset.cityId),
+      district: this.districts.get(asset.districtId),
+    }));
+
+    return { assets: assetsWithDetails, total };
+  }
+
+  async getExposedAsset(id: string): Promise<AssetWithDetails | undefined> {
+    const asset = this.assets.get(id);
+    if (!asset || !asset.visibleToInvestors || asset.status !== "completed") {
+      return undefined;
+    }
+    return {
+      ...asset,
+      region: this.regions.get(asset.regionId),
+      city: this.cities.get(asset.cityId),
+      district: this.districts.get(asset.districtId),
+    };
+  }
+
+  // Favorites Methods
+  async getFavorites(investorAccountId: string): Promise<InvestorFavoriteWithAsset[]> {
+    const rows = await db.select().from(schema.investorFavorites)
+      .where(eq(schema.investorFavorites.investorAccountId, investorAccountId))
+      .orderBy(desc(schema.investorFavorites.createdAt));
+
+    return rows.map(row => ({
+      id: row.id,
+      investorAccountId: row.investorAccountId,
+      assetId: row.assetId,
+      createdAt: row.createdAt.toISOString(),
+      asset: this.assets.get(row.assetId) ? {
+        ...this.assets.get(row.assetId)!,
+        region: this.regions.get(this.assets.get(row.assetId)!.regionId),
+        city: this.cities.get(this.assets.get(row.assetId)!.cityId),
+        district: this.districts.get(this.assets.get(row.assetId)!.districtId),
+      } : undefined,
+    }));
+  }
+
+  async addFavorite(investorAccountId: string, assetId: string): Promise<InvestorFavorite> {
+    const existing = await db.select().from(schema.investorFavorites)
+      .where(and(
+        eq(schema.investorFavorites.investorAccountId, investorAccountId),
+        eq(schema.investorFavorites.assetId, assetId)
+      )).limit(1);
+    
+    if (existing.length > 0) {
+      return {
+        id: existing[0].id,
+        investorAccountId: existing[0].investorAccountId,
+        assetId: existing[0].assetId,
+        createdAt: existing[0].createdAt.toISOString(),
+      };
+    }
+
+    const [result] = await db.insert(schema.investorFavorites).values({
+      investorAccountId,
+      assetId,
+    }).returning();
+    
+    return {
+      id: result.id,
+      investorAccountId: result.investorAccountId,
+      assetId: result.assetId,
+      createdAt: result.createdAt.toISOString(),
+    };
+  }
+
+  async removeFavorite(investorAccountId: string, assetId: string): Promise<boolean> {
+    const result = await db.delete(schema.investorFavorites)
+      .where(and(
+        eq(schema.investorFavorites.investorAccountId, investorAccountId),
+        eq(schema.investorFavorites.assetId, assetId)
+      ));
+    return true;
+  }
+
+  async isFavorited(investorAccountId: string, assetId: string): Promise<boolean> {
+    const result = await db.select().from(schema.investorFavorites)
+      .where(and(
+        eq(schema.investorFavorites.investorAccountId, investorAccountId),
+        eq(schema.investorFavorites.assetId, assetId)
+      )).limit(1);
+    return result.length > 0;
+  }
+
+  async getFavoriteCount(assetId: string): Promise<number> {
+    const result = await db.select({ count: count() }).from(schema.investorFavorites)
+      .where(eq(schema.investorFavorites.assetId, assetId));
+    return result[0]?.count ?? 0;
+  }
+
+  async getMostFavoritedAssets(limit = 10): Promise<{ assetId: string; assetName: string; count: number }[]> {
+    const result = await db.select({
+      assetId: schema.investorFavorites.assetId,
+      count: count(),
+    }).from(schema.investorFavorites)
+      .groupBy(schema.investorFavorites.assetId)
+      .orderBy(desc(count()))
+      .limit(limit);
+    
+    return result.map(row => {
+      const asset = this.assets.get(row.assetId);
+      return {
+        assetId: row.assetId,
+        assetName: asset?.assetNameEn ?? "Unknown",
+        count: row.count,
+      };
+    });
+  }
+
+  // Investor Interest Methods
+  private mapDbToInterest(row: typeof schema.investorInterests.$inferSelect): InvestorInterest {
+    return {
+      id: row.id,
+      referenceNumber: row.referenceNumber,
+      investorAccountId: row.investorAccountId,
+      assetId: row.assetId,
+      investmentPurpose: row.investmentPurpose,
+      proposedUseDescription: row.proposedUseDescription,
+      investmentAmountRange: row.investmentAmountRange,
+      expectedTimeline: row.expectedTimeline,
+      additionalComments: row.additionalComments,
+      attachments: (row.attachments as string[]) ?? [],
+      status: row.status,
+      assignedToId: row.assignedToId,
+      reviewNotes: row.reviewNotes,
+      rejectionReason: row.rejectionReason,
+      convertedContractId: row.convertedContractId,
+      submittedAt: row.submittedAt.toISOString(),
+      reviewedAt: row.reviewedAt?.toISOString() ?? null,
+      reviewedBy: row.reviewedBy,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  async getInvestorInterest(id: string): Promise<InvestorInterestWithDetails | undefined> {
+    const [row] = await db.select().from(schema.investorInterests)
+      .where(eq(schema.investorInterests.id, id)).limit(1);
+    if (!row) return undefined;
+
+    const interest = this.mapDbToInterest(row);
+    const account = await this.getInvestorAccount(interest.investorAccountId);
+    const asset = await this.getExposedAsset(interest.assetId);
+
+    return {
+      ...interest,
+      investorAccount: account,
+      asset,
+    };
+  }
+
+  async getInvestorInterests(filters: InterestFilters): Promise<{ interests: InvestorInterestWithDetails[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters.status && filters.status !== "all") {
+      conditions.push(eq(schema.investorInterests.status, filters.status));
+    }
+    if (filters.investorAccountId) {
+      conditions.push(eq(schema.investorInterests.investorAccountId, filters.investorAccountId));
+    }
+    if (filters.assetId) {
+      conditions.push(eq(schema.investorInterests.assetId, filters.assetId));
+    }
+    if (filters.assignedToId) {
+      conditions.push(eq(schema.investorInterests.assignedToId, filters.assignedToId));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [countResult, rows] = await Promise.all([
+      db.select({ count: count() }).from(schema.investorInterests).where(whereClause),
+      db.select().from(schema.investorInterests).where(whereClause)
+        .orderBy(desc(schema.investorInterests.submittedAt))
+        .limit(filters.limit ?? 25).offset(((filters.page ?? 1) - 1) * (filters.limit ?? 25))
+    ]);
+
+    const interests = await Promise.all(rows.map(async row => {
+      const interest = this.mapDbToInterest(row);
+      const account = await this.getInvestorAccount(interest.investorAccountId);
+      const asset = await this.getAsset(interest.assetId);
+      return { ...interest, investorAccount: account, asset };
+    }));
+
+    return { interests, total: countResult[0]?.count ?? 0 };
+  }
+
+  async getMyInterests(investorAccountId: string): Promise<InvestorInterestWithDetails[]> {
+    const rows = await db.select().from(schema.investorInterests)
+      .where(eq(schema.investorInterests.investorAccountId, investorAccountId))
+      .orderBy(desc(schema.investorInterests.submittedAt));
+
+    return Promise.all(rows.map(async row => {
+      const interest = this.mapDbToInterest(row);
+      const asset = await this.getAsset(interest.assetId);
+      return { ...interest, asset };
+    }));
+  }
+
+  async createInvestorInterest(interest: InsertInvestorInterest, investorAccountId: string): Promise<InvestorInterest> {
+    const refNumber = await this.generateInterestRefNumber();
+    const [result] = await db.insert(schema.investorInterests).values({
+      referenceNumber: refNumber,
+      investorAccountId,
+      assetId: interest.assetId,
+      investmentPurpose: interest.investmentPurpose,
+      proposedUseDescription: interest.proposedUseDescription,
+      investmentAmountRange: interest.investmentAmountRange,
+      expectedTimeline: interest.expectedTimeline,
+      additionalComments: interest.additionalComments ?? null,
+      attachments: interest.attachments ?? [],
+    }).returning();
+
+    await db.update(schema.investorAccounts)
+      .set({ totalInterests: sql`total_interests + 1`, updatedAt: new Date() })
+      .where(eq(schema.investorAccounts.id, investorAccountId));
+
+    return this.mapDbToInterest(result);
+  }
+
+  async processInterestReview(id: string, reviewerId: string, action: InterestReviewAction): Promise<InvestorInterest | undefined> {
+    let newStatus: "new" | "under_review" | "approved" | "rejected" | "converted" = "under_review";
+    if (action.action === "approve") newStatus = "approved";
+    else if (action.action === "reject") newStatus = "rejected";
+    else if (action.action === "convert") newStatus = "converted";
+
+    const [result] = await db.update(schema.investorInterests)
+      .set({
+        status: newStatus,
+        reviewNotes: action.reviewNotes ?? null,
+        rejectionReason: action.action === "reject" ? action.rejectionReason : null,
+        reviewedAt: new Date(),
+        reviewedBy: reviewerId,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.investorInterests.id, id))
+      .returning();
+
+    return result ? this.mapDbToInterest(result) : undefined;
+  }
+
+  async generateInterestRefNumber(): Promise<string> {
+    this.interestRefCounter++;
+    const year = new Date().getFullYear();
+    return `INT-${year}-${String(this.interestRefCounter).padStart(4, "0")}`;
+  }
+
+  // Istifada Request Methods
+  private mapDbToIstifada(row: typeof schema.istifadaRequests.$inferSelect): IstifadaRequest {
+    return {
+      id: row.id,
+      referenceNumber: row.referenceNumber,
+      investorAccountId: row.investorAccountId,
+      assetId: row.assetId,
+      programType: row.programType,
+      programTitle: row.programTitle,
+      programDescription: row.programDescription,
+      targetBeneficiaries: row.targetBeneficiaries,
+      startDate: row.startDate,
+      endDate: row.endDate,
+      budgetEstimate: row.budgetEstimate,
+      proposalDocuments: (row.proposalDocuments as string[]) ?? [],
+      financialPlanDocuments: (row.financialPlanDocuments as string[]) ?? [],
+      organizationCredentials: (row.organizationCredentials as string[]) ?? [],
+      additionalDocuments: (row.additionalDocuments as string[]) ?? [],
+      status: row.status,
+      assignedToId: row.assignedToId,
+      reviewNotes: row.reviewNotes,
+      rejectionReason: row.rejectionReason,
+      additionalInfoRequest: row.additionalInfoRequest,
+      submittedAt: row.submittedAt.toISOString(),
+      reviewedAt: row.reviewedAt?.toISOString() ?? null,
+      reviewedBy: row.reviewedBy,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  async getIstifadaRequest(id: string): Promise<IstifadaRequestWithDetails | undefined> {
+    const [row] = await db.select().from(schema.istifadaRequests)
+      .where(eq(schema.istifadaRequests.id, id)).limit(1);
+    if (!row) return undefined;
+
+    const request = this.mapDbToIstifada(row);
+    const account = await this.getInvestorAccount(request.investorAccountId);
+    const asset = request.assetId ? await this.getAsset(request.assetId) : undefined;
+
+    return { ...request, investorAccount: account, asset };
+  }
+
+  async getIstifadaRequests(filters: IstifadaFilters): Promise<{ requests: IstifadaRequestWithDetails[]; total: number }> {
+    const conditions: any[] = [];
+    if (filters.status && filters.status !== "all") {
+      conditions.push(eq(schema.istifadaRequests.status, filters.status));
+    }
+    if (filters.programType && filters.programType !== "all") {
+      conditions.push(eq(schema.istifadaRequests.programType, filters.programType));
+    }
+    if (filters.investorAccountId) {
+      conditions.push(eq(schema.istifadaRequests.investorAccountId, filters.investorAccountId));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [countResult, rows] = await Promise.all([
+      db.select({ count: count() }).from(schema.istifadaRequests).where(whereClause),
+      db.select().from(schema.istifadaRequests).where(whereClause)
+        .orderBy(desc(schema.istifadaRequests.submittedAt))
+        .limit(filters.limit ?? 25).offset(((filters.page ?? 1) - 1) * (filters.limit ?? 25))
+    ]);
+
+    const requests = await Promise.all(rows.map(async row => {
+      const request = this.mapDbToIstifada(row);
+      const account = await this.getInvestorAccount(request.investorAccountId);
+      const asset = request.assetId ? await this.getAsset(request.assetId) : undefined;
+      return { ...request, investorAccount: account, asset };
+    }));
+
+    return { requests, total: countResult[0]?.count ?? 0 };
+  }
+
+  async getMyIstifadaRequests(investorAccountId: string): Promise<IstifadaRequestWithDetails[]> {
+    const rows = await db.select().from(schema.istifadaRequests)
+      .where(eq(schema.istifadaRequests.investorAccountId, investorAccountId))
+      .orderBy(desc(schema.istifadaRequests.submittedAt));
+
+    return Promise.all(rows.map(async row => {
+      const request = this.mapDbToIstifada(row);
+      const asset = request.assetId ? await this.getAsset(request.assetId) : undefined;
+      return { ...request, asset };
+    }));
+  }
+
+  async createIstifadaRequest(request: InsertIstifadaRequest, investorAccountId: string): Promise<IstifadaRequest> {
+    const refNumber = await this.generateIstifadaRefNumber();
+    const [result] = await db.insert(schema.istifadaRequests).values({
+      referenceNumber: refNumber,
+      investorAccountId,
+      assetId: request.assetId ?? null,
+      programType: request.programType,
+      programTitle: request.programTitle,
+      programDescription: request.programDescription,
+      targetBeneficiaries: request.targetBeneficiaries ?? null,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      budgetEstimate: request.budgetEstimate ?? null,
+      proposalDocuments: request.proposalDocuments ?? [],
+      financialPlanDocuments: request.financialPlanDocuments ?? [],
+      organizationCredentials: request.organizationCredentials ?? [],
+      additionalDocuments: request.additionalDocuments ?? [],
+    }).returning();
+
+    return this.mapDbToIstifada(result);
+  }
+
+  async processIstifadaReview(id: string, reviewerId: string, action: IstifadaReviewAction): Promise<IstifadaRequest | undefined> {
+    let newStatus: "new" | "under_review" | "additional_info_requested" | "approved" | "rejected" | "completed" = "under_review";
+    if (action.action === "approve") newStatus = "approved";
+    else if (action.action === "reject") newStatus = "rejected";
+    else if (action.action === "request_info") newStatus = "additional_info_requested";
+    else if (action.action === "complete") newStatus = "completed";
+
+    const [result] = await db.update(schema.istifadaRequests)
+      .set({
+        status: newStatus,
+        reviewNotes: action.reviewNotes ?? null,
+        rejectionReason: action.action === "reject" ? action.rejectionReason : null,
+        additionalInfoRequest: action.action === "request_info" ? action.additionalInfoRequest : null,
+        reviewedAt: new Date(),
+        reviewedBy: reviewerId,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.istifadaRequests.id, id))
+      .returning();
+
+    return result ? this.mapDbToIstifada(result) : undefined;
+  }
+
+  async generateIstifadaRefNumber(): Promise<string> {
+    this.istifadaRefCounter++;
+    const year = new Date().getFullYear();
+    return `IST-${year}-${String(this.istifadaRefCounter).padStart(4, "0")}`;
+  }
+
+  // CRM Notes
+  async getInvestorNotes(investorAccountId: string): Promise<InvestorNoteWithUser[]> {
+    const rows = await db.select().from(schema.investorNotes)
+      .where(eq(schema.investorNotes.investorAccountId, investorAccountId))
+      .orderBy(desc(schema.investorNotes.createdAt));
+
+    return Promise.all(rows.map(async row => {
+      const user = await this.getUser(row.createdBy);
+      return {
+        id: row.id,
+        investorAccountId: row.investorAccountId,
+        noteType: row.noteType,
+        content: row.content,
+        createdBy: row.createdBy,
+        createdAt: row.createdAt.toISOString(),
+        createdByUser: user,
+      };
+    }));
+  }
+
+  async createInvestorNote(investorAccountId: string, noteType: string, content: string, createdBy: string): Promise<InvestorNote> {
+    const [result] = await db.insert(schema.investorNotes).values({
+      investorAccountId,
+      noteType,
+      content,
+      createdBy,
+    }).returning();
+
+    return {
+      id: result.id,
+      investorAccountId: result.investorAccountId,
+      noteType: result.noteType,
+      content: result.content,
+      createdBy: result.createdBy,
+      createdAt: result.createdAt.toISOString(),
+    };
+  }
+
+  // Portal/CRM Dashboard Stats
+  async getPortalDashboardStats(investorAccountId: string): Promise<PortalDashboardStats> {
+    const exposedAssets = Array.from(this.assets.values())
+      .filter(a => a.visibleToInvestors && a.status === "completed").length;
+    
+    const [favoritesResult] = await db.select({ count: count() }).from(schema.investorFavorites)
+      .where(eq(schema.investorFavorites.investorAccountId, investorAccountId));
+    
+    const [interestsResult] = await db.select({ count: count() }).from(schema.investorInterests)
+      .where(eq(schema.investorInterests.investorAccountId, investorAccountId));
+    
+    const [requestsResult] = await db.select({ count: count() }).from(schema.istifadaRequests)
+      .where(eq(schema.istifadaRequests.investorAccountId, investorAccountId));
+
+    const [pendingResult] = await db.select({ count: count() }).from(schema.investorInterests)
+      .where(and(
+        eq(schema.investorInterests.investorAccountId, investorAccountId),
+        or(
+          eq(schema.investorInterests.status, "new"),
+          eq(schema.investorInterests.status, "under_review")
+        )
+      ));
+
+    return {
+      exposedAssets,
+      totalFavorites: favoritesResult?.count ?? 0,
+      myInterests: interestsResult?.count ?? 0,
+      myRequests: requestsResult?.count ?? 0,
+      pendingActions: pendingResult?.count ?? 0,
+    };
+  }
+
+  async getCrmDashboardStats(): Promise<CrmDashboardStats> {
+    const [totalAccounts] = await db.select({ count: count() }).from(schema.investorAccounts);
+    const [activeAccounts] = await db.select({ count: count() }).from(schema.investorAccounts)
+      .where(eq(schema.investorAccounts.status, "active"));
+    const [blockedAccounts] = await db.select({ count: count() }).from(schema.investorAccounts)
+      .where(eq(schema.investorAccounts.status, "blocked"));
+
+    const [totalInterests] = await db.select({ count: count() }).from(schema.investorInterests);
+    const [newInterests] = await db.select({ count: count() }).from(schema.investorInterests)
+      .where(eq(schema.investorInterests.status, "new"));
+    const [underReviewInterests] = await db.select({ count: count() }).from(schema.investorInterests)
+      .where(eq(schema.investorInterests.status, "under_review"));
+    const [approvedInterests] = await db.select({ count: count() }).from(schema.investorInterests)
+      .where(eq(schema.investorInterests.status, "approved"));
+    const [convertedInterests] = await db.select({ count: count() }).from(schema.investorInterests)
+      .where(eq(schema.investorInterests.status, "converted"));
+
+    const [totalIstifada] = await db.select({ count: count() }).from(schema.istifadaRequests);
+    const [pendingIstifada] = await db.select({ count: count() }).from(schema.istifadaRequests)
+      .where(or(
+        eq(schema.istifadaRequests.status, "new"),
+        eq(schema.istifadaRequests.status, "under_review")
+      ));
+
+    const mostFavorited = await this.getMostFavoritedAssets(10);
+
+    const purposeCounts = await db.select({
+      purpose: schema.investorInterests.investmentPurpose,
+      count: count(),
+    }).from(schema.investorInterests)
+      .groupBy(schema.investorInterests.investmentPurpose);
+
+    const total = totalInterests?.count ?? 0;
+    const converted = convertedInterests?.count ?? 0;
+    const conversionRate = total > 0 ? (converted / total) * 100 : 0;
+
+    return {
+      totalInvestorAccounts: totalAccounts?.count ?? 0,
+      activeInvestors: activeAccounts?.count ?? 0,
+      blockedInvestors: blockedAccounts?.count ?? 0,
+      totalInterests: total,
+      newInterests: newInterests?.count ?? 0,
+      underReviewInterests: underReviewInterests?.count ?? 0,
+      approvedInterests: approvedInterests?.count ?? 0,
+      convertedInterests: converted,
+      totalIstifadaRequests: totalIstifada?.count ?? 0,
+      pendingIstifadaRequests: pendingIstifada?.count ?? 0,
+      mostFavoritedAssets: mostFavorited,
+      interestsByPurpose: purposeCounts.map(p => ({ purpose: p.purpose, count: p.count })),
+      conversionRate: Math.round(conversionRate * 100) / 100,
+    };
+  }
+
+  // Initialize demo investor account for portal testing
+  async initDemoInvestorAccount(): Promise<void> {
+    const demoId = "demo-investor-001";
+    try {
+      const existing = await db.select().from(schema.investorAccounts)
+        .where(eq(schema.investorAccounts.id, demoId)).limit(1);
+      
+      if (existing.length === 0) {
+        await db.insert(schema.investorAccounts).values({
+          id: demoId,
+          ssoUserId: "demo-sso-user-001",
+          investorId: "INV-2024-0001",
+          accountType: "individual",
+          fullNameAr: "مستثمر تجريبي",
+          fullNameEn: "Demo Investor",
+          nationalIdOrCr: "1234567890",
+          email: "demo@investor.example.com",
+          phone: "+966501234567",
+          verificationStatus: "verified",
+          status: "active",
+        });
+        console.log("Demo investor account created successfully");
+      }
+    } catch (error) {
+      // Account may already exist, ignore
+      console.log("Demo investor account initialization skipped (may already exist)");
+    }
+  }
 }
 
 export const storage = new MemStorage();
+
+// Initialize demo data on startup
+storage.initDemoInvestorAccount().catch(console.error);

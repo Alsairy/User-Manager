@@ -1529,9 +1529,9 @@ export type InsertInvestorAccount = z.infer<typeof insertInvestorAccountSchema>;
 export const insertInvestorInterestSchema = z.object({
   assetId: z.string().min(1, "Asset is required"),
   investmentPurpose: z.enum(investmentPurposeEnum),
-  proposedUseDescription: z.string().min(500, "Description must be at least 500 characters"),
-  investmentAmountRange: z.enum(investmentAmountRangeEnum),
-  expectedTimeline: z.enum(investmentTimelineEnum),
+  proposedUseDescription: z.string().min(20, "Description must be at least 20 characters"),
+  investmentAmountRange: z.enum(investmentAmountRangeEnum).optional(),
+  expectedTimeline: z.enum(investmentTimelineEnum).optional(),
   additionalComments: z.string().nullable().optional(),
   attachments: z.array(z.string()).default([]),
 });
@@ -1541,14 +1541,14 @@ export type InsertInvestorInterest = z.infer<typeof insertInvestorInterestSchema
 export const insertIstifadaRequestSchema = z.object({
   assetId: z.string().nullable().optional(),
   programType: z.enum(istifadaProgramTypeEnum),
-  programTitle: z.string().min(1, "Program title is required"),
-  programDescription: z.string().min(1000, "Description must be at least 1000 characters"),
+  programTitle: z.string().min(5, "Program title must be at least 5 characters"),
+  programDescription: z.string().min(20, "Description must be at least 20 characters"),
   targetBeneficiaries: z.string().nullable().optional(),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   budgetEstimate: z.string().nullable().optional(),
-  proposalDocuments: z.array(z.string()).min(1, "Program proposal is required"),
-  financialPlanDocuments: z.array(z.string()).min(1, "Financial plan is required"),
+  proposalDocuments: z.array(z.string()).default([]),
+  financialPlanDocuments: z.array(z.string()).default([]),
   organizationCredentials: z.array(z.string()).default([]),
   additionalDocuments: z.array(z.string()).default([]),
 });

@@ -29,6 +29,16 @@ import ContractDetail from "@/pages/contract-detail";
 import Investors from "@/pages/investors";
 import ContractsDashboard from "@/pages/contracts-dashboard";
 import Installments from "@/pages/installments";
+import PortalAssets from "@/pages/portal-assets";
+import PortalAssetDetail from "@/pages/portal-asset-detail";
+import PortalFavorites from "@/pages/portal-favorites";
+import PortalInterests from "@/pages/portal-interests";
+import PortalInterestCreate from "@/pages/portal-interest-create";
+import PortalIstifada from "@/pages/portal-istifada";
+import PortalIstifadaCreate from "@/pages/portal-istifada-create";
+import CrmDashboard from "@/pages/crm-dashboard";
+import CrmInvestors from "@/pages/crm-investors";
+import CrmInterests from "@/pages/crm-interests";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -56,6 +66,16 @@ function Router() {
       <Route path="/contracts/investors" component={Investors} />
       <Route path="/contracts/installments" component={Installments} />
       <Route path="/contracts/:id" component={ContractDetail} />
+      <Route path="/portal/assets" component={PortalAssets} />
+      <Route path="/portal/assets/:id" component={PortalAssetDetail} />
+      <Route path="/portal/favorites" component={PortalFavorites} />
+      <Route path="/portal/interests" component={PortalInterests} />
+      <Route path="/portal/interests/new" component={PortalInterestCreate} />
+      <Route path="/portal/istifada" component={PortalIstifada} />
+      <Route path="/portal/istifada/new" component={PortalIstifadaCreate} />
+      <Route path="/crm/dashboard" component={CrmDashboard} />
+      <Route path="/crm/investors" component={CrmInvestors} />
+      <Route path="/crm/interests" component={CrmInterests} />
       <Route component={NotFound} />
     </Switch>
   );

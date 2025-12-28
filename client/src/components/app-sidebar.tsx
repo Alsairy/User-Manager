@@ -15,6 +15,12 @@ import {
   Wallet,
   UserCircle,
   BarChart3,
+  Grid3X3,
+  Heart,
+  Send,
+  Landmark,
+  UserCheck,
+  TrendingUp,
 } from "lucide-react";
 import {
   Sidebar,
@@ -105,6 +111,47 @@ const contractNavItems = [
     title: "Dashboard",
     url: "/contracts/dashboard",
     icon: BarChart3,
+  },
+];
+
+const portalNavItems = [
+  {
+    title: "Browse Assets",
+    url: "/portal/assets",
+    icon: Grid3X3,
+  },
+  {
+    title: "My Favorites",
+    url: "/portal/favorites",
+    icon: Heart,
+  },
+  {
+    title: "My Interests",
+    url: "/portal/interests",
+    icon: Send,
+  },
+  {
+    title: "Istifada Requests",
+    url: "/portal/istifada",
+    icon: Landmark,
+  },
+];
+
+const crmNavItems = [
+  {
+    title: "CRM Analytics",
+    url: "/crm/dashboard",
+    icon: TrendingUp,
+  },
+  {
+    title: "Investor Records",
+    url: "/crm/investors",
+    icon: UserCheck,
+  },
+  {
+    title: "Interest Pipeline",
+    url: "/crm/interests",
+    icon: Send,
   },
 ];
 
@@ -211,6 +258,50 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url || (item.url !== "/contracts" && location.startsWith(item.url))}
+                  >
+                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs uppercase tracking-wide">
+            Investor Portal
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {portalNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === item.url || location.startsWith(item.url + "/")}
+                  >
+                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs uppercase tracking-wide">
+            Investor CRM
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {crmNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
                       <item.icon className="h-4 w-4" />
