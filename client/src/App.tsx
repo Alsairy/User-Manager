@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationsDropdown } from "@/components/notifications-dropdown";
 import Dashboard from "@/pages/dashboard";
 import UsersList from "@/pages/users-list";
 import UserCreate from "@/pages/user-create";
@@ -63,7 +64,10 @@ function App() {
             <div className="flex flex-col flex-1 overflow-hidden">
               <header className="flex items-center justify-between gap-4 border-b px-4 py-2 bg-background">
                 <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <ThemeToggle />
+                <div className="flex items-center gap-2">
+                  <NotificationsDropdown />
+                  <ThemeToggle />
+                </div>
               </header>
               <main className="flex-1 overflow-auto p-6">
                 <Router />
