@@ -6,6 +6,9 @@ import {
   ClipboardList,
   Settings,
   LogOut,
+  FileText,
+  Building2,
+  CheckSquare,
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,6 +45,24 @@ const mainNavItems = [
     title: "Audit Logs",
     url: "/audit-logs",
     icon: ClipboardList,
+  },
+];
+
+const assetNavItems = [
+  {
+    title: "Asset Registration",
+    url: "/assets/registrations",
+    icon: FileText,
+  },
+  {
+    title: "Review Queue",
+    url: "/assets/reviews",
+    icon: CheckSquare,
+  },
+  {
+    title: "Asset Bank",
+    url: "/assets/bank",
+    icon: Building2,
   },
 ];
 
@@ -82,6 +103,28 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url || (item.url !== "/" && location.startsWith(item.url))}
+                  >
+                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs uppercase tracking-wide">
+            Asset Management
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {assetNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
                       <item.icon className="h-4 w-4" />

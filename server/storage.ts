@@ -17,8 +17,23 @@ import type {
   UserFilters,
   AccessLevel,
   PermissionGroup,
+  Asset,
+  AssetWithDetails,
+  InsertAsset,
+  AssetFilters,
+  AssetBankFilters,
+  AssetWorkflowHistory,
+  AssetVisibilityHistory,
+  AssetComment,
+  Region,
+  City,
+  District,
+  WorkflowStage,
+  WorkflowAction,
+  AssetDashboardStats,
+  ReviewQueueItem,
 } from "@shared/schema";
-import { permissionGroups, permissionGroupLabels } from "@shared/schema";
+import { permissionGroups, workflowStageEnum } from "@shared/schema";
 
 export interface IStorage {
   getUser(id: string): Promise<UserWithDetails | undefined>;
@@ -69,6 +84,37 @@ export interface IStorage {
   createAuditLog(log: Omit<AuditLog, "id" | "createdAt">): Promise<AuditLog>;
 
   getDashboardStats(): Promise<DashboardStats>;
+
+  getRegions(): Promise<Region[]>;
+  getCities(regionId?: string): Promise<City[]>;
+  getDistricts(cityId?: string): Promise<District[]>;
+  getRegion(id: string): Promise<Region | undefined>;
+  getCity(id: string): Promise<City | undefined>;
+  getDistrict(id: string): Promise<District | undefined>;
+
+  getAsset(id: string): Promise<AssetWithDetails | undefined>;
+  getAssets(filters: AssetFilters): Promise<{ assets: AssetWithDetails[]; total: number }>;
+  getAssetBank(filters: AssetBankFilters): Promise<{ assets: AssetWithDetails[]; total: number }>;
+  createAsset(asset: InsertAsset, createdBy: string): Promise<Asset>;
+  updateAsset(id: string, updates: Partial<Asset>, updatedBy: string): Promise<Asset | undefined>;
+  deleteAsset(id: string): Promise<boolean>;
+  submitAsset(id: string, mode: "direct" | "approval_cycle"): Promise<Asset | undefined>;
+  approveAsset(id: string, reviewerId: string, comments?: string): Promise<Asset | undefined>;
+  rejectAsset(id: string, reviewerId: string, reason: string, justification: string): Promise<Asset | undefined>;
+  toggleAssetVisibility(id: string, visible: boolean, userId: string, reason?: string): Promise<Asset | undefined>;
+  getAssetDashboardStats(): Promise<AssetDashboardStats>;
+  getReviewQueue(department: WorkflowStage): Promise<ReviewQueueItem[]>;
+
+  getAssetWorkflowHistory(assetId: string): Promise<AssetWorkflowHistory[]>;
+  createWorkflowHistoryEntry(entry: Omit<AssetWorkflowHistory, "id" | "createdAt">): Promise<AssetWorkflowHistory>;
+  
+  getAssetVisibilityHistory(assetId: string): Promise<AssetVisibilityHistory[]>;
+  
+  getAssetComments(assetId: string): Promise<AssetComment[]>;
+  createAssetComment(comment: Omit<AssetComment, "id" | "createdAt">): Promise<AssetComment>;
+
+  generateAssetCode(): Promise<string>;
+  checkDuplicateAssetName(nameAr: string, nameEn: string, districtId: string, excludeId?: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -80,6 +126,14 @@ export class MemStorage implements IStorage {
   private auditLogs: Map<string, AuditLog>;
   private userCustomPermissions: Map<string, UserCustomPermission>;
   private rolePermissions: Map<string, RolePermission>;
+  private regions: Map<string, Region>;
+  private cities: Map<string, City>;
+  private districts: Map<string, District>;
+  private assets: Map<string, Asset>;
+  private assetWorkflowHistory: Map<string, AssetWorkflowHistory>;
+  private assetVisibilityHistory: Map<string, AssetVisibilityHistory>;
+  private assetComments: Map<string, AssetComment>;
+  private assetCodeCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -90,6 +144,14 @@ export class MemStorage implements IStorage {
     this.auditLogs = new Map();
     this.userCustomPermissions = new Map();
     this.rolePermissions = new Map();
+    this.regions = new Map();
+    this.cities = new Map();
+    this.districts = new Map();
+    this.assets = new Map();
+    this.assetWorkflowHistory = new Map();
+    this.assetVisibilityHistory = new Map();
+    this.assetComments = new Map();
+    this.assetCodeCounter = 1000;
 
     this.seedData();
   }
@@ -331,6 +393,198 @@ export class MemStorage implements IStorage {
       ipAddress: "192.168.1.1",
       sessionId: randomUUID(),
     });
+
+    const riyadhRegionId = randomUUID();
+    const jeddahRegionId = randomUUID();
+    const dammamRegionId = randomUUID();
+    this.regions.set(riyadhRegionId, { id: riyadhRegionId, nameAr: "منطقة الرياض", nameEn: "Riyadh Region", code: "RIY" });
+    this.regions.set(jeddahRegionId, { id: jeddahRegionId, nameAr: "منطقة مكة المكرمة", nameEn: "Makkah Region", code: "MAK" });
+    this.regions.set(dammamRegionId, { id: dammamRegionId, nameAr: "المنطقة الشرقية", nameEn: "Eastern Province", code: "EST" });
+
+    const riyadhCityId = randomUUID();
+    const jeddahCityId = randomUUID();
+    const dammamCityId = randomUUID();
+    this.cities.set(riyadhCityId, { id: riyadhCityId, regionId: riyadhRegionId, nameAr: "الرياض", nameEn: "Riyadh", code: "RIY-C" });
+    this.cities.set(jeddahCityId, { id: jeddahCityId, regionId: jeddahRegionId, nameAr: "جدة", nameEn: "Jeddah", code: "JED-C" });
+    this.cities.set(dammamCityId, { id: dammamCityId, regionId: dammamRegionId, nameAr: "الدمام", nameEn: "Dammam", code: "DAM-C" });
+
+    const alOlayaDistrictId = randomUUID();
+    const alMalazDistrictId = randomUUID();
+    const alSulaimaniyahDistrictId = randomUUID();
+    this.districts.set(alOlayaDistrictId, { id: alOlayaDistrictId, cityId: riyadhCityId, nameAr: "العليا", nameEn: "Al Olaya", code: "OLY" });
+    this.districts.set(alMalazDistrictId, { id: alMalazDistrictId, cityId: riyadhCityId, nameAr: "الملز", nameEn: "Al Malaz", code: "MLZ" });
+    this.districts.set(alSulaimaniyahDistrictId, { id: alSulaimaniyahDistrictId, cityId: riyadhCityId, nameAr: "السليمانية", nameEn: "Al Sulaimaniyah", code: "SLM" });
+
+    const assetId1 = randomUUID();
+    const now = new Date().toISOString();
+    this.assets.set(assetId1, {
+      id: assetId1,
+      assetCode: "AST-001001",
+      assetNameAr: "مدرسة الملك فهد",
+      assetNameEn: "King Fahd School",
+      assetType: "building",
+      regionId: riyadhRegionId,
+      cityId: riyadhCityId,
+      districtId: alOlayaDistrictId,
+      neighborhood: "Al Olaya",
+      streetAddress: "King Fahd Road",
+      latitude: 24.7136,
+      longitude: 46.6753,
+      locationValidated: true,
+      nearbyAssetsJustification: null,
+      totalArea: 5000,
+      builtUpArea: 3500,
+      landUseType: "educational",
+      zoningClassification: "Educational Zone",
+      currentStatus: "occupied",
+      ownershipType: "moe_owned",
+      deedNumber: "1234567890",
+      deedDate: "2020-01-15",
+      ownershipDocuments: [],
+      features: ["utilities_water", "utilities_electricity", "road_access"],
+      customFeatures: null,
+      financialDues: 0,
+      custodyDetails: null,
+      administrativeNotes: null,
+      relatedReferences: null,
+      description: "Primary school with modern facilities",
+      specialConditions: null,
+      investmentPotential: "High potential for educational investment",
+      restrictions: null,
+      attachments: [],
+      status: "completed",
+      registrationMode: "direct",
+      currentStage: null,
+      verifiedBy: [],
+      rejectionReason: null,
+      rejectionJustification: null,
+      visibleToInvestors: true,
+      visibilityCount: 1,
+      totalExposureDays: 30,
+      hasActiveIsnad: false,
+      hasActiveContract: false,
+      createdBy: adminUserId,
+      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      submittedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      completedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedBy: null,
+      updatedAt: now,
+    });
+
+    const assetId2 = randomUUID();
+    this.assets.set(assetId2, {
+      id: assetId2,
+      assetCode: "AST-001002",
+      assetNameAr: "ارض تعليمية",
+      assetNameEn: "Educational Land",
+      assetType: "land",
+      regionId: riyadhRegionId,
+      cityId: riyadhCityId,
+      districtId: alMalazDistrictId,
+      neighborhood: null,
+      streetAddress: null,
+      latitude: 24.6748,
+      longitude: 46.7219,
+      locationValidated: false,
+      nearbyAssetsJustification: null,
+      totalArea: 10000,
+      builtUpArea: null,
+      landUseType: "vacant_land",
+      zoningClassification: null,
+      currentStatus: "available",
+      ownershipType: "moe_owned",
+      deedNumber: null,
+      deedDate: null,
+      ownershipDocuments: [],
+      features: ["road_access"],
+      customFeatures: null,
+      financialDues: null,
+      custodyDetails: null,
+      administrativeNotes: null,
+      relatedReferences: null,
+      description: null,
+      specialConditions: null,
+      investmentPotential: null,
+      restrictions: null,
+      attachments: [],
+      status: "draft",
+      registrationMode: null,
+      currentStage: null,
+      verifiedBy: [],
+      rejectionReason: null,
+      rejectionJustification: null,
+      visibleToInvestors: false,
+      visibilityCount: 0,
+      totalExposureDays: 0,
+      hasActiveIsnad: false,
+      hasActiveContract: false,
+      createdBy: adminUserId,
+      createdAt: now,
+      submittedAt: null,
+      completedAt: null,
+      updatedBy: null,
+      updatedAt: now,
+    });
+
+    const assetId3 = randomUUID();
+    this.assets.set(assetId3, {
+      id: assetId3,
+      assetCode: "AST-001003",
+      assetNameAr: "مبنى اداري",
+      assetNameEn: "Administrative Building",
+      assetType: "building",
+      regionId: riyadhRegionId,
+      cityId: riyadhCityId,
+      districtId: alSulaimaniyahDistrictId,
+      neighborhood: "Al Sulaimaniyah",
+      streetAddress: "Sulaimaniyah Street",
+      latitude: 24.7005,
+      longitude: 46.6882,
+      locationValidated: true,
+      nearbyAssetsJustification: null,
+      totalArea: 8000,
+      builtUpArea: 6000,
+      landUseType: "commercial",
+      zoningClassification: "Commercial Zone",
+      currentStatus: "available",
+      ownershipType: "moe_owned",
+      deedNumber: "9876543210",
+      deedDate: "2019-06-20",
+      ownershipDocuments: [],
+      features: ["utilities_water", "utilities_electricity", "utilities_sewage", "road_access", "fenced_secured"],
+      customFeatures: null,
+      financialDues: 0,
+      custodyDetails: null,
+      administrativeNotes: null,
+      relatedReferences: null,
+      description: "Modern administrative building suitable for offices",
+      specialConditions: null,
+      investmentPotential: "Excellent potential for commercial lease",
+      restrictions: null,
+      attachments: [],
+      status: "in_review",
+      registrationMode: "approval_cycle",
+      currentStage: "investment_partnerships",
+      verifiedBy: [
+        { department: "school_planning", userId: adminUserId, userName: "Admin", date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
+        { department: "facilities_security", userId: adminUserId, userName: "Admin", date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
+      ],
+      rejectionReason: null,
+      rejectionJustification: null,
+      visibleToInvestors: false,
+      visibilityCount: 0,
+      totalExposureDays: 0,
+      hasActiveIsnad: false,
+      hasActiveContract: false,
+      createdBy: sampleUserId,
+      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+      submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      completedAt: null,
+      updatedBy: null,
+      updatedAt: now,
+    });
+
+    this.assetCodeCounter = 1004;
   }
 
   async getUser(id: string): Promise<UserWithDetails | undefined> {
@@ -677,6 +931,495 @@ export class MemStorage implements IStorage {
       totalRoles: roles.length,
       recentActivity: recentLogs,
     };
+  }
+
+  async getRegions(): Promise<Region[]> {
+    return Array.from(this.regions.values());
+  }
+
+  async getCities(regionId?: string): Promise<City[]> {
+    const cities = Array.from(this.cities.values());
+    if (regionId) {
+      return cities.filter((c) => c.regionId === regionId);
+    }
+    return cities;
+  }
+
+  async getDistricts(cityId?: string): Promise<District[]> {
+    const districts = Array.from(this.districts.values());
+    if (cityId) {
+      return districts.filter((d) => d.cityId === cityId);
+    }
+    return districts;
+  }
+
+  async getRegion(id: string): Promise<Region | undefined> {
+    return this.regions.get(id);
+  }
+
+  async getCity(id: string): Promise<City | undefined> {
+    return this.cities.get(id);
+  }
+
+  async getDistrict(id: string): Promise<District | undefined> {
+    return this.districts.get(id);
+  }
+
+  private enrichAsset(asset: Asset): AssetWithDetails {
+    return {
+      ...asset,
+      region: this.regions.get(asset.regionId),
+      city: this.cities.get(asset.cityId),
+      district: this.districts.get(asset.districtId),
+      createdByUser: this.users.get(asset.createdBy),
+    };
+  }
+
+  async getAsset(id: string): Promise<AssetWithDetails | undefined> {
+    const asset = this.assets.get(id);
+    if (!asset) return undefined;
+    return this.enrichAsset(asset);
+  }
+
+  async getAssets(filters: AssetFilters): Promise<{ assets: AssetWithDetails[]; total: number }> {
+    let assets = Array.from(this.assets.values());
+
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      assets = assets.filter(
+        (a) =>
+          a.assetCode.toLowerCase().includes(search) ||
+          a.assetNameAr.includes(search) ||
+          a.assetNameEn.toLowerCase().includes(search)
+      );
+    }
+
+    if (filters.status && filters.status !== "all") {
+      assets = assets.filter((a) => a.status === filters.status);
+    }
+
+    if (filters.assetType && filters.assetType !== "all") {
+      assets = assets.filter((a) => a.assetType === filters.assetType);
+    }
+
+    if (filters.regionId) {
+      assets = assets.filter((a) => a.regionId === filters.regionId);
+    }
+
+    if (filters.cityId) {
+      assets = assets.filter((a) => a.cityId === filters.cityId);
+    }
+
+    if (filters.districtId) {
+      assets = assets.filter((a) => a.districtId === filters.districtId);
+    }
+
+    if (filters.createdBy) {
+      assets = assets.filter((a) => a.createdBy === filters.createdBy);
+    }
+
+    assets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const total = assets.length;
+    const start = (filters.page - 1) * filters.limit;
+    const paginatedAssets = assets.slice(start, start + filters.limit);
+
+    return { assets: paginatedAssets.map((a) => this.enrichAsset(a)), total };
+  }
+
+  async getAssetBank(filters: AssetBankFilters): Promise<{ assets: AssetWithDetails[]; total: number }> {
+    let assets = Array.from(this.assets.values()).filter((a) => a.status === "completed");
+
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      assets = assets.filter(
+        (a) =>
+          a.assetCode.toLowerCase().includes(search) ||
+          a.assetNameAr.includes(search) ||
+          a.assetNameEn.toLowerCase().includes(search)
+      );
+    }
+
+    if (filters.assetType && filters.assetType !== "all") {
+      assets = assets.filter((a) => a.assetType === filters.assetType);
+    }
+
+    if (filters.regionId) {
+      assets = assets.filter((a) => a.regionId === filters.regionId);
+    }
+
+    if (filters.cityId) {
+      assets = assets.filter((a) => a.cityId === filters.cityId);
+    }
+
+    if (filters.districtId) {
+      assets = assets.filter((a) => a.districtId === filters.districtId);
+    }
+
+    if (filters.ownershipType && filters.ownershipType !== "all") {
+      assets = assets.filter((a) => a.ownershipType === filters.ownershipType);
+    }
+
+    if (filters.visibilityStatus && filters.visibilityStatus !== "all") {
+      const isVisible = filters.visibilityStatus === "visible";
+      assets = assets.filter((a) => a.visibleToInvestors === isVisible);
+    }
+
+    if (filters.areaMin !== undefined) {
+      assets = assets.filter((a) => a.totalArea >= filters.areaMin!);
+    }
+
+    if (filters.areaMax !== undefined) {
+      assets = assets.filter((a) => a.totalArea <= filters.areaMax!);
+    }
+
+    assets.sort((a, b) => new Date(b.completedAt || b.createdAt).getTime() - new Date(a.completedAt || a.createdAt).getTime());
+
+    const total = assets.length;
+    const start = (filters.page - 1) * filters.limit;
+    const paginatedAssets = assets.slice(start, start + filters.limit);
+
+    return { assets: paginatedAssets.map((a) => this.enrichAsset(a)), total };
+  }
+
+  async createAsset(insertAsset: InsertAsset, createdBy: string): Promise<Asset> {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    const assetCode = await this.generateAssetCode();
+
+    const asset: Asset = {
+      id,
+      assetCode,
+      assetNameAr: insertAsset.assetNameAr,
+      assetNameEn: insertAsset.assetNameEn,
+      assetType: insertAsset.assetType,
+      regionId: insertAsset.regionId,
+      cityId: insertAsset.cityId,
+      districtId: insertAsset.districtId,
+      neighborhood: insertAsset.neighborhood ?? null,
+      streetAddress: insertAsset.streetAddress ?? null,
+      latitude: insertAsset.latitude ?? null,
+      longitude: insertAsset.longitude ?? null,
+      locationValidated: false,
+      nearbyAssetsJustification: null,
+      totalArea: insertAsset.totalArea,
+      builtUpArea: insertAsset.builtUpArea ?? null,
+      landUseType: insertAsset.landUseType ?? null,
+      zoningClassification: insertAsset.zoningClassification ?? null,
+      currentStatus: insertAsset.currentStatus ?? null,
+      ownershipType: insertAsset.ownershipType ?? null,
+      deedNumber: insertAsset.deedNumber ?? null,
+      deedDate: insertAsset.deedDate ?? null,
+      ownershipDocuments: [],
+      features: insertAsset.features ?? [],
+      customFeatures: insertAsset.customFeatures ?? null,
+      financialDues: insertAsset.financialDues ?? null,
+      custodyDetails: insertAsset.custodyDetails ?? null,
+      administrativeNotes: insertAsset.administrativeNotes ?? null,
+      relatedReferences: insertAsset.relatedReferences ?? null,
+      description: insertAsset.description ?? null,
+      specialConditions: insertAsset.specialConditions ?? null,
+      investmentPotential: insertAsset.investmentPotential ?? null,
+      restrictions: insertAsset.restrictions ?? null,
+      attachments: [],
+      status: "draft",
+      registrationMode: insertAsset.registrationMode ?? null,
+      currentStage: null,
+      verifiedBy: [],
+      rejectionReason: null,
+      rejectionJustification: null,
+      visibleToInvestors: false,
+      visibilityCount: 0,
+      totalExposureDays: 0,
+      hasActiveIsnad: false,
+      hasActiveContract: false,
+      createdBy,
+      createdAt: now,
+      submittedAt: null,
+      completedAt: null,
+      updatedBy: null,
+      updatedAt: now,
+    };
+
+    this.assets.set(id, asset);
+    return asset;
+  }
+
+  async updateAsset(id: string, updates: Partial<Asset>, updatedBy: string): Promise<Asset | undefined> {
+    const asset = this.assets.get(id);
+    if (!asset) return undefined;
+
+    const updatedAsset: Asset = {
+      ...asset,
+      ...updates,
+      id: asset.id,
+      assetCode: asset.assetCode,
+      createdBy: asset.createdBy,
+      createdAt: asset.createdAt,
+      updatedBy,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.assets.set(id, updatedAsset);
+    return updatedAsset;
+  }
+
+  async deleteAsset(id: string): Promise<boolean> {
+    const asset = this.assets.get(id);
+    if (!asset || asset.status !== "draft") return false;
+    this.assets.delete(id);
+    return true;
+  }
+
+  async submitAsset(id: string, mode: "direct" | "approval_cycle"): Promise<Asset | undefined> {
+    const asset = this.assets.get(id);
+    if (!asset || asset.status !== "draft") return undefined;
+
+    const now = new Date().toISOString();
+
+    if (mode === "direct") {
+      asset.status = "completed";
+      asset.registrationMode = "direct";
+      asset.submittedAt = now;
+      asset.completedAt = now;
+    } else {
+      asset.status = "in_review";
+      asset.registrationMode = "approval_cycle";
+      asset.currentStage = "school_planning";
+      asset.submittedAt = now;
+    }
+
+    asset.updatedAt = now;
+    this.assets.set(id, asset);
+
+    await this.createWorkflowHistoryEntry({
+      assetId: id,
+      stage: asset.currentStage || "school_planning",
+      action: "submitted",
+      reviewerId: null,
+      reviewerDepartment: null,
+      comments: null,
+      rejectionReason: null,
+      rejectionJustification: null,
+      documentsAdded: [],
+      actionDate: now,
+    });
+
+    return asset;
+  }
+
+  async approveAsset(id: string, reviewerId: string, comments?: string): Promise<Asset | undefined> {
+    const asset = this.assets.get(id);
+    if (!asset || asset.status !== "in_review" || !asset.currentStage) return undefined;
+
+    const reviewer = this.users.get(reviewerId);
+    const now = new Date().toISOString();
+    const stageIndex = workflowStageEnum.indexOf(asset.currentStage);
+
+    asset.verifiedBy.push({
+      department: asset.currentStage,
+      userId: reviewerId,
+      userName: reviewer?.email || "Unknown",
+      date: now,
+    });
+
+    await this.createWorkflowHistoryEntry({
+      assetId: id,
+      stage: asset.currentStage,
+      action: "approved",
+      reviewerId,
+      reviewerDepartment: asset.currentStage,
+      comments: comments || null,
+      rejectionReason: null,
+      rejectionJustification: null,
+      documentsAdded: [],
+      actionDate: now,
+    });
+
+    if (stageIndex < workflowStageEnum.length - 1) {
+      asset.currentStage = workflowStageEnum[stageIndex + 1];
+    } else {
+      asset.status = "completed";
+      asset.currentStage = null;
+      asset.completedAt = now;
+    }
+
+    asset.updatedAt = now;
+    this.assets.set(id, asset);
+    return asset;
+  }
+
+  async rejectAsset(id: string, reviewerId: string, reason: string, justification: string): Promise<Asset | undefined> {
+    const asset = this.assets.get(id);
+    if (!asset || asset.status !== "in_review" || !asset.currentStage) return undefined;
+
+    const now = new Date().toISOString();
+
+    await this.createWorkflowHistoryEntry({
+      assetId: id,
+      stage: asset.currentStage,
+      action: "rejected",
+      reviewerId,
+      reviewerDepartment: asset.currentStage,
+      comments: null,
+      rejectionReason: reason,
+      rejectionJustification: justification,
+      documentsAdded: [],
+      actionDate: now,
+    });
+
+    asset.status = "rejected";
+    asset.rejectionReason = reason;
+    asset.rejectionJustification = justification;
+    asset.updatedAt = now;
+    this.assets.set(id, asset);
+    return asset;
+  }
+
+  async toggleAssetVisibility(id: string, visible: boolean, userId: string, reason?: string): Promise<Asset | undefined> {
+    const asset = this.assets.get(id);
+    if (!asset || asset.status !== "completed") return undefined;
+
+    const now = new Date().toISOString();
+
+    if (asset.visibleToInvestors && !visible) {
+      const currentVisibility = Array.from(this.assetVisibilityHistory.values()).find(
+        (v) => v.assetId === id && v.endDate === null
+      );
+      if (currentVisibility) {
+        const startDate = new Date(currentVisibility.startDate);
+        const endDate = new Date(now);
+        const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        currentVisibility.endDate = now;
+        currentVisibility.durationDays = durationDays;
+        asset.totalExposureDays += durationDays;
+      }
+    }
+
+    if (!asset.visibleToInvestors && visible) {
+      const historyId = randomUUID();
+      this.assetVisibilityHistory.set(historyId, {
+        id: historyId,
+        assetId: id,
+        visibilityStatus: "visible",
+        startDate: now,
+        endDate: null,
+        durationDays: null,
+        changedBy: userId,
+        reason: reason || null,
+        createdAt: now,
+      });
+      asset.visibilityCount += 1;
+    }
+
+    asset.visibleToInvestors = visible;
+    asset.updatedAt = now;
+    this.assets.set(id, asset);
+    return asset;
+  }
+
+  async getAssetDashboardStats(): Promise<AssetDashboardStats> {
+    const assets = Array.from(this.assets.values());
+
+    return {
+      totalAssets: assets.length,
+      draftAssets: assets.filter((a) => a.status === "draft").length,
+      inReviewAssets: assets.filter((a) => a.status === "in_review").length,
+      completedAssets: assets.filter((a) => a.status === "completed").length,
+      rejectedAssets: assets.filter((a) => a.status === "rejected").length,
+      visibleToInvestors: assets.filter((a) => a.visibleToInvestors).length,
+      byAssetType: {
+        land: assets.filter((a) => a.assetType === "land").length,
+        building: assets.filter((a) => a.assetType === "building").length,
+      },
+      recentRegistrations: assets
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5),
+    };
+  }
+
+  async getReviewQueue(department: WorkflowStage): Promise<ReviewQueueItem[]> {
+    const assets = Array.from(this.assets.values()).filter(
+      (a) => a.status === "in_review" && a.currentStage === department
+    );
+
+    const now = new Date();
+    const SLA_DAYS = 5;
+
+    return assets.map((asset) => {
+      const submittedDate = asset.submittedAt || asset.createdAt;
+      const daysPending = Math.ceil((now.getTime() - new Date(submittedDate).getTime()) / (1000 * 60 * 60 * 24));
+      const slaPercent = (daysPending / SLA_DAYS) * 100;
+
+      let slaStatus: "on_time" | "warning" | "urgent" | "overdue";
+      if (slaPercent > 100) slaStatus = "overdue";
+      else if (slaPercent > 80) slaStatus = "urgent";
+      else if (slaPercent > 50) slaStatus = "warning";
+      else slaStatus = "on_time";
+
+      return {
+        asset: this.enrichAsset(asset),
+        daysPending,
+        slaStatus,
+        submittedDate,
+      };
+    });
+  }
+
+  async getAssetWorkflowHistory(assetId: string): Promise<AssetWorkflowHistory[]> {
+    return Array.from(this.assetWorkflowHistory.values())
+      .filter((h) => h.assetId === assetId)
+      .sort((a, b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime());
+  }
+
+  async createWorkflowHistoryEntry(entry: Omit<AssetWorkflowHistory, "id" | "createdAt">): Promise<AssetWorkflowHistory> {
+    const id = randomUUID();
+    const historyEntry: AssetWorkflowHistory = {
+      id,
+      ...entry,
+      createdAt: new Date().toISOString(),
+    };
+    this.assetWorkflowHistory.set(id, historyEntry);
+    return historyEntry;
+  }
+
+  async getAssetVisibilityHistory(assetId: string): Promise<AssetVisibilityHistory[]> {
+    return Array.from(this.assetVisibilityHistory.values())
+      .filter((h) => h.assetId === assetId)
+      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+  }
+
+  async getAssetComments(assetId: string): Promise<AssetComment[]> {
+    return Array.from(this.assetComments.values())
+      .filter((c) => c.assetId === assetId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createAssetComment(comment: Omit<AssetComment, "id" | "createdAt">): Promise<AssetComment> {
+    const id = randomUUID();
+    const assetComment: AssetComment = {
+      id,
+      ...comment,
+      createdAt: new Date().toISOString(),
+    };
+    this.assetComments.set(id, assetComment);
+    return assetComment;
+  }
+
+  async generateAssetCode(): Promise<string> {
+    const code = `AST-${String(this.assetCodeCounter).padStart(6, "0")}`;
+    this.assetCodeCounter++;
+    return code;
+  }
+
+  async checkDuplicateAssetName(nameAr: string, nameEn: string, districtId: string, excludeId?: string): Promise<boolean> {
+    const assets = Array.from(this.assets.values());
+    return assets.some(
+      (a) =>
+        a.id !== excludeId &&
+        a.districtId === districtId &&
+        (a.assetNameAr === nameAr || a.assetNameEn.toLowerCase() === nameEn.toLowerCase())
+    );
   }
 }
 

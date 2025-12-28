@@ -184,3 +184,326 @@ export interface DashboardStats {
   totalRoles: number;
   recentActivity: AuditLog[];
 }
+
+export const assetTypeEnum = ["land", "building"] as const;
+export type AssetType = (typeof assetTypeEnum)[number];
+
+export const assetStatusEnum = ["draft", "in_review", "completed", "rejected", "incomplete_bulk"] as const;
+export type AssetStatus = (typeof assetStatusEnum)[number];
+
+export const registrationModeEnum = ["direct", "approval_cycle"] as const;
+export type RegistrationMode = (typeof registrationModeEnum)[number];
+
+export const workflowStageEnum = [
+  "school_planning",
+  "facilities_security",
+  "investment_partnerships",
+  "investment_agency",
+  "tbc_approver",
+] as const;
+export type WorkflowStage = (typeof workflowStageEnum)[number];
+
+export const workflowStageLabels: Record<WorkflowStage, string> = {
+  school_planning: "School Planning",
+  facilities_security: "Facilities & Security",
+  investment_partnerships: "Investment & Partnerships (I&P)",
+  investment_agency: "Investment Agency (MOE)",
+  tbc_approver: "TBC Asset Approver",
+};
+
+export const landUseTypeEnum = [
+  "residential",
+  "commercial",
+  "mixed_use",
+  "educational",
+  "industrial",
+  "vacant_land",
+  "other",
+] as const;
+export type LandUseType = (typeof landUseTypeEnum)[number];
+
+export const ownershipTypeEnum = ["moe_owned", "leased", "under_custodianship", "other"] as const;
+export type OwnershipType = (typeof ownershipTypeEnum)[number];
+
+export const currentStatusEnum = ["available", "occupied", "under_development", "reserved"] as const;
+export type CurrentStatus = (typeof currentStatusEnum)[number];
+
+export const predefinedFeatures = [
+  "utilities_water",
+  "utilities_electricity",
+  "utilities_sewage",
+  "road_access",
+  "fenced_secured",
+  "building_permit",
+  "cleared_title",
+  "no_encumbrances",
+] as const;
+export type PredefinedFeature = (typeof predefinedFeatures)[number];
+
+export const featureLabels: Record<PredefinedFeature, string> = {
+  utilities_water: "Water Connected",
+  utilities_electricity: "Electricity Connected",
+  utilities_sewage: "Sewage Connected",
+  road_access: "Road Access",
+  fenced_secured: "Fenced/Secured",
+  building_permit: "Building Permit Available",
+  cleared_title: "Cleared Title",
+  no_encumbrances: "No Encumbrances",
+};
+
+export interface Region {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  code: string;
+}
+
+export interface City {
+  id: string;
+  regionId: string;
+  nameAr: string;
+  nameEn: string;
+  code: string;
+}
+
+export interface District {
+  id: string;
+  cityId: string;
+  nameAr: string;
+  nameEn: string;
+  code: string;
+}
+
+export interface AssetVerifier {
+  department: WorkflowStage;
+  userId: string;
+  userName: string;
+  date: string;
+}
+
+export interface Asset {
+  id: string;
+  assetCode: string;
+  assetNameAr: string;
+  assetNameEn: string;
+  assetType: AssetType;
+  regionId: string;
+  cityId: string;
+  districtId: string;
+  neighborhood: string | null;
+  streetAddress: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  locationValidated: boolean;
+  nearbyAssetsJustification: string | null;
+  totalArea: number;
+  builtUpArea: number | null;
+  landUseType: LandUseType | null;
+  zoningClassification: string | null;
+  currentStatus: CurrentStatus | null;
+  ownershipType: OwnershipType | null;
+  deedNumber: string | null;
+  deedDate: string | null;
+  ownershipDocuments: string[];
+  features: string[];
+  customFeatures: string | null;
+  financialDues: number | null;
+  custodyDetails: string | null;
+  administrativeNotes: string | null;
+  relatedReferences: string | null;
+  description: string | null;
+  specialConditions: string | null;
+  investmentPotential: string | null;
+  restrictions: string | null;
+  attachments: string[];
+  status: AssetStatus;
+  registrationMode: RegistrationMode | null;
+  currentStage: WorkflowStage | null;
+  verifiedBy: AssetVerifier[];
+  rejectionReason: string | null;
+  rejectionJustification: string | null;
+  visibleToInvestors: boolean;
+  visibilityCount: number;
+  totalExposureDays: number;
+  hasActiveIsnad: boolean;
+  hasActiveContract: boolean;
+  createdBy: string;
+  createdAt: string;
+  submittedAt: string | null;
+  completedAt: string | null;
+  updatedBy: string | null;
+  updatedAt: string;
+}
+
+export interface AssetWithDetails extends Asset {
+  region?: Region;
+  city?: City;
+  district?: District;
+  createdByUser?: User;
+}
+
+export const workflowActionEnum = ["submitted", "approved", "rejected"] as const;
+export type WorkflowAction = (typeof workflowActionEnum)[number];
+
+export interface AssetWorkflowHistory {
+  id: string;
+  assetId: string;
+  stage: WorkflowStage;
+  action: WorkflowAction;
+  reviewerId: string | null;
+  reviewerDepartment: string | null;
+  comments: string | null;
+  rejectionReason: string | null;
+  rejectionJustification: string | null;
+  documentsAdded: string[];
+  actionDate: string;
+  createdAt: string;
+}
+
+export const visibilityStatusEnum = ["visible", "hidden"] as const;
+export type VisibilityStatus = (typeof visibilityStatusEnum)[number];
+
+export interface AssetVisibilityHistory {
+  id: string;
+  assetId: string;
+  visibilityStatus: VisibilityStatus;
+  startDate: string;
+  endDate: string | null;
+  durationDays: number | null;
+  changedBy: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface AssetComment {
+  id: string;
+  assetId: string;
+  section: string;
+  commentText: string;
+  commenterId: string;
+  commenterDepartment: string | null;
+  workflowStage: WorkflowStage | null;
+  attachments: string[];
+  createdAt: string;
+}
+
+export const assetSectionEnum = [
+  "basic_information",
+  "location_coordinates",
+  "property_details",
+  "ownership_documentation",
+  "features_amenities",
+  "financial_administrative",
+  "additional_information",
+  "attachments",
+] as const;
+export type AssetSection = (typeof assetSectionEnum)[number];
+
+export const assetSectionLabels: Record<AssetSection, string> = {
+  basic_information: "Basic Information",
+  location_coordinates: "Location & Coordinates",
+  property_details: "Property Details",
+  ownership_documentation: "Ownership & Documentation",
+  features_amenities: "Features & Amenities",
+  financial_administrative: "Financial & Administrative",
+  additional_information: "Additional Information",
+  attachments: "Attachments",
+};
+
+export const insertAssetSchema = z.object({
+  assetNameAr: z.string().min(1, "Arabic name is required").regex(/^[\u0600-\u06FF\s]+$/, "Arabic characters only"),
+  assetNameEn: z.string().min(1, "English name is required").regex(/^[a-zA-Z\s]+$/, "English letters only"),
+  assetType: z.enum(assetTypeEnum),
+  regionId: z.string().min(1, "Region is required"),
+  cityId: z.string().min(1, "City is required"),
+  districtId: z.string().min(1, "District is required"),
+  neighborhood: z.string().nullable().optional(),
+  streetAddress: z.string().nullable().optional(),
+  latitude: z.number().min(16).max(32).nullable().optional(),
+  longitude: z.number().min(34).max(56).nullable().optional(),
+  totalArea: z.number().positive("Total area must be positive"),
+  builtUpArea: z.number().positive().nullable().optional(),
+  landUseType: z.enum(landUseTypeEnum).nullable().optional(),
+  zoningClassification: z.string().nullable().optional(),
+  currentStatus: z.enum(currentStatusEnum).nullable().optional(),
+  ownershipType: z.enum(ownershipTypeEnum).nullable().optional(),
+  deedNumber: z.string().nullable().optional(),
+  deedDate: z.string().nullable().optional(),
+  features: z.array(z.string()).default([]),
+  customFeatures: z.string().nullable().optional(),
+  financialDues: z.number().nullable().optional(),
+  custodyDetails: z.string().nullable().optional(),
+  administrativeNotes: z.string().nullable().optional(),
+  relatedReferences: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  specialConditions: z.string().nullable().optional(),
+  investmentPotential: z.string().nullable().optional(),
+  restrictions: z.string().nullable().optional(),
+  registrationMode: z.enum(registrationModeEnum).nullable().optional(),
+});
+
+export type InsertAsset = z.infer<typeof insertAssetSchema>;
+
+export const assetFiltersSchema = z.object({
+  search: z.string().optional(),
+  status: z.enum([...assetStatusEnum, "all"]).optional(),
+  assetType: z.enum([...assetTypeEnum, "all"]).optional(),
+  regionId: z.string().optional(),
+  cityId: z.string().optional(),
+  districtId: z.string().optional(),
+  createdBy: z.string().optional(),
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(200).default(25),
+});
+
+export type AssetFilters = z.infer<typeof assetFiltersSchema>;
+
+export const assetBankFiltersSchema = z.object({
+  search: z.string().optional(),
+  assetType: z.enum([...assetTypeEnum, "all"]).optional(),
+  regionId: z.string().optional(),
+  cityId: z.string().optional(),
+  districtId: z.string().optional(),
+  ownershipType: z.enum([...ownershipTypeEnum, "all"]).optional(),
+  visibilityStatus: z.enum(["visible", "hidden", "all"]).optional(),
+  areaMin: z.number().optional(),
+  areaMax: z.number().optional(),
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(200).default(25),
+});
+
+export type AssetBankFilters = z.infer<typeof assetBankFiltersSchema>;
+
+export const reviewActionSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+  comments: z.string().optional(),
+  rejectionReason: z.string().optional(),
+  rejectionJustification: z.string().min(100, "Justification must be at least 100 characters").optional(),
+});
+
+export type ReviewAction = z.infer<typeof reviewActionSchema>;
+
+export const toggleVisibilitySchema = z.object({
+  visible: z.boolean(),
+  reason: z.string().optional(),
+});
+
+export type ToggleVisibility = z.infer<typeof toggleVisibilitySchema>;
+
+export interface AssetDashboardStats {
+  totalAssets: number;
+  draftAssets: number;
+  inReviewAssets: number;
+  completedAssets: number;
+  rejectedAssets: number;
+  visibleToInvestors: number;
+  byAssetType: { land: number; building: number };
+  recentRegistrations: Asset[];
+}
+
+export interface ReviewQueueItem {
+  asset: AssetWithDetails;
+  daysPending: number;
+  slaStatus: "on_time" | "warning" | "urgent" | "overdue";
+  submittedDate: string;
+}

@@ -13,6 +13,11 @@ import UserEdit from "@/pages/user-edit";
 import RolesList from "@/pages/roles-list";
 import AuditLogs from "@/pages/audit-logs";
 import Settings from "@/pages/settings";
+import AssetRegistrations from "@/pages/asset-registrations";
+import AssetCreate from "@/pages/asset-create";
+import AssetBank from "@/pages/asset-bank";
+import AssetBankDetail from "@/pages/asset-bank-detail";
+import ReviewQueue from "@/pages/review-queue";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -25,6 +30,11 @@ function Router() {
       <Route path="/roles" component={RolesList} />
       <Route path="/audit-logs" component={AuditLogs} />
       <Route path="/settings" component={Settings} />
+      <Route path="/assets/registrations" component={AssetRegistrations} />
+      <Route path="/assets/registrations/create" component={AssetCreate} />
+      <Route path="/assets/reviews" component={ReviewQueue} />
+      <Route path="/assets/bank" component={AssetBank} />
+      <Route path="/assets/bank/:id" component={AssetBankDetail} />
       <Route component={NotFound} />
     </Switch>
   );
