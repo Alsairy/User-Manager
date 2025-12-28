@@ -74,13 +74,15 @@ export default function AssetRegistrations() {
   queryParams.set("page", String(page));
   queryParams.set("limit", String(limit));
 
+  const queryString = queryParams.toString();
   const { data, isLoading } = useQuery<{
     assets: AssetWithDetails[];
     total: number;
     page: number;
     limit: number;
   }>({
-    queryKey: ["/api/assets/registrations", queryParams.toString()],
+    queryKey: ["/api/assets/registrations", queryString],
+    queryFn: () => fetch(`/api/assets/registrations?${queryString}`).then((r) => r.json()),
   });
 
   const { data: regions } = useQuery<Region[]>({
