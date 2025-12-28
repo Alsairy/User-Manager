@@ -40,6 +40,7 @@ import PortalIstifada from "@/pages/portal-istifada";
 import PortalIstifadaCreate from "@/pages/portal-istifada-create";
 import CrmDashboard from "@/pages/crm-dashboard";
 import CrmInvestors from "@/pages/crm-investors";
+import CrmInvestorDetail from "@/pages/crm-investor-detail";
 import CrmInterests from "@/pages/crm-interests";
 import NotFound from "@/pages/not-found";
 
@@ -78,6 +79,7 @@ function Router() {
       <Route path="/portal/istifada/new" component={PortalIstifadaCreate} />
       <Route path="/crm/dashboard" component={CrmDashboard} />
       <Route path="/crm/investors" component={CrmInvestors} />
+      <Route path="/crm/investors/:id" component={CrmInvestorDetail} />
       <Route path="/crm/interests" component={CrmInterests} />
       <Route component={NotFound} />
     </Switch>
