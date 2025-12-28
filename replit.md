@@ -6,6 +6,14 @@ This is a comprehensive User Management System for the Madares Business platform
 
 ## Recent Changes (December 28, 2025)
 
+### ISNAD Workflow System Enhancements
+- Added Technical Assessment section (4th step) to ISNAD form creation wizard
+- Technical Assessment includes: structural condition, utilities availability, access infrastructure, environmental considerations, zoning compliance
+- Implemented "Request Additional Information" review action for reviewers to request clarification from form initiators
+- Added Technical Assessment display section in form detail page with Wrench icon
+- ISNAD form creation is now a 4-step wizard: Asset Selection, Investment Criteria, Technical Assessment, Financial Analysis
+- Review actions now include: Approve, Reject, Return for Modification, Request Additional Information
+
 ### Contract Management Module
 - Added complete Contract Management system with investor and installment tracking
 - Created contracts list page with filtering by status, investor, search, and pagination
@@ -19,7 +27,7 @@ This is a comprehensive User Management System for the Madares Business platform
 
 ### Previous Updates
 - Added complete ISNAD Workflow System with 9-stage approval process
-- Created ISNAD Forms pages: list with filtering/search, 3-step creation wizard, detail view with approve/reject/return dialogs
+- Created ISNAD Forms pages: list with filtering/search, 4-step creation wizard, detail view with approve/reject/return/request info dialogs
 - Implemented ISNAD Packages management with creation interface and executive review workflow
 - Added notifications dropdown in header with real-time notification display, mark as read, and error handling
 - Added updateIsnadFormSchema to prevent unauthorized status/stage mutations in update routes

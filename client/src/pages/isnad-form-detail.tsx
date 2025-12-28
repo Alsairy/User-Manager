@@ -30,6 +30,8 @@ import {
   Calendar,
   MapPin,
   DollarSign,
+  MessageSquareMore,
+  Wrench,
 } from "lucide-react";
 import {
   IsnadFormWithDetails,
@@ -65,7 +67,10 @@ export default function IsnadFormDetailPage() {
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
+  const [requestInfoOpen, setRequestInfoOpen] = useState(false);
   const [comments, setComments] = useState("");
+  const [returnComments, setReturnComments] = useState("");
+  const [requestInfoComments, setRequestInfoComments] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectionJustification, setRejectionJustification] = useState("");
 
@@ -99,7 +104,10 @@ export default function IsnadFormDetailPage() {
       setApproveOpen(false);
       setRejectOpen(false);
       setReturnOpen(false);
+      setRequestInfoOpen(false);
       setComments("");
+      setReturnComments("");
+      setRequestInfoComments("");
       setRejectionReason("");
       setRejectionJustification("");
     },
@@ -216,8 +224,8 @@ export default function IsnadFormDetailPage() {
                     <div className="space-y-2">
                       <Label>Comments</Label>
                       <Textarea
-                        value={comments}
-                        onChange={(e) => setComments(e.target.value)}
+                        value={returnComments}
+                        onChange={(e) => setReturnComments(e.target.value)}
                         placeholder="Specify what needs to be modified..."
                         data-testid="input-return-comments"
                       />
@@ -226,7 +234,7 @@ export default function IsnadFormDetailPage() {
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setReturnOpen(false)}>Cancel</Button>
                     <Button
-                      onClick={() => reviewMutation.mutate({ action: "return", comments })}
+                      onClick={() => reviewMutation.mutate({ action: "return", comments: returnComments })}
                       disabled={reviewMutation.isPending}
                       data-testid="button-confirm-return"
                     >
@@ -278,6 +286,43 @@ export default function IsnadFormDetailPage() {
                       data-testid="button-confirm-reject"
                     >
                       Confirm Rejection
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={requestInfoOpen} onOpenChange={setRequestInfoOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" data-testid="button-request-info">
+                    <MessageSquareMore className="w-4 h-4 mr-2" />
+                    Request Info
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Request Additional Information</DialogTitle>
+                    <DialogDescription>Request clarification or additional details from the form initiator.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Questions / Information Needed</Label>
+                      <Textarea
+                        value={requestInfoComments}
+                        onChange={(e) => setRequestInfoComments(e.target.value)}
+                        placeholder="Specify what additional information or clarification is needed..."
+                        className="min-h-[100px]"
+                        data-testid="input-request-info"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setRequestInfoOpen(false)}>Cancel</Button>
+                    <Button
+                      onClick={() => reviewMutation.mutate({ action: "request_info", comments: requestInfoComments })}
+                      disabled={reviewMutation.isPending || !requestInfoComments.trim()}
+                      data-testid="button-confirm-request-info"
+                    >
+                      Send Request
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -354,6 +399,51 @@ export default function IsnadFormDetailPage() {
                   <p className="text-sm text-muted-foreground">Risk Assessment</p>
                   <p>{form.investmentCriteria.riskAssessment}</p>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {form.technicalAssessment && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wrench className="w-5 h-5" />
+                  Technical Assessment
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {form.technicalAssessment.structuralCondition && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Structural Condition</p>
+                    <p>{form.technicalAssessment.structuralCondition}</p>
+                  </div>
+                )}
+                <div className="grid md:grid-cols-2 gap-4">
+                  {form.technicalAssessment.utilitiesAvailability && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Utilities Availability</p>
+                      <p>{form.technicalAssessment.utilitiesAvailability}</p>
+                    </div>
+                  )}
+                  {form.technicalAssessment.accessInfrastructure && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Access & Infrastructure</p>
+                      <p>{form.technicalAssessment.accessInfrastructure}</p>
+                    </div>
+                  )}
+                </div>
+                {form.technicalAssessment.environmentalConsiderations && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Environmental Considerations</p>
+                    <p>{form.technicalAssessment.environmentalConsiderations}</p>
+                  </div>
+                )}
+                {form.technicalAssessment.zoningCompliance && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Zoning & Legal Compliance</p>
+                    <p>{form.technicalAssessment.zoningCompliance}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

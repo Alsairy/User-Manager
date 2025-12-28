@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Save, Send, Building2, DollarSign, ClipboardList } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Send, Building2, DollarSign, ClipboardList, Wrench } from "lucide-react";
 import { insertIsnadFormSchema, InsertIsnadForm, AssetWithDetails } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +34,7 @@ import { z } from "zod";
 const formSteps = [
   { id: "asset", title: "Select Asset", icon: Building2 },
   { id: "investment", title: "Investment Criteria", icon: ClipboardList },
+  { id: "technical", title: "Technical Assessment", icon: Wrench },
   { id: "financial", title: "Financial Analysis", icon: DollarSign },
 ];
 
@@ -45,6 +46,11 @@ const extendedSchema = z.object({
   requiredModifications: z.string().optional(),
   complianceRequirements: z.string().optional(),
   riskAssessment: z.string().min(20, "Risk assessment must be at least 20 characters"),
+  structuralCondition: z.string().optional(),
+  utilitiesAvailability: z.string().optional(),
+  accessInfrastructure: z.string().optional(),
+  environmentalConsiderations: z.string().optional(),
+  zoningCompliance: z.string().optional(),
   currentValuation: z.coerce.number().min(0).default(0),
   outstandingDues: z.coerce.number().min(0).default(0),
   maintenanceCosts: z.coerce.number().min(0).default(0),
@@ -76,6 +82,11 @@ export default function IsnadFormCreatePage() {
       requiredModifications: "",
       complianceRequirements: "",
       riskAssessment: "",
+      structuralCondition: "",
+      utilitiesAvailability: "",
+      accessInfrastructure: "",
+      environmentalConsiderations: "",
+      zoningCompliance: "",
       currentValuation: 0,
       outstandingDues: 0,
       maintenanceCosts: 0,
@@ -95,6 +106,13 @@ export default function IsnadFormCreatePage() {
           requiredModifications: data.requiredModifications || "",
           complianceRequirements: data.complianceRequirements || "",
           riskAssessment: data.riskAssessment,
+        },
+        technicalAssessment: {
+          structuralCondition: data.structuralCondition || "",
+          utilitiesAvailability: data.utilitiesAvailability || "",
+          accessInfrastructure: data.accessInfrastructure || "",
+          environmentalConsiderations: data.environmentalConsiderations || "",
+          zoningCompliance: data.zoningCompliance || "",
         },
         financialAnalysis: {
           currentValuation: data.currentValuation,
@@ -142,6 +160,7 @@ export default function IsnadFormCreatePage() {
     const values = form.getValues();
     if (currentStep === 0) return !!values.assetId;
     if (currentStep === 1) return !!values.investmentPurpose && !!values.projectTimeline && !!values.riskAssessment;
+    if (currentStep === 2) return true; // Technical assessment fields are optional
     return true;
   };
 
@@ -344,6 +363,100 @@ export default function IsnadFormCreatePage() {
             )}
 
             {currentStep === 2 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Technical Assessment</CardTitle>
+                  <CardDescription>Evaluate the technical suitability of the asset for investment</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="structuralCondition"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Structural Condition (for buildings)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Describe the structural condition and any needed repairs..."
+                            data-testid="input-structural"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="utilitiesAvailability"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Utilities Availability</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., Water, Electricity, Sewage" data-testid="input-utilities" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="accessInfrastructure"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Access & Infrastructure</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Roads, parking, accessibility" data-testid="input-access" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="environmentalConsiderations"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Environmental Considerations</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Any environmental factors or concerns..."
+                            data-testid="input-environmental"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="zoningCompliance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Zoning & Legal Compliance</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Zoning restrictions, legal requirements, permits needed..."
+                            data-testid="input-zoning"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {currentStep === 3 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Financial Analysis</CardTitle>
