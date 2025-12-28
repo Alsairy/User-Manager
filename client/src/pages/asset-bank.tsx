@@ -56,13 +56,15 @@ export default function AssetBank() {
   queryParams.set("page", String(page));
   queryParams.set("limit", String(limit));
 
+  const queryString = queryParams.toString();
   const { data, isLoading } = useQuery<{
     assets: AssetWithDetails[];
     total: number;
     page: number;
     limit: number;
   }>({
-    queryKey: ["/api/assets/bank", queryParams.toString()],
+    queryKey: ["/api/assets/bank", queryString],
+    queryFn: () => fetch(`/api/assets/bank?${queryString}`).then((r) => r.json()),
   });
 
   const { data: regions } = useQuery<Region[]>({
