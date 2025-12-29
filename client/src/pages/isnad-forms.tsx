@@ -53,15 +53,16 @@ import { useToast } from "@/hooks/use-toast";
 
 const statusColors: Record<IsnadStatus, string> = {
   draft: "bg-muted text-muted-foreground",
-  submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  in_department_review: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  pending_verification: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  verification_due: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  changes_requested: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+  verified_filled: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
   investment_agency_review: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
   in_package: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
   pending_ceo: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   pending_minister: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
   approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  returned: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
   cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
 };
 
@@ -168,12 +169,16 @@ export default function IsnadFormsPage() {
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="in_department_review">In Department Review</SelectItem>
+                <SelectItem value="pending_verification">Pending Verification</SelectItem>
+                <SelectItem value="verification_due">Verification Due</SelectItem>
+                <SelectItem value="changes_requested">Changes Requested</SelectItem>
+                <SelectItem value="verified_filled">Verified and Filled</SelectItem>
                 <SelectItem value="investment_agency_review">Investment Agency Review</SelectItem>
+                <SelectItem value="in_package">In Executive Package</SelectItem>
+                <SelectItem value="pending_ceo">Pending CEO Approval</SelectItem>
+                <SelectItem value="pending_minister">Pending Minister Approval</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="returned">Returned</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
@@ -184,11 +189,11 @@ export default function IsnadFormsPage() {
               <SelectContent>
                 <SelectItem value="all">All Stages</SelectItem>
                 <SelectItem value="ip_initiation">I&P Initiation</SelectItem>
-                <SelectItem value="school_planning">School Planning</SelectItem>
-                <SelectItem value="asset_management">Asset Management</SelectItem>
-                <SelectItem value="shared_services">Shared Services</SelectItem>
-                <SelectItem value="education_dept">Education Dept</SelectItem>
+                <SelectItem value="department_review">Department Review</SelectItem>
                 <SelectItem value="investment_agency">Investment Agency</SelectItem>
+                <SelectItem value="package_preparation">Package Preparation</SelectItem>
+                <SelectItem value="ceo_approval">CEO Approval</SelectItem>
+                <SelectItem value="minister_approval">Minister Approval</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -283,13 +288,13 @@ export default function IsnadFormsPage() {
                                     </DropdownMenuItem>
                                   </>
                                 )}
-                                {form.status === "returned" && (
+                                {form.status === "changes_requested" && (
                                   <DropdownMenuItem onClick={() => navigate(`/isnad/forms/${form.id}/edit`)}>
                                     <RotateCcw className="w-4 h-4 mr-2" />
                                     Revise & Resubmit
                                   </DropdownMenuItem>
                                 )}
-                                {(form.status === "draft" || form.status === "submitted" || form.status === "returned") && (
+                                {(form.status === "draft" || form.status === "changes_requested") && (
                                   <DropdownMenuItem
                                     className="text-destructive"
                                     onClick={() => {

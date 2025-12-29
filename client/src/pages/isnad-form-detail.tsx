@@ -674,9 +674,9 @@ export default function IsnadFormDetailPage() {
                       <div className="mt-1">
                         {approval.action === "approved" && <CheckCircle2 className="w-4 h-4 text-green-600" />}
                         {approval.action === "rejected" && <XCircle className="w-4 h-4 text-red-600" />}
-                        {approval.action === "returned" && <RotateCcw className="w-4 h-4 text-amber-600" />}
-                        {approval.action === "submitted" && <Send className="w-4 h-4 text-blue-600" />}
-                        {!["approved", "rejected", "returned", "submitted"].includes(approval.action) && (
+                        {approval.action === "modification_requested" && <RotateCcw className="w-4 h-4 text-amber-600" />}
+                        {approval.action === "request_info" && <AlertTriangle className="w-4 h-4 text-yellow-600" />}
+                        {!["approved", "rejected", "modification_requested", "request_info"].includes(approval.action) && (
                           <Clock className="w-4 h-4 text-muted-foreground" />
                         )}
                       </div>
