@@ -127,7 +127,7 @@ export default function PortalAssets() {
                 <CardContent className="p-4 pt-0 space-y-2">
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <MapPin className="h-3.5 w-3.5" />
-                    <span>{asset.city?.cityName || "Unknown"}, {asset.district?.districtName || ""}</span>
+                    <span>{asset.city?.nameEn || "Unknown"}, {asset.district?.nameEn || ""}</span>
                   </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Ruler className="h-3.5 w-3.5" />

@@ -140,11 +140,11 @@ export default function PortalAssetDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Built Area</p>
-                  <p className="font-medium">{asset.builtArea.toLocaleString()} sqm</p>
+                  <p className="font-medium">{asset.builtUpArea?.toLocaleString() || "N/A"} sqm</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Floors</p>
-                  <p className="font-medium">{asset.numberOfFloors}</p>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="font-medium capitalize">{asset.currentStatus?.replace("_", " ") || "N/A"}</p>
                 </div>
               </div>
             </CardContent>
@@ -156,9 +156,8 @@ export default function PortalAssetDetail() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                This is a {asset.assetType.replace("_", " ")} property located in {asset.city?.cityName}, {asset.region?.regionName}. 
-                The property features {asset.totalArea.toLocaleString()} sqm of total area with {asset.builtArea.toLocaleString()} sqm of built space 
-                across {asset.numberOfFloors} floors.
+                {asset.description || `This is a ${asset.assetType.replace("_", " ")} property located in ${asset.city?.nameEn || "N/A"}, ${asset.region?.nameEn || "N/A"}. 
+                The property features ${asset.totalArea?.toLocaleString() || "N/A"} sqm of total area${asset.builtUpArea ? ` with ${asset.builtUpArea.toLocaleString()} sqm of built space` : ""}.`}
               </p>
             </CardContent>
           </Card>
@@ -190,15 +189,15 @@ export default function PortalAssetDetail() {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-sm text-muted-foreground">Region</p>
-                <p className="font-medium">{asset.region?.regionName || "N/A"}</p>
+                <p className="font-medium">{asset.region?.nameEn || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">City</p>
-                <p className="font-medium">{asset.city?.cityName || "N/A"}</p>
+                <p className="font-medium">{asset.city?.nameEn || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">District</p>
-                <p className="font-medium">{asset.district?.districtName || "N/A"}</p>
+                <p className="font-medium">{asset.district?.nameEn || "N/A"}</p>
               </div>
             </CardContent>
           </Card>
@@ -217,15 +216,15 @@ export default function PortalAssetDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Built-up Area</p>
-                <p className="font-medium">{asset.builtArea.toLocaleString()} sqm</p>
+                <p className="font-medium">{asset.builtUpArea?.toLocaleString() || "N/A"} sqm</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Number of Floors</p>
-                <p className="font-medium">{asset.numberOfFloors}</p>
+                <p className="text-sm text-muted-foreground">Land Use</p>
+                <p className="font-medium capitalize">{asset.landUseType?.replace("_", " ") || "N/A"}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Units</p>
-                <p className="font-medium">{asset.numberOfUnits}</p>
+                <p className="text-sm text-muted-foreground">Ownership</p>
+                <p className="font-medium capitalize">{asset.ownershipType?.replace("_", " ") || "N/A"}</p>
               </div>
             </CardContent>
           </Card>
@@ -239,8 +238,8 @@ export default function PortalAssetDetail() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm text-muted-foreground">Year Built</p>
-                <p className="font-medium">{asset.yearBuilt || "N/A"}</p>
+                <p className="text-sm text-muted-foreground">Visibility</p>
+                <p className="font-medium">{asset.visibilityCount || 0} views</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Asset Code</p>
