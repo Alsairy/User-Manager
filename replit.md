@@ -6,26 +6,30 @@ This is a comprehensive User Management System for the Madares Business platform
 
 ## Recent Changes (December 29, 2025)
 
-### ISNAD Workflow System Major Restructure
-- **RESTRUCTURED from 9 sequential stages to 5-stage workflow with parallel department review**
-- New ISNAD Stages:
-  1. IP Initiation - I&P department initiates the form
-  2. Department Review (7 Departments in Parallel) - All 7 must approve, single rejection = form rejected
-  3. Investment Agency Review - Investment agency decision
+### ISNAD Workflow System Major Restructure (v2 - Based on Enhanced BRD)
+- **RESTRUCTURED to match comprehensive BRD document with 19 departments**
+- New ISNAD Stages (6 stages):
+  1. I&P Initiation - Investment & Partnerships department initiates the form
+  2. Department Review (19 Departments in Parallel) - All must approve, single rejection = form rejected
+  3. Investment Agency Review - Investment Agency (MOE Central Oversight) decision
   4. Package Preparation - Forms prepared for executive review
-  5. CEO Approval → Minister Approval - Executive approval chain
-- 7 Departments reviewing in parallel:
-  - Administration (5 SLA days)
-  - Engineering (5 SLA days)
-  - Legal (5 SLA days)
-  - Planning (5 SLA days)
-  - Projects (5 SLA days)
-  - School Services (5 SLA days)
-  - Shared Services (3 SLA days)
-- Added DepartmentApproval interface with status tracking per department
-- Added processDepartmentApproval storage method and API route
-- Updated IsnadForm interface with departmentApprovals array
-- Added Department Review Status section to ISNAD form detail page
+  5. CEO of TBC Approval - Executive approval
+  6. Associate Minister of MOE Approval - Final ministry-level approval
+- **19 Departments reviewing in parallel:**
+  - Core Departments (3):
+    - School Planning Department (5 SLA days)
+    - Safety, Security & Facilities Department (5 SLA days)
+    - Investment & Partnerships Department (5 SLA days)
+  - Regional Education Departments (16):
+    - Riyadh, Makkah, Madinah, Eastern Province, Qassim, Ha'il, Jazan, Asir, Tabuk, Najran, Al-Baha, Northern Borders, Al-Jouf, Al-Qurayyat, Hafar Al-Batin, Al-Hasa
+- **New ISNAD Statuses:**
+  - draft, pending_verification, verification_due, changes_requested, verified_filled, investment_agency_review, in_package, pending_ceo, pending_minister, approved, rejected, cancelled
+- **Department Review Actions:**
+  - Approve: Moves to next step if all approved
+  - Reject: Immediately ends ISNAD workflow with mandatory reason
+  - Request Modification: Routes back to I&P (form owner), not between departments
+- Updated frontend with grouped department display (Core vs Regional)
+- DepartmentApproval interface includes modificationRequest field
 
 ### Previous Updates (December 28, 2025)
 - Added Technical Assessment section (4th step) to ISNAD form creation wizard

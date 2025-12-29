@@ -187,9 +187,10 @@ export interface IStorage {
     formId: string,
     department: DepartmentReviewer,
     reviewerId: string,
-    action: "approved" | "rejected" | "returned",
+    action: "approved" | "rejected" | "modification_requested",
     comments: string | null,
-    rejectionJustification: string | null
+    rejectionJustification: string | null,
+    modificationRequest: string | null
   ): Promise<IsnadForm | undefined>;
   cancelIsnadForm(id: string, userId: string, reason: string): Promise<IsnadForm | undefined>;
   getIsnadReviewQueue(stage: IsnadStage): Promise<IsnadReviewQueueItem[]>;
@@ -1698,6 +1699,7 @@ export class MemStorage implements IStorage {
       actionTakenAt: null,
       comments: null,
       rejectionJustification: null,
+      modificationRequest: null,
       slaDeadline: null,
       slaStatus: null,
     }));
@@ -1774,7 +1776,7 @@ export class MemStorage implements IStorage {
       slaStatus: "on_time" as SlaStatus,
     }));
 
-    form.status = "submitted";
+    form.status = "pending_verification";
     form.currentStage = "department_review";
     form.submittedAt = now;
     form.slaDeadline = slaDeadline;
@@ -1823,9 +1825,10 @@ export class MemStorage implements IStorage {
     formId: string,
     department: DepartmentReviewer,
     reviewerId: string,
-    action: "approved" | "rejected" | "returned",
+    action: "approved" | "rejected" | "modification_requested",
     comments: string | null,
-    rejectionJustification: string | null
+    rejectionJustification: string | null,
+    modificationRequest: string | null
   ): Promise<IsnadForm | undefined> {
     const form = this.isnadForms.get(formId);
     if (!form || form.currentStage !== "department_review") return undefined;
@@ -1840,10 +1843,11 @@ export class MemStorage implements IStorage {
       ...form.departmentApprovals[deptIndex],
       status: action,
       approverId: reviewerId,
-      approverName: reviewer?.fullName || null,
+      approverName: reviewer?.email || null,
       actionTakenAt: now,
       comments,
       rejectionJustification: action === "rejected" ? rejectionJustification : null,
+      modificationRequest: action === "modification_requested" ? modificationRequest : null,
     };
 
     if (action === "rejected") {
@@ -1855,11 +1859,11 @@ export class MemStorage implements IStorage {
       return form;
     }
 
-    if (action === "returned") {
-      form.status = "returned";
+    if (action === "modification_requested") {
+      form.status = "changes_requested";
       form.currentStage = "ip_initiation";
       form.returnedByDepartment = department;
-      form.returnReason = comments;
+      form.returnReason = modificationRequest;
       form.returnCount = (form.returnCount || 0) + 1;
       form.updatedAt = now;
       this.isnadForms.set(formId, form);
@@ -1869,7 +1873,7 @@ export class MemStorage implements IStorage {
     const allApproved = form.departmentApprovals.every((d) => d.status === "approved");
     if (allApproved) {
       form.currentStage = "investment_agency";
-      form.status = "investment_agency_review";
+      form.status = "verified_filled";
       const slaDays = slaDaysConfig.investment_agency;
       form.slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
       form.slaStatus = "on_time";
@@ -1913,7 +1917,17 @@ export class MemStorage implements IStorage {
       const nextStage = this.getNextIsnadStage(form.currentStage);
       if (nextStage) {
         form.currentStage = nextStage;
-        form.status = nextStage === "investment_agency" ? "investment_agency_review" : "in_department_review";
+        if (nextStage === "investment_agency") {
+          form.status = "investment_agency_review";
+        } else if (nextStage === "package_preparation") {
+          form.status = "in_package";
+        } else if (nextStage === "ceo_approval") {
+          form.status = "pending_ceo";
+        } else if (nextStage === "minister_approval") {
+          form.status = "pending_minister";
+        } else {
+          form.status = "pending_verification";
+        }
         const slaDays = slaDaysConfig[nextStage];
         form.slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
         form.slaStatus = "on_time";
@@ -1936,7 +1950,7 @@ export class MemStorage implements IStorage {
         this.assets.set(asset.id, asset);
       }
     } else if (action.action === "return") {
-      form.status = "returned";
+      form.status = "changes_requested";
       form.currentStage = "ip_initiation";
       form.returnCount += 1;
       form.slaDeadline = null;
@@ -1979,7 +1993,7 @@ export class MemStorage implements IStorage {
 
   async getIsnadReviewQueue(stage: IsnadStage): Promise<IsnadReviewQueueItem[]> {
     const forms = Array.from(this.isnadForms.values()).filter(
-      (f) => (f.status === "submitted" || f.status === "in_department_review" || f.status === "investment_agency_review") && f.currentStage === stage
+      (f) => (f.status === "pending_verification" || f.status === "verification_due" || f.status === "investment_agency_review") && f.currentStage === stage
     );
 
     const now = new Date();
@@ -2027,10 +2041,10 @@ export class MemStorage implements IStorage {
     return {
       totalForms: forms.length,
       draftForms: forms.filter((f) => f.status === "draft").length,
-      inReviewForms: forms.filter((f) => ["submitted", "in_department_review", "investment_agency_review"].includes(f.status)).length,
+      inReviewForms: forms.filter((f) => ["pending_verification", "verification_due", "verified_filled", "investment_agency_review"].includes(f.status)).length,
       approvedForms: forms.filter((f) => f.status === "approved").length,
       rejectedForms: forms.filter((f) => f.status === "rejected").length,
-      returnedForms: forms.filter((f) => f.status === "returned").length,
+      changesRequestedForms: forms.filter((f) => f.status === "changes_requested").length,
       pendingMyAction: 0,
       byStage,
       slaCompliance,

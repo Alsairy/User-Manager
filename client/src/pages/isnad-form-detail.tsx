@@ -49,15 +49,16 @@ import { useState } from "react";
 
 const statusColors: Record<IsnadStatus, string> = {
   draft: "bg-muted text-muted-foreground",
-  submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  in_department_review: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  pending_verification: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  verification_due: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  changes_requested: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+  verified_filled: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
   investment_agency_review: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
   in_package: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
   pending_ceo: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
   pending_minister: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
   approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  returned: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
   cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
 };
 
@@ -115,9 +116,9 @@ export default function IsnadFormDetailPage() {
     },
   });
 
-  const canReview = form && ["submitted", "in_department_review", "investment_agency_review", "pending_ceo", "pending_minister"].includes(form.status);
+  const canReview = form && ["pending_verification", "verification_due", "verified_filled", "investment_agency_review", "pending_ceo", "pending_minister"].includes(form.status);
   const canSubmit = form && form.status === "draft";
-  const canEdit = form && (form.status === "draft" || form.status === "returned");
+  const canEdit = form && (form.status === "draft" || form.status === "changes_requested");
   const isDepartmentReview = form && form.currentStage === "department_review";
 
   if (isLoading) {
@@ -521,50 +522,103 @@ export default function IsnadFormDetailPage() {
               <CardHeader>
                 <CardTitle>Department Review Status</CardTitle>
                 <CardDescription>
-                  All 7 departments must approve. A single rejection will reject the entire form.
+                  All 19 departments must approve. A single rejection will reject the entire form.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {form.departmentApprovals.map((dept) => (
-                    <div
-                      key={dept.department}
-                      className="flex items-center justify-between gap-2 p-2 rounded-md border"
-                      data-testid={`dept-approval-${dept.department}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {dept.status === "approved" && (
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
-                        )}
-                        {dept.status === "rejected" && (
-                          <XCircle className="w-4 h-4 text-red-600" />
-                        )}
-                        {dept.status === "returned" && (
-                          <RotateCcw className="w-4 h-4 text-amber-600" />
-                        )}
-                        {dept.status === "pending" && (
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <span className="text-sm font-medium">
-                          {departmentLabels[dept.department as DepartmentReviewer]}
-                        </span>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={
-                          dept.status === "approved"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                            : dept.status === "rejected"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                            : dept.status === "returned"
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                            : ""
-                        }
-                      >
-                        {dept.status.charAt(0).toUpperCase() + dept.status.slice(1)}
-                      </Badge>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Core Departments</h4>
+                    <div className="space-y-2">
+                      {form.departmentApprovals
+                        .filter((dept) => ["school_planning", "safety_security_facilities", "investment_partnerships"].includes(dept.department))
+                        .map((dept) => (
+                          <div
+                            key={dept.department}
+                            className="flex items-center justify-between gap-2 p-2 rounded-md border"
+                            data-testid={`dept-approval-${dept.department}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {dept.status === "approved" && (
+                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                              )}
+                              {dept.status === "rejected" && (
+                                <XCircle className="w-4 h-4 text-red-600" />
+                              )}
+                              {dept.status === "modification_requested" && (
+                                <RotateCcw className="w-4 h-4 text-amber-600" />
+                              )}
+                              {dept.status === "pending" && (
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                              )}
+                              <span className="text-sm font-medium">
+                                {departmentLabels[dept.department as DepartmentReviewer]}
+                              </span>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className={
+                                dept.status === "approved"
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                  : dept.status === "rejected"
+                                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                  : dept.status === "modification_requested"
+                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                                  : ""
+                              }
+                            >
+                              {dept.status === "modification_requested" ? "Changes Requested" : dept.status.charAt(0).toUpperCase() + dept.status.slice(1)}
+                            </Badge>
+                          </div>
+                        ))}
                     </div>
-                  ))}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Regional Education Departments</h4>
+                    <div className="space-y-2">
+                      {form.departmentApprovals
+                        .filter((dept) => !["school_planning", "safety_security_facilities", "investment_partnerships"].includes(dept.department))
+                        .map((dept) => (
+                          <div
+                            key={dept.department}
+                            className="flex items-center justify-between gap-2 p-2 rounded-md border"
+                            data-testid={`dept-approval-${dept.department}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {dept.status === "approved" && (
+                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                              )}
+                              {dept.status === "rejected" && (
+                                <XCircle className="w-4 h-4 text-red-600" />
+                              )}
+                              {dept.status === "modification_requested" && (
+                                <RotateCcw className="w-4 h-4 text-amber-600" />
+                              )}
+                              {dept.status === "pending" && (
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                              )}
+                              <span className="text-sm font-medium">
+                                {departmentLabels[dept.department as DepartmentReviewer]}
+                              </span>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className={
+                                dept.status === "approved"
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                  : dept.status === "rejected"
+                                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                  : dept.status === "modification_requested"
+                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                                  : ""
+                              }
+                            >
+                              {dept.status === "modification_requested" ? "Changes Requested" : dept.status.charAt(0).toUpperCase() + dept.status.slice(1)}
+                            </Badge>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
                 </div>
                 {form.currentStage === "department_review" && (
                   <p className="mt-4 text-xs text-muted-foreground">

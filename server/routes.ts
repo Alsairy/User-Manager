@@ -962,17 +962,20 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Department and action are required" });
       }
 
-      if (!["approved", "rejected", "returned"].includes(action)) {
-        return res.status(400).json({ error: "Invalid action. Must be approved, rejected, or returned" });
+      if (!["approved", "rejected", "modification_requested"].includes(action)) {
+        return res.status(400).json({ error: "Invalid action. Must be approved, rejected, or modification_requested" });
       }
+
+      const modificationRequest = req.body.modificationRequest;
 
       const form = await storage.processDepartmentApproval(
         req.params.id,
         department,
         "admin",
-        action,
+        action as "approved" | "rejected" | "modification_requested",
         comments || null,
-        rejectionJustification || null
+        rejectionJustification || null,
+        modificationRequest || null
       );
 
       if (!form) {

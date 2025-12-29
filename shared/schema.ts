@@ -514,30 +514,32 @@ export interface ReviewQueueItem {
 
 export const isnadStatusEnum = [
   "draft",
-  "submitted",
-  "in_department_review",
+  "pending_verification",
+  "verification_due",
+  "changes_requested",
+  "verified_filled",
   "investment_agency_review",
   "in_package",
   "pending_ceo",
   "pending_minister",
   "approved",
   "rejected",
-  "returned",
   "cancelled",
 ] as const;
 export type IsnadStatus = (typeof isnadStatusEnum)[number];
 
 export const isnadStatusLabels: Record<IsnadStatus, string> = {
   draft: "Draft",
-  submitted: "Submitted",
-  in_department_review: "In Department Review",
+  pending_verification: "Pending Verification",
+  verification_due: "Verification Due",
+  changes_requested: "Changes Requested",
+  verified_filled: "Verified and Filled",
   investment_agency_review: "Investment Agency Review",
   in_package: "In Executive Package",
-  pending_ceo: "Pending CEO Approval",
-  pending_minister: "Pending Minister Approval",
+  pending_ceo: "Pending CEO of TBC Approval",
+  pending_minister: "Pending Associate Minister Approval",
   approved: "Approved for Investment",
   rejected: "Rejected",
-  returned: "Returned for Modification",
   cancelled: "Cancelled",
 };
 
@@ -553,42 +555,92 @@ export type IsnadStage = (typeof isnadStageEnum)[number];
 
 export const isnadStageLabels: Record<IsnadStage, string> = {
   ip_initiation: "I&P Initiation",
-  department_review: "Department Review (7 Departments)",
+  department_review: "Department Review (19 Departments)",
   investment_agency: "Investment Agency Review",
   package_preparation: "Package Preparation",
-  ceo_approval: "CEO Approval",
-  minister_approval: "Minister Approval",
+  ceo_approval: "CEO of TBC Approval",
+  minister_approval: "Associate Minister of MOE Approval",
 };
 
 export const departmentReviewersEnum = [
-  "administration",
-  "engineering", 
-  "legal",
-  "planning",
-  "projects",
-  "school_services",
-  "shared_services",
+  "school_planning",
+  "safety_security_facilities",
+  "investment_partnerships",
+  "riyadh_education",
+  "makkah_education",
+  "madinah_education",
+  "eastern_province_education",
+  "qassim_education",
+  "hail_education",
+  "jazan_education",
+  "asir_education",
+  "tabuk_education",
+  "najran_education",
+  "albaha_education",
+  "northern_borders_education",
+  "aljouf_education",
+  "alqurayyat_education",
+  "hafar_albatin_education",
+  "alhasa_education",
 ] as const;
 export type DepartmentReviewer = (typeof departmentReviewersEnum)[number];
 
 export const departmentLabels: Record<DepartmentReviewer, string> = {
-  administration: "Administration",
-  engineering: "Engineering",
-  legal: "Legal",
-  planning: "Planning",
-  projects: "Projects",
-  school_services: "School Services",
-  shared_services: "Shared Services (Financial & Custody)",
+  school_planning: "School Planning Department",
+  safety_security_facilities: "Safety, Security & Facilities Department",
+  investment_partnerships: "Investment & Partnerships Department",
+  riyadh_education: "Riyadh Education Department",
+  makkah_education: "Makkah Education Department",
+  madinah_education: "Madinah Education Department",
+  eastern_province_education: "Eastern Province Education Department",
+  qassim_education: "Qassim Education Department",
+  hail_education: "Ha'il Education Department",
+  jazan_education: "Jazan Education Department",
+  asir_education: "Asir Education Department",
+  tabuk_education: "Tabuk Education Department",
+  najran_education: "Najran Education Department",
+  albaha_education: "Al-Baha Education Department",
+  northern_borders_education: "Northern Borders Education Department",
+  aljouf_education: "Al-Jouf Education Department",
+  alqurayyat_education: "Al-Qurayyat Education Department",
+  hafar_albatin_education: "Hafar Al-Batin Education Department",
+  alhasa_education: "Al-Hasa Education Department",
 };
+
+export const coreDepartments: DepartmentReviewer[] = [
+  "school_planning",
+  "safety_security_facilities",
+  "investment_partnerships",
+];
+
+export const regionalEducationDepartments: DepartmentReviewer[] = [
+  "riyadh_education",
+  "makkah_education",
+  "madinah_education",
+  "eastern_province_education",
+  "qassim_education",
+  "hail_education",
+  "jazan_education",
+  "asir_education",
+  "tabuk_education",
+  "najran_education",
+  "albaha_education",
+  "northern_borders_education",
+  "aljouf_education",
+  "alqurayyat_education",
+  "hafar_albatin_education",
+  "alhasa_education",
+];
 
 export interface DepartmentApproval {
   department: DepartmentReviewer;
-  status: "pending" | "approved" | "rejected" | "returned";
+  status: "pending" | "approved" | "rejected" | "modification_requested";
   approverId: string | null;
   approverName: string | null;
   actionTakenAt: string | null;
   comments: string | null;
   rejectionJustification: string | null;
+  modificationRequest: string | null;
   slaDeadline: string | null;
   slaStatus: SlaStatus | null;
 }
@@ -631,13 +683,25 @@ export const slaDaysConfig: Record<IsnadStage, number> = {
 };
 
 export const departmentSlaDays: Record<DepartmentReviewer, number> = {
-  administration: 5,
-  engineering: 5,
-  legal: 5,
-  planning: 5,
-  projects: 5,
-  school_services: 5,
-  shared_services: 3,
+  school_planning: 5,
+  safety_security_facilities: 5,
+  investment_partnerships: 5,
+  riyadh_education: 5,
+  makkah_education: 5,
+  madinah_education: 5,
+  eastern_province_education: 5,
+  qassim_education: 5,
+  hail_education: 5,
+  jazan_education: 5,
+  asir_education: 5,
+  tabuk_education: 5,
+  najran_education: 5,
+  albaha_education: 5,
+  northern_borders_education: 5,
+  aljouf_education: 5,
+  alqurayyat_education: 5,
+  hafar_albatin_education: 5,
+  alhasa_education: 5,
 };
 
 export interface InvestmentCriteria {
@@ -972,7 +1036,7 @@ export interface IsnadDashboardStats {
   inReviewForms: number;
   approvedForms: number;
   rejectedForms: number;
-  returnedForms: number;
+  changesRequestedForms: number;
   pendingMyAction: number;
   byStage: Record<IsnadStage, number>;
   slaCompliance: {
