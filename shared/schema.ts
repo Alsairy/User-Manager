@@ -543,12 +543,9 @@ export const isnadStatusLabels: Record<IsnadStatus, string> = {
 
 export const isnadStageEnum = [
   "ip_initiation",
-  "school_planning",
-  "asset_management",
-  "shared_services",
-  "education_dept",
+  "department_review",
   "investment_agency",
-  "tbc_packaging",
+  "package_preparation",
   "ceo_approval",
   "minister_approval",
 ] as const;
@@ -556,15 +553,45 @@ export type IsnadStage = (typeof isnadStageEnum)[number];
 
 export const isnadStageLabels: Record<IsnadStage, string> = {
   ip_initiation: "I&P Initiation",
-  school_planning: "School Planning Review",
-  asset_management: "Asset Management Review",
-  shared_services: "Shared Services Review",
-  education_dept: "Education Dept Review",
-  investment_agency: "Investment Agency Approval",
-  tbc_packaging: "TBC Packaging",
+  department_review: "Department Review (7 Departments)",
+  investment_agency: "Investment Agency Review",
+  package_preparation: "Package Preparation",
   ceo_approval: "CEO Approval",
   minister_approval: "Minister Approval",
 };
+
+export const departmentReviewersEnum = [
+  "administration",
+  "engineering", 
+  "legal",
+  "planning",
+  "projects",
+  "school_services",
+  "shared_services",
+] as const;
+export type DepartmentReviewer = (typeof departmentReviewersEnum)[number];
+
+export const departmentLabels: Record<DepartmentReviewer, string> = {
+  administration: "Administration",
+  engineering: "Engineering",
+  legal: "Legal",
+  planning: "Planning",
+  projects: "Projects",
+  school_services: "School Services",
+  shared_services: "Shared Services (Financial & Custody)",
+};
+
+export interface DepartmentApproval {
+  department: DepartmentReviewer;
+  status: "pending" | "approved" | "rejected" | "returned";
+  approverId: string | null;
+  approverName: string | null;
+  actionTakenAt: string | null;
+  comments: string | null;
+  rejectionJustification: string | null;
+  slaDeadline: string | null;
+  slaStatus: SlaStatus | null;
+}
 
 export const isnadActionEnum = [
   "created",
@@ -595,15 +622,22 @@ export const slaStatusEnum = ["on_time", "warning", "urgent", "overdue"] as cons
 export type SlaStatus = (typeof slaStatusEnum)[number];
 
 export const slaDaysConfig: Record<IsnadStage, number> = {
-  ip_initiation: 0,
-  school_planning: 5,
-  asset_management: 5,
-  shared_services: 5,
-  education_dept: 5,
-  investment_agency: 7,
-  tbc_packaging: 0,
+  ip_initiation: 2,
+  department_review: 5,
+  investment_agency: 5,
+  package_preparation: 3,
   ceo_approval: 3,
   minister_approval: 5,
+};
+
+export const departmentSlaDays: Record<DepartmentReviewer, number> = {
+  administration: 5,
+  engineering: 5,
+  legal: 5,
+  planning: 5,
+  projects: 5,
+  school_services: 5,
+  shared_services: 3,
 };
 
 export interface InvestmentCriteria {
@@ -641,10 +675,21 @@ export interface IsnadForm {
   investmentCriteria: InvestmentCriteria | null;
   technicalAssessment: TechnicalAssessment | null;
   financialAnalysis: FinancialAnalysis | null;
+  departmentApprovals: DepartmentApproval[];
+  investmentAgencyDecision: {
+    status: "pending" | "approved" | "rejected" | "returned";
+    approverId: string | null;
+    approverName: string | null;
+    actionTakenAt: string | null;
+    comments: string | null;
+    rejectionJustification: string | null;
+  } | null;
   attachments: string[];
   submittedAt: string | null;
   completedAt: string | null;
   returnCount: number;
+  returnedByDepartment: DepartmentReviewer | null;
+  returnReason: string | null;
   slaDeadline: string | null;
   slaStatus: SlaStatus | null;
   packageId: string | null;
@@ -732,12 +777,11 @@ export const updateIsnadFormSchema = z.object({
     riskAssessment: z.string(),
   }).optional(),
   technicalAssessment: z.object({
-    infrastructureCondition: z.string(),
-    accessibilityScore: z.number(),
-    utilityStatus: z.string(),
-    environmentalCompliance: z.boolean(),
-    safetyCompliance: z.boolean(),
-    requiredUpgrades: z.string().array(),
+    structuralCondition: z.string(),
+    utilitiesAvailability: z.string(),
+    accessInfrastructure: z.string(),
+    environmentalConsiderations: z.string(),
+    zoningCompliance: z.string(),
   }).optional(),
   financialAnalysis: z.object({
     currentValuation: z.number(),

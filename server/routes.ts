@@ -954,6 +954,47 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/isnad/forms/:id/department-review", async (req, res) => {
+    try {
+      const { department, action, comments, rejectionJustification } = req.body;
+      
+      if (!department || !action) {
+        return res.status(400).json({ error: "Department and action are required" });
+      }
+
+      if (!["approved", "rejected", "returned"].includes(action)) {
+        return res.status(400).json({ error: "Invalid action. Must be approved, rejected, or returned" });
+      }
+
+      const form = await storage.processDepartmentApproval(
+        req.params.id,
+        department,
+        "admin",
+        action,
+        comments || null,
+        rejectionJustification || null
+      );
+
+      if (!form) {
+        return res.status(400).json({ error: "Cannot process department review" });
+      }
+
+      await storage.createAuditLog({
+        userId: "admin",
+        actionType: `isnad_department_${action}`,
+        entityType: "isnad_form",
+        entityId: req.params.id,
+        changes: { department, action, status: form.status },
+        ipAddress: req.ip ?? null,
+        sessionId: null,
+      });
+
+      res.json(form);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to process department review" });
+    }
+  });
+
   app.post("/api/isnad/forms/:id/cancel", async (req, res) => {
     try {
       const { reason } = req.body;

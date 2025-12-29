@@ -40,6 +40,8 @@ import {
   isnadStageLabels,
   isnadActionLabels,
   IsnadStatus,
+  departmentLabels,
+  DepartmentReviewer,
 } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -113,9 +115,10 @@ export default function IsnadFormDetailPage() {
     },
   });
 
-  const canReview = form && ["submitted", "in_department_review", "investment_agency_review"].includes(form.status);
+  const canReview = form && ["submitted", "in_department_review", "investment_agency_review", "pending_ceo", "pending_minister"].includes(form.status);
   const canSubmit = form && form.status === "draft";
   const canEdit = form && (form.status === "draft" || form.status === "returned");
+  const isDepartmentReview = form && form.currentStage === "department_review";
 
   if (isLoading) {
     return (
@@ -512,6 +515,66 @@ export default function IsnadFormDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {form.departmentApprovals && form.departmentApprovals.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Department Review Status</CardTitle>
+                <CardDescription>
+                  All 7 departments must approve. A single rejection will reject the entire form.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {form.departmentApprovals.map((dept) => (
+                    <div
+                      key={dept.department}
+                      className="flex items-center justify-between gap-2 p-2 rounded-md border"
+                      data-testid={`dept-approval-${dept.department}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {dept.status === "approved" && (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        )}
+                        {dept.status === "rejected" && (
+                          <XCircle className="w-4 h-4 text-red-600" />
+                        )}
+                        {dept.status === "returned" && (
+                          <RotateCcw className="w-4 h-4 text-amber-600" />
+                        )}
+                        {dept.status === "pending" && (
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <span className="text-sm font-medium">
+                          {departmentLabels[dept.department as DepartmentReviewer]}
+                        </span>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          dept.status === "approved"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : dept.status === "rejected"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            : dept.status === "returned"
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                            : ""
+                        }
+                      >
+                        {dept.status.charAt(0).toUpperCase() + dept.status.slice(1)}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+                {form.currentStage === "department_review" && (
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    {form.departmentApprovals.filter((d) => d.status === "approved").length} of{" "}
+                    {form.departmentApprovals.length} departments have approved
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

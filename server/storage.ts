@@ -53,6 +53,8 @@ import type {
   NotificationFilters,
   NotificationType,
   SlaStatus,
+  DepartmentApproval,
+  DepartmentReviewer,
   Investor,
   InsertInvestor,
   Contract,
@@ -89,7 +91,7 @@ import type {
   InterestReviewAction,
   IstifadaReviewAction,
 } from "@shared/schema";
-import { permissionGroups, workflowStageEnum, isnadStageEnum, slaDaysConfig } from "@shared/schema";
+import { permissionGroups, workflowStageEnum, isnadStageEnum, slaDaysConfig, departmentReviewersEnum, departmentSlaDays } from "@shared/schema";
 import { db, schema } from "./db";
 import { eq, and, or, ilike, desc, count, sql } from "drizzle-orm";
 
@@ -181,6 +183,14 @@ export interface IStorage {
   updateIsnadForm(id: string, updates: Partial<IsnadForm>): Promise<IsnadForm | undefined>;
   submitIsnadForm(id: string): Promise<IsnadForm | undefined>;
   processIsnadAction(id: string, reviewerId: string, action: IsnadReviewAction): Promise<IsnadForm | undefined>;
+  processDepartmentApproval(
+    formId: string,
+    department: DepartmentReviewer,
+    reviewerId: string,
+    action: "approved" | "rejected" | "returned",
+    comments: string | null,
+    rejectionJustification: string | null
+  ): Promise<IsnadForm | undefined>;
   cancelIsnadForm(id: string, userId: string, reason: string): Promise<IsnadForm | undefined>;
   getIsnadReviewQueue(stage: IsnadStage): Promise<IsnadReviewQueueItem[]>;
   getIsnadDashboardStats(userId?: string): Promise<IsnadDashboardStats>;
@@ -1680,6 +1690,18 @@ export class MemStorage implements IStorage {
     const now = new Date().toISOString();
     const formCode = await this.generateIsnadCode();
 
+    const initialDepartmentApprovals: DepartmentApproval[] = departmentReviewersEnum.map((dept) => ({
+      department: dept,
+      status: "pending" as const,
+      approverId: null,
+      approverName: null,
+      actionTakenAt: null,
+      comments: null,
+      rejectionJustification: null,
+      slaDeadline: null,
+      slaStatus: null,
+    }));
+
     const form: IsnadForm = {
       id,
       formCode,
@@ -1690,10 +1712,14 @@ export class MemStorage implements IStorage {
       investmentCriteria: insertForm.investmentCriteria || null,
       technicalAssessment: insertForm.technicalAssessment || null,
       financialAnalysis: insertForm.financialAnalysis || null,
+      departmentApprovals: initialDepartmentApprovals,
+      investmentAgencyDecision: null,
       attachments: [],
       submittedAt: null,
       completedAt: null,
       returnCount: 0,
+      returnedByDepartment: null,
+      returnReason: null,
       slaDeadline: null,
       slaStatus: null,
       packageId: null,
@@ -1739,11 +1765,17 @@ export class MemStorage implements IStorage {
     if (!form || form.status !== "draft") return undefined;
 
     const now = new Date().toISOString();
-    const slaDays = slaDaysConfig.school_planning;
+    const slaDays = slaDaysConfig.department_review;
     const slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
 
+    form.departmentApprovals = form.departmentApprovals.map((dept) => ({
+      ...dept,
+      slaDeadline: new Date(Date.now() + departmentSlaDays[dept.department] * 24 * 60 * 60 * 1000).toISOString(),
+      slaStatus: "on_time" as SlaStatus,
+    }));
+
     form.status = "submitted";
-    form.currentStage = "school_planning";
+    form.currentStage = "department_review";
     form.submittedAt = now;
     form.slaDeadline = slaDeadline;
     form.slaStatus = "on_time";
@@ -1776,15 +1808,76 @@ export class MemStorage implements IStorage {
   private getNextIsnadStage(currentStage: IsnadStage): IsnadStage | null {
     const stageOrder: IsnadStage[] = [
       "ip_initiation",
-      "school_planning",
-      "asset_management",
-      "shared_services",
-      "education_dept",
+      "department_review",
       "investment_agency",
+      "package_preparation",
+      "ceo_approval",
+      "minister_approval",
     ];
     const currentIndex = stageOrder.indexOf(currentStage);
     if (currentIndex < 0 || currentIndex >= stageOrder.length - 1) return null;
     return stageOrder[currentIndex + 1];
+  }
+
+  async processDepartmentApproval(
+    formId: string,
+    department: DepartmentReviewer,
+    reviewerId: string,
+    action: "approved" | "rejected" | "returned",
+    comments: string | null,
+    rejectionJustification: string | null
+  ): Promise<IsnadForm | undefined> {
+    const form = this.isnadForms.get(formId);
+    if (!form || form.currentStage !== "department_review") return undefined;
+
+    const now = new Date().toISOString();
+    const reviewer = this.users.get(reviewerId);
+
+    const deptIndex = form.departmentApprovals.findIndex((d) => d.department === department);
+    if (deptIndex === -1) return undefined;
+
+    form.departmentApprovals[deptIndex] = {
+      ...form.departmentApprovals[deptIndex],
+      status: action,
+      approverId: reviewerId,
+      approverName: reviewer?.fullName || null,
+      actionTakenAt: now,
+      comments,
+      rejectionJustification: action === "rejected" ? rejectionJustification : null,
+    };
+
+    if (action === "rejected") {
+      form.status = "rejected";
+      form.returnedByDepartment = department;
+      form.returnReason = rejectionJustification;
+      form.updatedAt = now;
+      this.isnadForms.set(formId, form);
+      return form;
+    }
+
+    if (action === "returned") {
+      form.status = "returned";
+      form.currentStage = "ip_initiation";
+      form.returnedByDepartment = department;
+      form.returnReason = comments;
+      form.returnCount = (form.returnCount || 0) + 1;
+      form.updatedAt = now;
+      this.isnadForms.set(formId, form);
+      return form;
+    }
+
+    const allApproved = form.departmentApprovals.every((d) => d.status === "approved");
+    if (allApproved) {
+      form.currentStage = "investment_agency";
+      form.status = "investment_agency_review";
+      const slaDays = slaDaysConfig.investment_agency;
+      form.slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
+      form.slaStatus = "on_time";
+    }
+
+    form.updatedAt = now;
+    this.isnadForms.set(formId, form);
+    return form;
   }
 
   async processIsnadAction(id: string, reviewerId: string, action: IsnadReviewAction): Promise<IsnadForm | undefined> {

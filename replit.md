@@ -4,9 +4,30 @@
 
 This is a comprehensive User Management System for the Madares Business platform ("Lands for Investor"). It provides an admin dashboard with role-based access control, custom permissions, user management, and audit logging functionality. The application follows an enterprise-grade design using the IBM Carbon Design System principles with IBM Plex Sans typography for clarity and data-dense interfaces.
 
-## Recent Changes (December 28, 2025)
+## Recent Changes (December 29, 2025)
 
-### ISNAD Workflow System Enhancements
+### ISNAD Workflow System Major Restructure
+- **RESTRUCTURED from 9 sequential stages to 5-stage workflow with parallel department review**
+- New ISNAD Stages:
+  1. IP Initiation - I&P department initiates the form
+  2. Department Review (7 Departments in Parallel) - All 7 must approve, single rejection = form rejected
+  3. Investment Agency Review - Investment agency decision
+  4. Package Preparation - Forms prepared for executive review
+  5. CEO Approval → Minister Approval - Executive approval chain
+- 7 Departments reviewing in parallel:
+  - Administration (5 SLA days)
+  - Engineering (5 SLA days)
+  - Legal (5 SLA days)
+  - Planning (5 SLA days)
+  - Projects (5 SLA days)
+  - School Services (5 SLA days)
+  - Shared Services (3 SLA days)
+- Added DepartmentApproval interface with status tracking per department
+- Added processDepartmentApproval storage method and API route
+- Updated IsnadForm interface with departmentApprovals array
+- Added Department Review Status section to ISNAD form detail page
+
+### Previous Updates (December 28, 2025)
 - Added Technical Assessment section (4th step) to ISNAD form creation wizard
 - Technical Assessment includes: structural condition, utilities availability, access infrastructure, environmental considerations, zoning compliance
 - Implemented "Request Additional Information" review action for reviewers to request clarification from form initiators
