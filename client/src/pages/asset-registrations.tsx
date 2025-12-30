@@ -19,6 +19,7 @@ import {
   FileText,
   Edit3,
 } from "lucide-react";
+import { MapSelectionDialog } from "@/components/map-selection-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -180,6 +181,7 @@ export default function AssetRegistrations() {
   const [skipIntro, setSkipIntro] = useState(false);
   const [formData, setFormData] = useState<AssetFormData>(initialFormData);
   const [activeTab, setActiveTab] = useState<"info" | "location" | "features">("info");
+  const [showMapDialog, setShowMapDialog] = useState(false);
 
   const queryParams = new URLSearchParams();
   if (search) queryParams.set("search", search);
@@ -939,17 +941,7 @@ export default function AssetRegistrations() {
                               variant="ghost" 
                               size="sm" 
                               className="text-primary p-0 h-auto"
-                              onClick={() => {
-                                const lat = parseFloat(formData.latitude);
-                                const lng = parseFloat(formData.longitude);
-                                if (!isNaN(lat) && !isNaN(lng)) {
-                                  window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
-                                } else if (!isNaN(lat)) {
-                                  window.open(`https://www.google.com/maps?q=${lat},46.6753`, "_blank");
-                                } else {
-                                  window.open("https://www.google.com/maps?q=24.7136,46.6753", "_blank");
-                                }
-                              }}
+                              onClick={() => setShowMapDialog(true)}
                               data-testid="button-check-map-lat"
                             >
                               Check on map
@@ -972,17 +964,7 @@ export default function AssetRegistrations() {
                               variant="ghost" 
                               size="sm" 
                               className="text-primary p-0 h-auto"
-                              onClick={() => {
-                                const lat = parseFloat(formData.latitude);
-                                const lng = parseFloat(formData.longitude);
-                                if (!isNaN(lat) && !isNaN(lng)) {
-                                  window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
-                                } else if (!isNaN(lng)) {
-                                  window.open(`https://www.google.com/maps?q=24.7136,${lng}`, "_blank");
-                                } else {
-                                  window.open("https://www.google.com/maps?q=24.7136,46.6753", "_blank");
-                                }
-                              }}
+                              onClick={() => setShowMapDialog(true)}
                               data-testid="button-check-map-lng"
                             >
                               Check on map
@@ -996,6 +978,17 @@ export default function AssetRegistrations() {
                           />
                           <p className="text-xs text-muted-foreground">Enter longitude in decimal format. Values west of the prime meridian must have a '-' in front.</p>
                         </div>
+
+                        <MapSelectionDialog
+                          open={showMapDialog}
+                          onOpenChange={setShowMapDialog}
+                          initialLat={parseFloat(formData.latitude)}
+                          initialLng={parseFloat(formData.longitude)}
+                          onConfirm={(lat, lng) => {
+                            handleFormChange("latitude", lat.toString());
+                            handleFormChange("longitude", lng.toString());
+                          }}
+                        />
 
                         <div className="space-y-2">
                           <Label>Attach aerial photograph <span className="text-muted-foreground">(optional)</span></Label>
