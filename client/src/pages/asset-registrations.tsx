@@ -206,11 +206,13 @@ export default function AssetRegistrations() {
 
   const { data: cities } = useQuery<City[]>({
     queryKey: ["/api/reference/cities", formData.regionId],
+    queryFn: () => fetch(`/api/reference/cities?regionId=${formData.regionId}`).then((r) => r.json()),
     enabled: !!formData.regionId,
   });
 
   const { data: districts } = useQuery<District[]>({
     queryKey: ["/api/reference/districts", formData.cityId],
+    queryFn: () => fetch(`/api/reference/districts?cityId=${formData.cityId}`).then((r) => r.json()),
     enabled: !!formData.cityId,
   });
 
