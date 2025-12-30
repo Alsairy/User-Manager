@@ -591,26 +591,190 @@ export class MemStorage implements IStorage {
       sessionId: randomUUID(),
     });
 
+    // Saudi Arabia - All 13 Administrative Regions
     const riyadhRegionId = randomUUID();
-    const jeddahRegionId = randomUUID();
-    const dammamRegionId = randomUUID();
+    const makkahRegionId = randomUUID();
+    const madinahRegionId = randomUUID();
+    const easternRegionId = randomUUID();
+    const qassimRegionId = randomUUID();
+    const hailRegionId = randomUUID();
+    const tabukRegionId = randomUUID();
+    const northernBordersRegionId = randomUUID();
+    const joufRegionId = randomUUID();
+    const asirRegionId = randomUUID();
+    const najranRegionId = randomUUID();
+    const jazanRegionId = randomUUID();
+    const bahaRegionId = randomUUID();
+
     this.regions.set(riyadhRegionId, { id: riyadhRegionId, nameAr: "منطقة الرياض", nameEn: "Riyadh Region", code: "RIY" });
-    this.regions.set(jeddahRegionId, { id: jeddahRegionId, nameAr: "منطقة مكة المكرمة", nameEn: "Makkah Region", code: "MAK" });
-    this.regions.set(dammamRegionId, { id: dammamRegionId, nameAr: "المنطقة الشرقية", nameEn: "Eastern Province", code: "EST" });
+    this.regions.set(makkahRegionId, { id: makkahRegionId, nameAr: "منطقة مكة المكرمة", nameEn: "Makkah Region", code: "MAK" });
+    this.regions.set(madinahRegionId, { id: madinahRegionId, nameAr: "منطقة المدينة المنورة", nameEn: "Madinah Region", code: "MED" });
+    this.regions.set(easternRegionId, { id: easternRegionId, nameAr: "المنطقة الشرقية", nameEn: "Eastern Province", code: "EST" });
+    this.regions.set(qassimRegionId, { id: qassimRegionId, nameAr: "منطقة القصيم", nameEn: "Qassim Region", code: "QAS" });
+    this.regions.set(hailRegionId, { id: hailRegionId, nameAr: "منطقة حائل", nameEn: "Ha'il Region", code: "HAI" });
+    this.regions.set(tabukRegionId, { id: tabukRegionId, nameAr: "منطقة تبوك", nameEn: "Tabuk Region", code: "TAB" });
+    this.regions.set(northernBordersRegionId, { id: northernBordersRegionId, nameAr: "منطقة الحدود الشمالية", nameEn: "Northern Borders Region", code: "NOR" });
+    this.regions.set(joufRegionId, { id: joufRegionId, nameAr: "منطقة الجوف", nameEn: "Al-Jouf Region", code: "JOF" });
+    this.regions.set(asirRegionId, { id: asirRegionId, nameAr: "منطقة عسير", nameEn: "Asir Region", code: "ASR" });
+    this.regions.set(najranRegionId, { id: najranRegionId, nameAr: "منطقة نجران", nameEn: "Najran Region", code: "NAJ" });
+    this.regions.set(jazanRegionId, { id: jazanRegionId, nameAr: "منطقة جازان", nameEn: "Jazan Region", code: "JAZ" });
+    this.regions.set(bahaRegionId, { id: bahaRegionId, nameAr: "منطقة الباحة", nameEn: "Al-Baha Region", code: "BAH" });
 
+    // Riyadh Region Cities
     const riyadhCityId = randomUUID();
-    const jeddahCityId = randomUUID();
-    const dammamCityId = randomUUID();
+    const kharjCityId = randomUUID();
+    const dawadmiCityId = randomUUID();
+    const majmaahCityId = randomUUID();
+    const afifCityId = randomUUID();
+    const zulfiCityId = randomUUID();
+    const diriyahCityId = randomUUID();
     this.cities.set(riyadhCityId, { id: riyadhCityId, regionId: riyadhRegionId, nameAr: "الرياض", nameEn: "Riyadh", code: "RIY-C" });
-    this.cities.set(jeddahCityId, { id: jeddahCityId, regionId: jeddahRegionId, nameAr: "جدة", nameEn: "Jeddah", code: "JED-C" });
-    this.cities.set(dammamCityId, { id: dammamCityId, regionId: dammamRegionId, nameAr: "الدمام", nameEn: "Dammam", code: "DAM-C" });
+    this.cities.set(kharjCityId, { id: kharjCityId, regionId: riyadhRegionId, nameAr: "الخرج", nameEn: "Al-Kharj", code: "KHR-C" });
+    this.cities.set(dawadmiCityId, { id: dawadmiCityId, regionId: riyadhRegionId, nameAr: "الدوادمي", nameEn: "Ad-Dawadmi", code: "DAW-C" });
+    this.cities.set(majmaahCityId, { id: majmaahCityId, regionId: riyadhRegionId, nameAr: "المجمعة", nameEn: "Al-Majma'ah", code: "MAJ-C" });
+    this.cities.set(afifCityId, { id: afifCityId, regionId: riyadhRegionId, nameAr: "عفيف", nameEn: "Afif", code: "AFF-C" });
+    this.cities.set(zulfiCityId, { id: zulfiCityId, regionId: riyadhRegionId, nameAr: "الزلفي", nameEn: "Az-Zulfi", code: "ZUL-C" });
+    this.cities.set(diriyahCityId, { id: diriyahCityId, regionId: riyadhRegionId, nameAr: "الدرعية", nameEn: "Diriyah", code: "DIR-C" });
 
+    // Makkah Region Cities
+    const makkahCityId = randomUUID();
+    const jeddahCityId = randomUUID();
+    const taifCityId = randomUUID();
+    const qunfudhahCityId = randomUUID();
+    const rabighCityId = randomUUID();
+    this.cities.set(makkahCityId, { id: makkahCityId, regionId: makkahRegionId, nameAr: "مكة المكرمة", nameEn: "Makkah", code: "MAK-C" });
+    this.cities.set(jeddahCityId, { id: jeddahCityId, regionId: makkahRegionId, nameAr: "جدة", nameEn: "Jeddah", code: "JED-C" });
+    this.cities.set(taifCityId, { id: taifCityId, regionId: makkahRegionId, nameAr: "الطائف", nameEn: "Taif", code: "TAI-C" });
+    this.cities.set(qunfudhahCityId, { id: qunfudhahCityId, regionId: makkahRegionId, nameAr: "القنفذة", nameEn: "Al-Qunfudhah", code: "QUN-C" });
+    this.cities.set(rabighCityId, { id: rabighCityId, regionId: makkahRegionId, nameAr: "رابغ", nameEn: "Rabigh", code: "RAB-C" });
+
+    // Madinah Region Cities
+    const madinahCityId = randomUUID();
+    const yanbuCityId = randomUUID();
+    const ulaCityId = randomUUID();
+    const baderCityId = randomUUID();
+    this.cities.set(madinahCityId, { id: madinahCityId, regionId: madinahRegionId, nameAr: "المدينة المنورة", nameEn: "Madinah", code: "MED-C" });
+    this.cities.set(yanbuCityId, { id: yanbuCityId, regionId: madinahRegionId, nameAr: "ينبع", nameEn: "Yanbu", code: "YAN-C" });
+    this.cities.set(ulaCityId, { id: ulaCityId, regionId: madinahRegionId, nameAr: "العلا", nameEn: "Al-Ula", code: "ULA-C" });
+    this.cities.set(baderCityId, { id: baderCityId, regionId: madinahRegionId, nameAr: "بدر", nameEn: "Badr", code: "BAD-C" });
+
+    // Eastern Province Cities
+    const dammamCityId = randomUUID();
+    const khobarCityId = randomUUID();
+    const dhahranCityId = randomUUID();
+    const jubailCityId = randomUUID();
+    const qatifCityId = randomUUID();
+    const hasaCityId = randomUUID();
+    const hofufCityId = randomUUID();
+    const hafarAlBatinCityId = randomUUID();
+    this.cities.set(dammamCityId, { id: dammamCityId, regionId: easternRegionId, nameAr: "الدمام", nameEn: "Dammam", code: "DAM-C" });
+    this.cities.set(khobarCityId, { id: khobarCityId, regionId: easternRegionId, nameAr: "الخبر", nameEn: "Al-Khobar", code: "KHO-C" });
+    this.cities.set(dhahranCityId, { id: dhahranCityId, regionId: easternRegionId, nameAr: "الظهران", nameEn: "Dhahran", code: "DHA-C" });
+    this.cities.set(jubailCityId, { id: jubailCityId, regionId: easternRegionId, nameAr: "الجبيل", nameEn: "Jubail", code: "JUB-C" });
+    this.cities.set(qatifCityId, { id: qatifCityId, regionId: easternRegionId, nameAr: "القطيف", nameEn: "Qatif", code: "QAT-C" });
+    this.cities.set(hasaCityId, { id: hasaCityId, regionId: easternRegionId, nameAr: "الأحساء", nameEn: "Al-Hasa", code: "HAS-C" });
+    this.cities.set(hofufCityId, { id: hofufCityId, regionId: easternRegionId, nameAr: "الهفوف", nameEn: "Al-Hofuf", code: "HOF-C" });
+    this.cities.set(hafarAlBatinCityId, { id: hafarAlBatinCityId, regionId: easternRegionId, nameAr: "حفر الباطن", nameEn: "Hafar Al-Batin", code: "HAF-C" });
+
+    // Qassim Region Cities
+    const buraidahCityId = randomUUID();
+    const unaizahCityId = randomUUID();
+    const rassCityId = randomUUID();
+    this.cities.set(buraidahCityId, { id: buraidahCityId, regionId: qassimRegionId, nameAr: "بريدة", nameEn: "Buraidah", code: "BUR-C" });
+    this.cities.set(unaizahCityId, { id: unaizahCityId, regionId: qassimRegionId, nameAr: "عنيزة", nameEn: "Unaizah", code: "UNA-C" });
+    this.cities.set(rassCityId, { id: rassCityId, regionId: qassimRegionId, nameAr: "الرس", nameEn: "Ar-Rass", code: "RAS-C" });
+
+    // Ha'il Region Cities
+    const hailCityId = randomUUID();
+    const buqayyaCityId = randomUUID();
+    this.cities.set(hailCityId, { id: hailCityId, regionId: hailRegionId, nameAr: "حائل", nameEn: "Ha'il", code: "HAI-C" });
+    this.cities.set(buqayyaCityId, { id: buqayyaCityId, regionId: hailRegionId, nameAr: "بقعاء", nameEn: "Buqayya", code: "BUQ-C" });
+
+    // Tabuk Region Cities
+    const tabukCityId = randomUUID();
+    const wajhCityId = randomUUID();
+    const dhibaCityId = randomUUID();
+    const tamaCityId = randomUUID();
+    this.cities.set(tabukCityId, { id: tabukCityId, regionId: tabukRegionId, nameAr: "تبوك", nameEn: "Tabuk", code: "TAB-C" });
+    this.cities.set(wajhCityId, { id: wajhCityId, regionId: tabukRegionId, nameAr: "الوجه", nameEn: "Al-Wajh", code: "WAJ-C" });
+    this.cities.set(dhibaCityId, { id: dhibaCityId, regionId: tabukRegionId, nameAr: "ضبا", nameEn: "Dhiba", code: "DHI-C" });
+    this.cities.set(tamaCityId, { id: tamaCityId, regionId: tabukRegionId, nameAr: "تيماء", nameEn: "Tayma", code: "TAY-C" });
+
+    // Northern Borders Region Cities
+    const aararCityId = randomUUID();
+    const rafhaaCityId = randomUUID();
+    const turayifCityId = randomUUID();
+    this.cities.set(aararCityId, { id: aararCityId, regionId: northernBordersRegionId, nameAr: "عرعر", nameEn: "Arar", code: "ARA-C" });
+    this.cities.set(rafhaaCityId, { id: rafhaaCityId, regionId: northernBordersRegionId, nameAr: "رفحاء", nameEn: "Rafha", code: "RAF-C" });
+    this.cities.set(turayifCityId, { id: turayifCityId, regionId: northernBordersRegionId, nameAr: "طريف", nameEn: "Turaif", code: "TUR-C" });
+
+    // Al-Jouf Region Cities
+    const sakakaCityId = randomUUID();
+    const dumatalJandalCityId = randomUUID();
+    const qurayyatCityId = randomUUID();
+    this.cities.set(sakakaCityId, { id: sakakaCityId, regionId: joufRegionId, nameAr: "سكاكا", nameEn: "Sakaka", code: "SAK-C" });
+    this.cities.set(dumatalJandalCityId, { id: dumatalJandalCityId, regionId: joufRegionId, nameAr: "دومة الجندل", nameEn: "Dumat Al-Jandal", code: "DUM-C" });
+    this.cities.set(qurayyatCityId, { id: qurayyatCityId, regionId: joufRegionId, nameAr: "القريات", nameEn: "Al-Qurayyat", code: "QUR-C" });
+
+    // Asir Region Cities
+    const abhaCityId = randomUUID();
+    const khamisMushaitCityId = randomUUID();
+    const bishshaCityId = randomUUID();
+    const mahayilCityId = randomUUID();
+    this.cities.set(abhaCityId, { id: abhaCityId, regionId: asirRegionId, nameAr: "أبها", nameEn: "Abha", code: "ABH-C" });
+    this.cities.set(khamisMushaitCityId, { id: khamisMushaitCityId, regionId: asirRegionId, nameAr: "خميس مشيط", nameEn: "Khamis Mushait", code: "KHA-C" });
+    this.cities.set(bishshaCityId, { id: bishshaCityId, regionId: asirRegionId, nameAr: "بيشة", nameEn: "Bisha", code: "BIS-C" });
+    this.cities.set(mahayilCityId, { id: mahayilCityId, regionId: asirRegionId, nameAr: "محايل عسير", nameEn: "Mahayil Asir", code: "MAH-C" });
+
+    // Najran Region Cities
+    const najranCityId = randomUUID();
+    const sharurahCityId = randomUUID();
+    this.cities.set(najranCityId, { id: najranCityId, regionId: najranRegionId, nameAr: "نجران", nameEn: "Najran", code: "NAJ-C" });
+    this.cities.set(sharurahCityId, { id: sharurahCityId, regionId: najranRegionId, nameAr: "شرورة", nameEn: "Sharurah", code: "SHA-C" });
+
+    // Jazan Region Cities
+    const jazanCityId = randomUUID();
+    const sabiyaCityId = randomUUID();
+    const abuArishCityId = randomUUID();
+    const samtaCityId = randomUUID();
+    this.cities.set(jazanCityId, { id: jazanCityId, regionId: jazanRegionId, nameAr: "جازان", nameEn: "Jazan", code: "JAZ-C" });
+    this.cities.set(sabiyaCityId, { id: sabiyaCityId, regionId: jazanRegionId, nameAr: "صبيا", nameEn: "Sabiya", code: "SAB-C" });
+    this.cities.set(abuArishCityId, { id: abuArishCityId, regionId: jazanRegionId, nameAr: "أبو عريش", nameEn: "Abu Arish", code: "ABU-C" });
+    this.cities.set(samtaCityId, { id: samtaCityId, regionId: jazanRegionId, nameAr: "صامطة", nameEn: "Samtah", code: "SAM-C" });
+
+    // Al-Baha Region Cities
+    const bahaCityId = randomUUID();
+    const baljurashiCityId = randomUUID();
+    const mandaqCityId = randomUUID();
+    this.cities.set(bahaCityId, { id: bahaCityId, regionId: bahaRegionId, nameAr: "الباحة", nameEn: "Al-Baha", code: "BAH-C" });
+    this.cities.set(baljurashiCityId, { id: baljurashiCityId, regionId: bahaRegionId, nameAr: "بلجرشي", nameEn: "Baljurashi", code: "BAL-C" });
+    this.cities.set(mandaqCityId, { id: mandaqCityId, regionId: bahaRegionId, nameAr: "المندق", nameEn: "Al-Mandaq", code: "MAN-C" });
+
+    // Districts for Riyadh
     const alOlayaDistrictId = randomUUID();
     const alMalazDistrictId = randomUUID();
     const alSulaimaniyahDistrictId = randomUUID();
+    const alNasimDistrictId = randomUUID();
+    const alYasmamahDistrictId = randomUUID();
     this.districts.set(alOlayaDistrictId, { id: alOlayaDistrictId, cityId: riyadhCityId, nameAr: "العليا", nameEn: "Al Olaya", code: "OLY" });
     this.districts.set(alMalazDistrictId, { id: alMalazDistrictId, cityId: riyadhCityId, nameAr: "الملز", nameEn: "Al Malaz", code: "MLZ" });
     this.districts.set(alSulaimaniyahDistrictId, { id: alSulaimaniyahDistrictId, cityId: riyadhCityId, nameAr: "السليمانية", nameEn: "Al Sulaimaniyah", code: "SLM" });
+    this.districts.set(alNasimDistrictId, { id: alNasimDistrictId, cityId: riyadhCityId, nameAr: "النسيم", nameEn: "Al Nasim", code: "NAS" });
+    this.districts.set(alYasmamahDistrictId, { id: alYasmamahDistrictId, cityId: riyadhCityId, nameAr: "اليمامة", nameEn: "Al Yamamah", code: "YAM" });
+
+    // Districts for Jeddah
+    const alBaladDistrictId = randomUUID();
+    const alHamraDistrictId = randomUUID();
+    const alRawdahDistrictId = randomUUID();
+    this.districts.set(alBaladDistrictId, { id: alBaladDistrictId, cityId: jeddahCityId, nameAr: "البلد", nameEn: "Al Balad", code: "BAL" });
+    this.districts.set(alHamraDistrictId, { id: alHamraDistrictId, cityId: jeddahCityId, nameAr: "الحمراء", nameEn: "Al Hamra", code: "HAM" });
+    this.districts.set(alRawdahDistrictId, { id: alRawdahDistrictId, cityId: jeddahCityId, nameAr: "الروضة", nameEn: "Al Rawdah", code: "RAW" });
+
+    // Districts for Dammam
+    const alFaysaliyyahDistrictId = randomUUID();
+    const alShatiDistrictId = randomUUID();
+    this.districts.set(alFaysaliyyahDistrictId, { id: alFaysaliyyahDistrictId, cityId: dammamCityId, nameAr: "الفيصلية", nameEn: "Al Faisaliyyah", code: "FAI" });
+    this.districts.set(alShatiDistrictId, { id: alShatiDistrictId, cityId: dammamCityId, nameAr: "الشاطئ", nameEn: "Al Shati", code: "SHT" });
 
     const assetId1 = randomUUID();
     const now = new Date().toISOString();
