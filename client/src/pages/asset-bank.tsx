@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
-import { Search, Eye, EyeOff, Building2, LandPlot, MoreHorizontal, Download, FileSpreadsheet, X } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Search, Eye, EyeOff, Building2, LandPlot, MoreHorizontal, Download, FileSpreadsheet, X, PlayCircle, ArrowRight, ArrowLeft, AlertCircle, CheckCircle2, ClipboardList, MapPin, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -56,6 +64,13 @@ export default function AssetBank() {
   const [page, setPage] = useState(1);
   const limit = 25;
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+
+  // Start ISNAD wizard state
+  const [isnadWizardOpen, setIsnadWizardOpen] = useState(false);
+  const [isnadStep, setIsnadStep] = useState<1 | 2>(1);
+  const [selectedAssetForIsnad, setSelectedAssetForIsnad] = useState<AssetWithDetails | null>(null);
+  const [skipIntroNextTime, setSkipIntroNextTime] = useState(false);
 
   const queryParams = new URLSearchParams();
   if (search) queryParams.set("search", search);
@@ -162,6 +177,56 @@ export default function AssetBank() {
     setSelectedDistricts([]);
     setPage(1);
   };
+
+  // Start ISNAD handlers
+  const openIsnadWizard = (asset: AssetWithDetails) => {
+    setSelectedAssetForIsnad(asset);
+    setIsnadStep(1);
+    setIsnadWizardOpen(true);
+  };
+
+  const closeIsnadWizard = () => {
+    setIsnadWizardOpen(false);
+    setSelectedAssetForIsnad(null);
+    setIsnadStep(1);
+  };
+
+  const createIsnadMutation = useMutation({
+    mutationFn: async (assetId: string) => {
+      const res = await apiRequest("POST", "/api/isnad/forms", {
+        assetId,
+        investmentPurpose: "educational_facility",
+        estimatedValuation: 0,
+        minInvestment: 0,
+        maxInvestment: 0,
+        preferredContractDuration: 5,
+        returnOnInvestment: 0,
+        structuralCondition: "good",
+        utilitiesAvailability: "full",
+        accessInfrastructure: "good",
+        environmentalConsiderations: "none",
+        zoningCompliance: "compliant",
+        notes: "",
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
+      toast({
+        title: "ISNAD Request Submitted",
+        description: "Your allocation request has been submitted successfully.",
+      });
+      closeIsnadWizard();
+      navigate(`/isnad/forms/${data.id}`);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit ISNAD request.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const exportToXLS = () => {
     const exportParams = new URLSearchParams(queryParams);
@@ -523,10 +588,14 @@ export default function AssetBank() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openIsnadWizard(asset)} data-testid={`button-start-isnad-${asset.id}`}>
+                              <PlayCircle className="mr-2 h-4 w-4" />
+                              Start ISNAD
+                            </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <Link href={`/assets/bank/${asset.id}`}>
                                 <Eye className="mr-2 h-4 w-4" />
-                                View Details
+                                Details
                               </Link>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -568,6 +637,271 @@ export default function AssetBank() {
           )}
         </CardContent>
       </Card>
+
+      {/* Start ISNAD Wizard Dialog */}
+      <Dialog open={isnadWizardOpen} onOpenChange={(open) => !open && closeIsnadWizard()}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={closeIsnadWizard}
+                className="absolute right-4 top-4"
+                data-testid="button-close-wizard"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+
+          <div className="flex gap-8">
+            {/* Left Sidebar - Steps */}
+            <div className="w-48 flex-shrink-0">
+              <div className="space-y-4">
+                <div 
+                  className={`flex items-center gap-3 cursor-pointer ${isnadStep === 1 ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                  onClick={() => setIsnadStep(1)}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm ${isnadStep === 1 ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                    1
+                  </div>
+                  <span>Introduction</span>
+                </div>
+                <div 
+                  className={`flex items-center gap-3 cursor-pointer ${isnadStep === 2 ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                  onClick={() => setIsnadStep(2)}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm ${isnadStep === 2 ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                    2
+                  </div>
+                  <span>Summary</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1">
+              {isnadStep === 1 && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-2">Introduction</h2>
+                    <p className="text-muted-foreground">Understand the property allocation process and review framework</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-primary">Welcome to ISNAD</h3>
+                    <p className="text-sm leading-relaxed">
+                      ISNAD digitizes and automates the multi-step property allocation process for investors inside 
+                      Madares Business. This process replaces manual paper approvals with a fully digital, step-by-step 
+                      workflow.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-semibold">Step by step</h4>
+                    <p className="text-sm text-muted-foreground">To create an allocation request for a land, follow these steps:</p>
+                    
+                    <div className="space-y-4">
+                      <div className="flex gap-3">
+                        <div className="flex-shrink-0">
+                          <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
+                        </div>
+                        <div>
+                          <p className="font-medium">1. Submit Request</p>
+                          <ul className="text-sm text-muted-foreground mt-1 space-y-1 list-disc list-inside pl-2">
+                            <li>Begin by choosing a property from the Asset Bank</li>
+                            <li>This selection triggers the ISNAD allocation workflow</li>
+                            <li>By submitting this form, you initiate the allocation process that will be automatically routed across MOE departments and TBC for review and final approval</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <div className="flex-shrink-0">
+                          <ClipboardList className="h-5 w-5 text-primary mt-0.5" />
+                        </div>
+                        <div>
+                          <p className="font-medium">2. Fill in & review ISNAD form</p>
+                          <ul className="text-sm text-muted-foreground mt-1 space-y-1 list-disc list-inside pl-2">
+                            <li>Provide all required property information in the proper order for Investment & Partnerships Department</li>
+                            <li>Ensure accuracy, as this data will be used across all approval steps</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <div className="flex-shrink-0">
+                          <Eye className="h-5 w-5 text-primary mt-0.5" />
+                        </div>
+                        <div>
+                          <p className="font-medium">3. Supervise & track</p>
+                          <ul className="text-sm text-muted-foreground mt-1 space-y-1 list-disc list-inside pl-2">
+                            <li>Monitor the status of your request in real time</li>
+                            <li>Use the ISNAD dashboard to see:
+                              <ul className="list-disc list-inside pl-4 mt-1">
+                                <li>Current stage of the request</li>
+                                <li>Which department is reviewing it</li>
+                                <li>Approval/rejection history</li>
+                              </ul>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-semibold">About the process</h4>
+                    <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+                      <li>One form, multiple approvals - your request is automatically routed to all required entities</li>
+                      <li>Full visibility - track approval status at every stage</li>
+                      <li>Audit log - view a complete history of actions and approvals</li>
+                      <li>Final step - once approved, the property is officially classified as an Investable Asset</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-muted/50 rounded-lg p-4 flex gap-3">
+                    <AlertCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-sm">Please note</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Once you submit the request, it cannot be modified. Please review all information carefully before 
+                        proceeding.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4">
+                    <div className="flex items-center gap-2">
+                      <Checkbox 
+                        id="skip-intro" 
+                        checked={skipIntroNextTime}
+                        onCheckedChange={(checked) => setSkipIntroNextTime(checked === true)}
+                      />
+                      <Label htmlFor="skip-intro" className="text-sm text-muted-foreground cursor-pointer">
+                        Skip this introduction next time
+                      </Label>
+                    </div>
+                    <Button onClick={() => setIsnadStep(2)} data-testid="button-start-allocation">
+                      Start allocation request
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {isnadStep === 2 && selectedAssetForIsnad && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-2">Summary</h2>
+                    <p className="text-muted-foreground">Check the asset information and review request details before sending to the next stakeholder.</p>
+                  </div>
+
+                  {/* Asset Information */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-base">Asset information</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Asset name</span>
+                        <span className="font-medium">{selectedAssetForIsnad.assetNameEn}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Land code</span>
+                        <span className="font-medium font-mono">{selectedAssetForIsnad.assetCode}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Asset size (m²)</span>
+                        <span className="font-medium">{selectedAssetForIsnad.totalArea.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Asset type</span>
+                        <span className="font-medium capitalize">{selectedAssetForIsnad.assetType}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Ownership</span>
+                        <span className="font-medium capitalize">{selectedAssetForIsnad.ownershipType?.replace(/_/g, " ") || "-"}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Status</span>
+                        <span className="font-medium capitalize">{selectedAssetForIsnad.status?.replace(/_/g, " ") || "-"}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b col-span-2">
+                        <span className="text-muted-foreground">Visible to investors</span>
+                        <span className="font-medium">{selectedAssetForIsnad.visibleToInvestors ? "Yes" : "No"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Asset Location */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <h4 className="font-semibold text-base">Asset location</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Region</span>
+                        <span className="font-medium">{selectedAssetForIsnad.region?.nameEn || "-"}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">City</span>
+                        <span className="font-medium">{selectedAssetForIsnad.city?.nameEn || "-"}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b col-span-2">
+                        <span className="text-muted-foreground">District</span>
+                        <span className="font-medium">{selectedAssetForIsnad.district?.nameEn || "-"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Request Details */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-base">Request details</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Request date</span>
+                        <span className="font-medium">{new Date().toISOString().split("T")[0]}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Requested by</span>
+                        <span className="font-medium">Investment & Partnerships Dept.</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Ministry official</span>
+                        <span className="font-medium">Investment & Partnerships Dept.</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-muted-foreground">Submission to</span>
+                        <span className="font-medium">School Planning Dept.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4">
+                    <Button variant="outline" onClick={() => setIsnadStep(1)} data-testid="button-previous-step">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Previous step
+                    </Button>
+                    <Button 
+                      onClick={() => createIsnadMutation.mutate(selectedAssetForIsnad.id)}
+                      disabled={createIsnadMutation.isPending}
+                      data-testid="button-send-request"
+                    >
+                      {createIsnadMutation.isPending ? "Sending..." : "Send request"}
+                      <Send className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
