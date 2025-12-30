@@ -21,6 +21,7 @@ import {
   Landmark,
   UserCheck,
   TrendingUp,
+  Database,
 } from "lucide-react";
 import madaresLogo from "@assets/madares_business_1766959895640.png";
 import {
@@ -85,6 +86,11 @@ const isnadNavItems = [
     title: "ISNAD Forms",
     url: "/isnad/forms",
     icon: FileCheck2,
+  },
+  {
+    title: "ISNAD Bank",
+    url: "/isnad/bank",
+    icon: Database,
   },
   {
     title: "ISNAD Packages",

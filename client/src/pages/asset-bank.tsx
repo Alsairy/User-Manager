@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Search, Eye, EyeOff, Building2, LandPlot, MoreHorizontal } from "lucide-react";
+import { Search, Eye, EyeOff, Building2, LandPlot, MoreHorizontal, Download, FileSpreadsheet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -34,16 +34,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { AssetWithDetails, Region } from "@shared/schema";
+import type { AssetWithDetails, Region, City, District } from "@shared/schema";
 
 export default function AssetBank() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const limit = 25;
   const { toast } = useToast();
@@ -53,6 +62,8 @@ export default function AssetBank() {
   if (typeFilter && typeFilter !== "all") queryParams.set("assetType", typeFilter);
   if (visibilityFilter && visibilityFilter !== "all") queryParams.set("visibilityStatus", visibilityFilter);
   if (regionFilter && regionFilter !== "all") queryParams.set("regionId", regionFilter);
+  if (selectedCities.length > 0) queryParams.set("cityIds", selectedCities.join(","));
+  if (selectedDistricts.length > 0) queryParams.set("districtIds", selectedDistricts.join(","));
   queryParams.set("page", String(page));
   queryParams.set("limit", String(limit));
 
@@ -69,6 +80,26 @@ export default function AssetBank() {
 
   const { data: regions } = useQuery<Region[]>({
     queryKey: ["/api/reference/regions"],
+  });
+
+  const { data: cities } = useQuery<City[]>({
+    queryKey: ["/api/reference/cities", regionFilter],
+    queryFn: () => {
+      const url = regionFilter && regionFilter !== "all" 
+        ? `/api/reference/cities?regionId=${regionFilter}`
+        : "/api/reference/cities";
+      return fetch(url).then((r) => r.json());
+    },
+    enabled: true,
+  });
+
+  const { data: districts } = useQuery<District[]>({
+    queryKey: ["/api/reference/districts", selectedCities],
+    queryFn: () => {
+      if (selectedCities.length === 0) return fetch("/api/reference/districts").then((r) => r.json());
+      return fetch(`/api/reference/districts?cityIds=${selectedCities.join(",")}`).then((r) => r.json());
+    },
+    enabled: true,
   });
 
   const { data: stats } = useQuery<{
@@ -102,6 +133,92 @@ export default function AssetBank() {
 
   const totalPages = Math.ceil((data?.total || 0) / limit);
 
+  const handleCityToggle = (cityId: string) => {
+    setSelectedCities((prev) => {
+      const newCities = prev.includes(cityId)
+        ? prev.filter((id) => id !== cityId)
+        : [...prev, cityId];
+      setPage(1);
+      return newCities;
+    });
+  };
+
+  const handleDistrictToggle = (districtId: string) => {
+    setSelectedDistricts((prev) => {
+      const newDistricts = prev.includes(districtId)
+        ? prev.filter((id) => id !== districtId)
+        : [...prev, districtId];
+      setPage(1);
+      return newDistricts;
+    });
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setTypeFilter("all");
+    setVisibilityFilter("all");
+    setRegionFilter("all");
+    setSelectedCities([]);
+    setSelectedDistricts([]);
+    setPage(1);
+  };
+
+  const exportToXLS = () => {
+    const exportParams = new URLSearchParams(queryParams);
+    exportParams.set("limit", "1000");
+    exportParams.set("page", "1");
+    
+    fetch(`/api/assets/bank?${exportParams.toString()}`)
+      .then((r) => r.json())
+      .then((result) => {
+        const assets: AssetWithDetails[] = result.assets;
+        
+        const headers = ["Asset Code", "Name (EN)", "Name (AR)", "Type", "Region", "City", "District", "Total Area (sqm)", "Ownership", "Visible to Investors"];
+        const rows = assets.map((asset) => [
+          asset.assetCode,
+          asset.assetNameEn,
+          asset.assetNameAr,
+          asset.assetType,
+          asset.region?.nameEn || "",
+          asset.city?.nameEn || "",
+          asset.district?.nameEn || "",
+          asset.totalArea.toString(),
+          asset.ownershipType || "",
+          asset.visibleToInvestors ? "Yes" : "No",
+        ]);
+
+        const csvContent = [
+          headers.join("\t"),
+          ...rows.map((row) => row.join("\t")),
+        ].join("\n");
+
+        const BOM = "\uFEFF";
+        const blob = new Blob([BOM + csvContent], { type: "application/vnd.ms-excel;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `asset-bank-export-${new Date().toISOString().split("T")[0]}.xls`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: "Export Successful",
+          description: `Exported ${assets.length} assets to Excel file.`,
+        });
+      })
+      .catch(() => {
+        toast({
+          title: "Export Failed",
+          description: "Failed to export assets.",
+          variant: "destructive",
+        });
+      });
+  };
+
+  const hasActiveFilters = search || typeFilter !== "all" || visibilityFilter !== "all" || regionFilter !== "all" || selectedCities.length > 0 || selectedDistricts.length > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -113,6 +230,10 @@ export default function AssetBank() {
             Central repository of completed assets
           </p>
         </div>
+        <Button onClick={exportToXLS} variant="outline" data-testid="button-export">
+          <FileSpreadsheet className="mr-2 h-4 w-4" />
+          Export to Excel
+        </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -164,20 +285,29 @@ export default function AssetBank() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by code, name..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="pl-9"
-                data-testid="input-search"
-              />
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search by code, name..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  className="pl-9"
+                  data-testid="input-search"
+                />
+              </div>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="button-clear-filters">
+                  <X className="mr-1 h-4 w-4" />
+                  Clear Filters
+                </Button>
+              )}
             </div>
+            
             <div className="flex flex-wrap gap-2">
               <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
                 <SelectTrigger className="w-[140px]" data-testid="select-type">
@@ -189,6 +319,7 @@ export default function AssetBank() {
                   <SelectItem value="building">Building</SelectItem>
                 </SelectContent>
               </Select>
+              
               <Select value={visibilityFilter} onValueChange={(v) => { setVisibilityFilter(v); setPage(1); }}>
                 <SelectTrigger className="w-[160px]" data-testid="select-visibility">
                   <SelectValue placeholder="Visibility" />
@@ -199,7 +330,13 @@ export default function AssetBank() {
                   <SelectItem value="hidden">Hidden</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={regionFilter} onValueChange={(v) => { setRegionFilter(v); setPage(1); }}>
+              
+              <Select value={regionFilter} onValueChange={(v) => { 
+                setRegionFilter(v); 
+                setSelectedCities([]); 
+                setSelectedDistricts([]);
+                setPage(1); 
+              }}>
                 <SelectTrigger className="w-[160px]" data-testid="select-region">
                   <SelectValue placeholder="Region" />
                 </SelectTrigger>
@@ -212,7 +349,98 @@ export default function AssetBank() {
                   ))}
                 </SelectContent>
               </Select>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-[160px] justify-between" data-testid="select-cities">
+                    {selectedCities.length > 0 
+                      ? `${selectedCities.length} cities` 
+                      : "Select Cities"}
+                    <Download className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 max-h-64 overflow-y-auto">
+                  <div className="space-y-2">
+                    <div className="font-medium text-sm">Select Cities</div>
+                    {cities && cities.length > 0 ? (
+                      cities.map((city) => (
+                        <div key={city.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`city-${city.id}`}
+                            checked={selectedCities.includes(city.id)}
+                            onCheckedChange={() => handleCityToggle(city.id)}
+                          />
+                          <Label htmlFor={`city-${city.id}`} className="text-sm font-normal cursor-pointer">
+                            {city.nameEn}
+                          </Label>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No cities available</p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-[160px] justify-between" data-testid="select-districts">
+                    {selectedDistricts.length > 0 
+                      ? `${selectedDistricts.length} districts` 
+                      : "Select Districts"}
+                    <Download className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 max-h-64 overflow-y-auto">
+                  <div className="space-y-2">
+                    <div className="font-medium text-sm">Select Districts</div>
+                    {districts && districts.length > 0 ? (
+                      districts.map((district) => (
+                        <div key={district.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`district-${district.id}`}
+                            checked={selectedDistricts.includes(district.id)}
+                            onCheckedChange={() => handleDistrictToggle(district.id)}
+                          />
+                          <Label htmlFor={`district-${district.id}`} className="text-sm font-normal cursor-pointer">
+                            {district.nameEn}
+                          </Label>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No districts available</p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
+
+            {(selectedCities.length > 0 || selectedDistricts.length > 0) && (
+              <div className="flex flex-wrap gap-2">
+                {selectedCities.map((cityId) => {
+                  const city = cities?.find((c) => c.id === cityId);
+                  return city ? (
+                    <Badge key={cityId} variant="secondary" className="gap-1">
+                      {city.nameEn}
+                      <button onClick={() => handleCityToggle(cityId)} className="ml-1 hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ) : null;
+                })}
+                {selectedDistricts.map((districtId) => {
+                  const district = districts?.find((d) => d.id === districtId);
+                  return district ? (
+                    <Badge key={districtId} variant="secondary" className="gap-1">
+                      {district.nameEn}
+                      <button onClick={() => handleDistrictToggle(districtId)} className="ml-1 hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ) : null;
+                })}
+              </div>
+            )}
           </div>
 
           <div className="rounded-md border">

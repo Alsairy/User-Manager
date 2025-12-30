@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,8 @@ import {
   Clock,
   DollarSign,
   Building2,
+  UserCheck,
+  Award,
 } from "lucide-react";
 import {
   IsnadPackageWithDetails,
@@ -73,6 +75,7 @@ const priorityColors: Record<string, string> = {
 
 export default function IsnadPackagesPage() {
   const [, navigate] = useLocation();
+  const searchParams = useSearch();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -84,6 +87,24 @@ export default function IsnadPackagesPage() {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<PackagePriority>("medium");
   const [selectedForms, setSelectedForms] = useState<string[]>([]);
+
+  const [reviewPackage, setReviewPackage] = useState<IsnadPackageWithDetails | null>(null);
+  const [reviewAction, setReviewAction] = useState<"approve" | "reject" | null>(null);
+  const [reviewComments, setReviewComments] = useState("");
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    const preSelectedForms = params.get("selectedForms");
+    if (preSelectedForms) {
+      const formIds = preSelectedForms.split(",").filter(Boolean);
+      if (formIds.length > 0) {
+        setSelectedForms(formIds);
+        setCreateOpen(true);
+        navigate("/isnad/packages", { replace: true });
+      }
+    }
+  }, [searchParams, navigate]);
 
   const queryParams = new URLSearchParams({
     page: page.toString(),
@@ -137,6 +158,60 @@ export default function IsnadPackagesPage() {
       queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
     },
   });
+
+  const ceoReviewMutation = useMutation({
+    mutationFn: async ({ packageId, approved, comments }: { packageId: string; approved: boolean; comments?: string }) => {
+      return apiRequest("POST", `/api/isnad/packages/${packageId}/review-ceo`, { approved, comments });
+    },
+    onSuccess: (_, { approved }) => {
+      toast({ title: approved ? "Package approved by CEO" : "Package rejected by CEO" });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
+      closeReviewDialog();
+    },
+    onError: () => {
+      toast({ title: "Failed to process CEO review", variant: "destructive" });
+    },
+  });
+
+  const ministerReviewMutation = useMutation({
+    mutationFn: async ({ packageId, approved, comments }: { packageId: string; approved: boolean; comments?: string }) => {
+      return apiRequest("POST", `/api/isnad/packages/${packageId}/review-minister`, { approved, comments });
+    },
+    onSuccess: (_, { approved }) => {
+      toast({ title: approved ? "Package approved by Minister" : "Package rejected by Minister" });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
+      closeReviewDialog();
+    },
+    onError: () => {
+      toast({ title: "Failed to process Minister review", variant: "destructive" });
+    },
+  });
+
+  const openReviewDialog = (pkg: IsnadPackageWithDetails, action: "approve" | "reject") => {
+    setReviewPackage(pkg);
+    setReviewAction(action);
+    setReviewComments("");
+    setReviewDialogOpen(true);
+  };
+
+  const closeReviewDialog = () => {
+    setReviewPackage(null);
+    setReviewAction(null);
+    setReviewComments("");
+    setReviewDialogOpen(false);
+  };
+
+  const handleReviewSubmit = () => {
+    if (!reviewPackage || !reviewAction) return;
+    const approved = reviewAction === "approve";
+    const comments = reviewComments.trim() || undefined;
+
+    if (reviewPackage.status === "pending_ceo") {
+      ceoReviewMutation.mutate({ packageId: reviewPackage.id, approved, comments });
+    } else if (reviewPackage.status === "ceo_approved" || reviewPackage.status === "pending_minister") {
+      ministerReviewMutation.mutate({ packageId: reviewPackage.id, approved, comments });
+    }
+  };
 
   const resetForm = () => {
     setPackageName("");
@@ -427,9 +502,58 @@ export default function IsnadPackagesPage() {
                                 onClick={() => submitToCeoMutation.mutate(pkg.id)}
                                 disabled={submitToCeoMutation.isPending}
                                 data-testid={`button-submit-${pkg.id}`}
+                                title="Submit to CEO"
                               >
                                 <Send className="w-4 h-4" />
                               </Button>
+                            )}
+                            {pkg.status === "pending_ceo" && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-green-600"
+                                  onClick={() => openReviewDialog(pkg, "approve")}
+                                  data-testid={`button-ceo-approve-${pkg.id}`}
+                                  title="CEO Approve"
+                                >
+                                  <UserCheck className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-red-600"
+                                  onClick={() => openReviewDialog(pkg, "reject")}
+                                  data-testid={`button-ceo-reject-${pkg.id}`}
+                                  title="CEO Reject"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                            {(pkg.status === "ceo_approved" || pkg.status === "pending_minister") && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-green-600"
+                                  onClick={() => openReviewDialog(pkg, "approve")}
+                                  data-testid={`button-minister-approve-${pkg.id}`}
+                                  title="Minister Approve"
+                                >
+                                  <Award className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-red-600"
+                                  onClick={() => openReviewDialog(pkg, "reject")}
+                                  data-testid={`button-minister-reject-${pkg.id}`}
+                                  title="Minister Reject"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </Button>
+                              </>
                             )}
                           </div>
                         </TableCell>
@@ -470,6 +594,87 @@ export default function IsnadPackagesPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={reviewDialogOpen} onOpenChange={(open) => { if (!open) closeReviewDialog(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {reviewPackage?.status === "pending_ceo" ? "CEO Review" : "Minister Review"}
+            </DialogTitle>
+            <DialogDescription>
+              {reviewAction === "approve" 
+                ? `Are you sure you want to approve "${reviewPackage?.packageName}"?`
+                : `Are you sure you want to reject "${reviewPackage?.packageName}"?`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-muted rounded-md">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Package:</span>
+                  <p className="font-medium">{reviewPackage?.packageName}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Code:</span>
+                  <p className="font-mono">{reviewPackage?.packageCode}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Assets:</span>
+                  <p className="font-medium">{reviewPackage?.totalAssets}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Total Value:</span>
+                  <p className="font-medium">SAR {reviewPackage?.totalValuation?.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reviewComments">
+                {reviewAction === "reject" ? "Rejection Reason (Required)" : "Comments (Optional)"}
+              </Label>
+              <Textarea
+                id="reviewComments"
+                value={reviewComments}
+                onChange={(e) => setReviewComments(e.target.value)}
+                placeholder={
+                  reviewAction === "reject" 
+                    ? "Please provide a reason for rejecting this package..."
+                    : "Add any comments or notes..."
+                }
+                data-testid="input-review-comments"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeReviewDialog}>
+              Cancel
+            </Button>
+            <Button
+              variant={reviewAction === "approve" ? "default" : "destructive"}
+              onClick={handleReviewSubmit}
+              disabled={
+                (reviewAction === "reject" && !reviewComments.trim()) ||
+                ceoReviewMutation.isPending ||
+                ministerReviewMutation.isPending
+              }
+              data-testid="button-confirm-review"
+            >
+              {reviewAction === "approve" ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Approve
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

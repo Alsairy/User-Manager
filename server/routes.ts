@@ -787,6 +787,26 @@ export async function registerRoutes(
     }
   });
 
+  // Get ISNAD forms by asset ID
+  app.get("/api/assets/:id/isnad-forms", async (req, res) => {
+    try {
+      const result = await storage.getIsnadForms({ assetId: req.params.id, page: 1, limit: 100 });
+      res.json(result.forms);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get asset ISNAD forms" });
+    }
+  });
+
+  // Get contracts by asset ID
+  app.get("/api/assets/:id/contracts", async (req, res) => {
+    try {
+      const result = await storage.getContracts({ assetId: req.params.id, page: 1, limit: 100 });
+      res.json(result.contracts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get asset contracts" });
+    }
+  });
+
   // ISNAD Forms API Routes
   app.get("/api/isnad/dashboard/stats", async (req, res) => {
     try {
