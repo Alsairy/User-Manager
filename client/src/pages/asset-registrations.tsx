@@ -585,7 +585,7 @@ export default function AssetRegistrations() {
 
       {/* Asset Registration Wizard */}
       <Dialog open={showWizard} onOpenChange={(open) => !open && closeWizard()}>
-        <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden p-0">
+        <DialogContent className="max-w-5xl h-[90vh] p-0">
           <div className="flex h-full">
             {/* Left Sidebar - Steps */}
             <div className="w-56 bg-muted/30 p-6 border-r flex-shrink-0">
