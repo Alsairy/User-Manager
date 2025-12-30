@@ -932,7 +932,26 @@ export default function AssetRegistrations() {
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <Label>Latitude*</Label>
-                            <Button variant="ghost" size="sm" className="text-primary p-0 h-auto">Check on map</Button>
+                            <Button 
+                              type="button"
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-primary p-0 h-auto"
+                              onClick={() => {
+                                const lat = parseFloat(formData.latitude);
+                                const lng = parseFloat(formData.longitude);
+                                if (!isNaN(lat) && !isNaN(lng)) {
+                                  window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
+                                } else if (!isNaN(lat)) {
+                                  window.open(`https://www.google.com/maps?q=${lat},46.6753`, "_blank");
+                                } else {
+                                  window.open("https://www.google.com/maps?q=24.7136,46.6753", "_blank");
+                                }
+                              }}
+                              data-testid="button-check-map-lat"
+                            >
+                              Check on map
+                            </Button>
                           </div>
                           <Input
                             placeholder="Enter coordinates"
@@ -946,7 +965,26 @@ export default function AssetRegistrations() {
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <Label>Longitude*</Label>
-                            <Button variant="ghost" size="sm" className="text-primary p-0 h-auto">Check on map</Button>
+                            <Button 
+                              type="button"
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-primary p-0 h-auto"
+                              onClick={() => {
+                                const lat = parseFloat(formData.latitude);
+                                const lng = parseFloat(formData.longitude);
+                                if (!isNaN(lat) && !isNaN(lng)) {
+                                  window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
+                                } else if (!isNaN(lng)) {
+                                  window.open(`https://www.google.com/maps?q=24.7136,${lng}`, "_blank");
+                                } else {
+                                  window.open("https://www.google.com/maps?q=24.7136,46.6753", "_blank");
+                                }
+                              }}
+                              data-testid="button-check-map-lng"
+                            >
+                              Check on map
+                            </Button>
                           </div>
                           <Input
                             placeholder="Enter coordinates"
