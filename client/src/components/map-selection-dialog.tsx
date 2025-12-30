@@ -54,17 +54,18 @@ export function MapSelectionDialog({
   const defaultLat = 24.7136;
   const defaultLng = 46.6753;
 
-  const [selectedLat, setSelectedLat] = useState<number | null>(
-    initialLat && !isNaN(initialLat) ? initialLat : null
-  );
-  const [selectedLng, setSelectedLng] = useState<number | null>(
-    initialLng && !isNaN(initialLng) ? initialLng : null
-  );
+  const validInitialLat = initialLat !== undefined && !isNaN(initialLat) ? initialLat : null;
+  const validInitialLng = initialLng !== undefined && !isNaN(initialLng) ? initialLng : null;
+
+  const [selectedLat, setSelectedLat] = useState<number | null>(validInitialLat);
+  const [selectedLng, setSelectedLng] = useState<number | null>(validInitialLng);
 
   useEffect(() => {
     if (open) {
-      setSelectedLat(initialLat && !isNaN(initialLat) ? initialLat : null);
-      setSelectedLng(initialLng && !isNaN(initialLng) ? initialLng : null);
+      const newLat = initialLat !== undefined && !isNaN(initialLat) ? initialLat : null;
+      const newLng = initialLng !== undefined && !isNaN(initialLng) ? initialLng : null;
+      setSelectedLat(newLat);
+      setSelectedLng(newLng);
     }
   }, [open, initialLat, initialLng]);
 
@@ -80,8 +81,12 @@ export function MapSelectionDialog({
     }
   };
 
-  const centerLat = selectedLat ?? initialLat ?? defaultLat;
-  const centerLng = selectedLng ?? initialLng ?? defaultLng;
+  const centerLat = (selectedLat !== null && !isNaN(selectedLat)) ? selectedLat 
+    : (validInitialLat !== null) ? validInitialLat 
+    : defaultLat;
+  const centerLng = (selectedLng !== null && !isNaN(selectedLng)) ? selectedLng 
+    : (validInitialLng !== null) ? validInitialLng 
+    : defaultLng;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -908,10 +908,10 @@ export default function AssetRegistrations() {
                           <Select 
                             value={formData.districtId} 
                             onValueChange={(v) => handleFormChange("districtId", v)}
-                            disabled={!formData.cityId}
+                            disabled={!formData.cityId || (districts?.length === 0)}
                           >
                             <SelectTrigger data-testid="select-district">
-                              <SelectValue placeholder="Select district" />
+                              <SelectValue placeholder={!formData.cityId ? "Select city first" : districts?.length === 0 ? "No districts available" : "Select district"} />
                             </SelectTrigger>
                             <SelectContent>
                               {districts?.map((district) => (
@@ -920,6 +920,7 @@ export default function AssetRegistrations() {
                             </SelectContent>
                           </Select>
                           {!formData.cityId && <p className="text-xs text-muted-foreground">Select city first</p>}
+                          {formData.cityId && districts?.length === 0 && <p className="text-xs text-muted-foreground">No districts defined for this city</p>}
                         </div>
 
                         <div className="space-y-2">

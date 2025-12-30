@@ -776,6 +776,40 @@ export class MemStorage implements IStorage {
     this.districts.set(alFaysaliyyahDistrictId, { id: alFaysaliyyahDistrictId, cityId: dammamCityId, nameAr: "الفيصلية", nameEn: "Al Faisaliyyah", code: "FAI" });
     this.districts.set(alShatiDistrictId, { id: alShatiDistrictId, cityId: dammamCityId, nameAr: "الشاطئ", nameEn: "Al Shati", code: "SHT" });
 
+    // Districts for Makkah
+    const alAziziyyahDistrictId = randomUUID();
+    const alShishaDistrictId = randomUUID();
+    const alMarwaDistrictId = randomUUID();
+    this.districts.set(alAziziyyahDistrictId, { id: alAziziyyahDistrictId, cityId: makkahCityId, nameAr: "العزيزية", nameEn: "Al Aziziyyah", code: "AZZ" });
+    this.districts.set(alShishaDistrictId, { id: alShishaDistrictId, cityId: makkahCityId, nameAr: "الششة", nameEn: "Al Shisha", code: "SHI" });
+    this.districts.set(alMarwaDistrictId, { id: alMarwaDistrictId, cityId: makkahCityId, nameAr: "المروة", nameEn: "Al Marwa", code: "MRW" });
+
+    // Districts for Madinah
+    const alHaramDistrictId = randomUUID();
+    const alIskanDistrictId = randomUUID();
+    const qiblataynDistrictId = randomUUID();
+    this.districts.set(alHaramDistrictId, { id: alHaramDistrictId, cityId: madinahCityId, nameAr: "الحرم", nameEn: "Al Haram", code: "HRM" });
+    this.districts.set(alIskanDistrictId, { id: alIskanDistrictId, cityId: madinahCityId, nameAr: "الإسكان", nameEn: "Al Iskan", code: "ISK" });
+    this.districts.set(qiblataynDistrictId, { id: qiblataynDistrictId, cityId: madinahCityId, nameAr: "القبلتين", nameEn: "Qiblatain", code: "QIB" });
+
+    // Districts for Taif
+    const alHadaDistrictId = randomUUID();
+    const alShafaDistrictId = randomUUID();
+    this.districts.set(alHadaDistrictId, { id: alHadaDistrictId, cityId: taifCityId, nameAr: "الهدا", nameEn: "Al Hada", code: "HDA" });
+    this.districts.set(alShafaDistrictId, { id: alShafaDistrictId, cityId: taifCityId, nameAr: "الشفا", nameEn: "Al Shafa", code: "SHF" });
+
+    // Districts for Al-Khobar
+    const alKornishDistrictId = randomUUID();
+    const alYarmoukDistrictId = randomUUID();
+    this.districts.set(alKornishDistrictId, { id: alKornishDistrictId, cityId: khobarCityId, nameAr: "الكورنيش", nameEn: "Al Kornish", code: "KRN" });
+    this.districts.set(alYarmoukDistrictId, { id: alYarmoukDistrictId, cityId: khobarCityId, nameAr: "اليرموك", nameEn: "Al Yarmouk", code: "YRM" });
+
+    // Districts for Al-Kharj
+    const alKhaldiyyahDistrictId = randomUUID();
+    const alNazimDistrictId = randomUUID();
+    this.districts.set(alKhaldiyyahDistrictId, { id: alKhaldiyyahDistrictId, cityId: kharjCityId, nameAr: "الخالدية", nameEn: "Al Khaldiyyah", code: "KHL" });
+    this.districts.set(alNazimDistrictId, { id: alNazimDistrictId, cityId: kharjCityId, nameAr: "النظيم", nameEn: "Al Nazim", code: "NZM" });
+
     const assetId1 = randomUUID();
     const now = new Date().toISOString();
     this.assets.set(assetId1, {
