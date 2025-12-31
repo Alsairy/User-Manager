@@ -661,7 +661,7 @@ export default function AssetRegistrations() {
 
       <Card 
         className="mt-4 cursor-pointer hover-elevate" 
-        onClick={() => setStatusFilter("incomplete")}
+        onClick={() => { setStatusFilter("draft"); setPage(1); }}
         data-testid="card-drafts"
       >
         <CardContent className="flex items-center gap-4 py-4">
