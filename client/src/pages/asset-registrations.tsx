@@ -659,7 +659,11 @@ export default function AssetRegistrations() {
         </div>
       </div>
 
-      <Card className="mt-4">
+      <Card 
+        className="mt-4 cursor-pointer hover-elevate" 
+        onClick={() => setStatusFilter("incomplete")}
+        data-testid="card-drafts"
+      >
         <CardContent className="flex items-center gap-4 py-4">
           <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
             <Edit3 className="h-5 w-5 text-muted-foreground" />
