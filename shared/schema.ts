@@ -654,6 +654,114 @@ export interface FinancialAnalysis {
   breakEvenAnalysis: string;
 }
 
+// =============================================================================
+// ISNAD Form Sections - Based on ISNAD_Form_1.pdf
+// Each department fills their specific section during workflow
+// =============================================================================
+
+// Section 1-2: School Planning Department
+export interface SchoolPlanningSection {
+  assetStatus: "vacant_land" | "existing_building" | "vacated_building" | "stalled_project" | "other";
+  assetStatusOther?: string;
+  buildingName?: string;
+  decisionNumber?: string;
+  decisionDate?: string;
+  planningNeed: "no_need" | "has_need";
+  needExpectedPeriod?: string;
+  hasProgrammingForm: boolean;
+  programmingFormDate?: string;
+  completedAt?: string;
+  completedBy?: string;
+}
+
+// Section 3-5: Investment & Partnerships Department
+export interface InvestmentPartnershipsSection {
+  cityPreferred: boolean;
+  districtPreferred: boolean;
+  isCriticalArea: boolean;
+  hasInvestmentBlockers: boolean;
+  blockers?: {
+    lackOfDeed: boolean;
+    financialLiabilities: boolean;
+    other?: string;
+  };
+  investmentProposal: "partial" | "full";
+  investmentType: "educational" | "commercial" | "other";
+  investmentTypeOther?: string;
+  partialSketchAttached?: boolean;
+  completedAt?: string;
+  completedBy?: string;
+}
+
+// Section 6-9: Finance Department (Shared Services)
+export interface FinanceSection {
+  hasFinancialDues: boolean;
+  financialDuesAction?: string;
+  custodyItemsCleared: boolean;
+  electricityAccountNumber?: string;
+  electricityMeterNumbers?: string;
+  waterAccountNumber?: string;
+  waterMeterNumbers?: string;
+  completedAt?: string;
+  completedBy?: string;
+}
+
+// Section 10-12: Shared Services (Land Registry/Documentation)
+export interface LandRegistrySection {
+  assetOwnership: "ministry_of_education" | "education_department" | "other";
+  assetOwnershipOther?: string;
+  ownershipReference: "deed" | "building_permit" | "receipt_record" | "survey_decision" | "allocation_decision" | "regulatory_sketch" | "other";
+  ownershipReferenceOther?: string;
+  ownershipDocumentNumber?: string;
+  ownershipDocumentDate?: string;
+  regulatoryPlanReference?: string;
+  plotNumber?: string;
+  planNumber?: string;
+  areaInWords?: string;
+  areaInNumbers?: number;
+  areaDocumentNumber?: string;
+  areaDocumentDate?: string;
+  completedAt?: string;
+  completedBy?: string;
+}
+
+// Section 13-16: Security, Safety & Facilities Department
+export interface SecurityFacilitiesSection {
+  structuralCondition: "operational" | "requires_renovation" | "dilapidated" | "other";
+  structuralConditionOther?: string;
+  hasDemolitionDecision: boolean;
+  demolitionDecisionNumber?: string;
+  demolitionDecisionDate?: string;
+  dimensions: {
+    north?: string;
+    east?: string;
+    south?: string;
+    west?: string;
+  };
+  boundaries: {
+    north: "commercial_street" | "internal_street" | "other";
+    northOther?: string;
+    east: "commercial_street" | "internal_street" | "other";
+    eastOther?: string;
+    south: "commercial_street" | "internal_street" | "other";
+    southOther?: string;
+    west: "commercial_street" | "internal_street" | "other";
+    westOther?: string;
+  };
+  location: {
+    region?: string;
+    governorate?: string;
+    city?: string;
+    district?: string;
+    shortNationalAddress?: string;
+    longitude?: number;
+    latitude?: number;
+  };
+  aerialPhotoAttached?: boolean;
+  completedAt?: string;
+  completedBy?: string;
+}
+
 export interface IsnadForm {
   id: string;
   formCode: string;
@@ -665,6 +773,11 @@ export interface IsnadForm {
   investmentCriteria: InvestmentCriteria | null;
   technicalAssessment: TechnicalAssessment | null;
   financialAnalysis: FinancialAnalysis | null;
+  schoolPlanningSection: SchoolPlanningSection | null;
+  investmentPartnershipsSection: InvestmentPartnershipsSection | null;
+  financeSection: FinanceSection | null;
+  landRegistrySection: LandRegistrySection | null;
+  securityFacilitiesSection: SecurityFacilitiesSection | null;
   workflowSteps: WorkflowStep[];
   attachments: string[];
   submittedAt: string | null;
@@ -749,6 +862,105 @@ export const isnadReviewActionSchema = z.object({
 
 export type IsnadReviewAction = z.infer<typeof isnadReviewActionSchema>;
 
+// Zod schemas for department sections
+export const schoolPlanningSectionSchema = z.object({
+  assetStatus: z.enum(["vacant_land", "existing_building", "vacated_building", "stalled_project", "other"]),
+  assetStatusOther: z.string().optional(),
+  buildingName: z.string().optional(),
+  decisionNumber: z.string().optional(),
+  decisionDate: z.string().optional(),
+  planningNeed: z.enum(["no_need", "has_need"]),
+  needExpectedPeriod: z.string().optional(),
+  hasProgrammingForm: z.boolean(),
+  programmingFormDate: z.string().optional(),
+  completedAt: z.string().optional(),
+  completedBy: z.string().optional(),
+});
+
+export const investmentPartnershipsSectionSchema = z.object({
+  cityPreferred: z.boolean(),
+  districtPreferred: z.boolean(),
+  isCriticalArea: z.boolean(),
+  hasInvestmentBlockers: z.boolean(),
+  blockers: z.object({
+    lackOfDeed: z.boolean(),
+    financialLiabilities: z.boolean(),
+    other: z.string().optional(),
+  }).optional(),
+  investmentProposal: z.enum(["partial", "full"]),
+  investmentType: z.enum(["educational", "commercial", "other"]),
+  investmentTypeOther: z.string().optional(),
+  partialSketchAttached: z.boolean().optional(),
+  completedAt: z.string().optional(),
+  completedBy: z.string().optional(),
+});
+
+export const financeSectionSchema = z.object({
+  hasFinancialDues: z.boolean(),
+  financialDuesAction: z.string().optional(),
+  custodyItemsCleared: z.boolean(),
+  electricityAccountNumber: z.string().optional(),
+  electricityMeterNumbers: z.string().optional(),
+  waterAccountNumber: z.string().optional(),
+  waterMeterNumbers: z.string().optional(),
+  completedAt: z.string().optional(),
+  completedBy: z.string().optional(),
+});
+
+export const landRegistrySectionSchema = z.object({
+  assetOwnership: z.enum(["ministry_of_education", "education_department", "other"]),
+  assetOwnershipOther: z.string().optional(),
+  ownershipReference: z.enum(["deed", "building_permit", "receipt_record", "survey_decision", "allocation_decision", "regulatory_sketch", "other"]),
+  ownershipReferenceOther: z.string().optional(),
+  ownershipDocumentNumber: z.string().optional(),
+  ownershipDocumentDate: z.string().optional(),
+  regulatoryPlanReference: z.string().optional(),
+  plotNumber: z.string().optional(),
+  planNumber: z.string().optional(),
+  areaInWords: z.string().optional(),
+  areaInNumbers: z.number().optional(),
+  areaDocumentNumber: z.string().optional(),
+  areaDocumentDate: z.string().optional(),
+  completedAt: z.string().optional(),
+  completedBy: z.string().optional(),
+});
+
+export const securityFacilitiesSectionSchema = z.object({
+  structuralCondition: z.enum(["operational", "requires_renovation", "dilapidated", "other"]),
+  structuralConditionOther: z.string().optional(),
+  hasDemolitionDecision: z.boolean(),
+  demolitionDecisionNumber: z.string().optional(),
+  demolitionDecisionDate: z.string().optional(),
+  dimensions: z.object({
+    north: z.string().optional(),
+    east: z.string().optional(),
+    south: z.string().optional(),
+    west: z.string().optional(),
+  }),
+  boundaries: z.object({
+    north: z.enum(["commercial_street", "internal_street", "other"]),
+    northOther: z.string().optional(),
+    east: z.enum(["commercial_street", "internal_street", "other"]),
+    eastOther: z.string().optional(),
+    south: z.enum(["commercial_street", "internal_street", "other"]),
+    southOther: z.string().optional(),
+    west: z.enum(["commercial_street", "internal_street", "other"]),
+    westOther: z.string().optional(),
+  }),
+  location: z.object({
+    region: z.string().optional(),
+    governorate: z.string().optional(),
+    city: z.string().optional(),
+    district: z.string().optional(),
+    shortNationalAddress: z.string().optional(),
+    longitude: z.number().optional(),
+    latitude: z.number().optional(),
+  }),
+  aerialPhotoAttached: z.boolean().optional(),
+  completedAt: z.string().optional(),
+  completedBy: z.string().optional(),
+});
+
 export const updateIsnadFormSchema = z.object({
   investmentCriteria: z.object({
     investmentPurpose: z.string(),
@@ -772,6 +984,11 @@ export const updateIsnadFormSchema = z.object({
     expectedReturns: z.number(),
     breakEvenAnalysis: z.string(),
   }).optional(),
+  schoolPlanningSection: schoolPlanningSectionSchema.optional(),
+  investmentPartnershipsSection: investmentPartnershipsSectionSchema.optional(),
+  financeSection: financeSectionSchema.optional(),
+  landRegistrySection: landRegistrySectionSchema.optional(),
+  securityFacilitiesSection: securityFacilitiesSectionSchema.optional(),
   attachments: z.array(z.object({
     url: z.string(),
     fileName: z.string(),

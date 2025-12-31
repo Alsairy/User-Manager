@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,7 @@ import {
   DollarSign,
   MessageSquareMore,
   Wrench,
+  ClipboardList,
 } from "lucide-react";
 import {
   IsnadFormWithDetails,
@@ -41,10 +43,18 @@ import {
   isnadActionLabels,
   IsnadStatus,
   WorkflowStep,
+  IsnadStage,
 } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import {
+  SchoolPlanningForm,
+  InvestmentPartnershipsForm,
+  FinanceForm,
+  LandRegistryForm,
+  SecurityFacilitiesForm,
+} from "@/components/isnad-department-forms";
 
 const statusColors: Record<IsnadStatus, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -114,6 +124,54 @@ export default function IsnadFormDetailPage() {
       setRejectionJustification("");
     },
   });
+
+  const saveSectionMutation = useMutation({
+    mutationFn: async (data: { sectionType: string; sectionData: any; isComplete?: boolean }) => {
+      const updatePayload: Record<string, any> = {};
+      const existingSectionData = (form as any)?.[data.sectionType] || {};
+      
+      if (data.isComplete) {
+        updatePayload[data.sectionType] = {
+          ...existingSectionData,
+          ...data.sectionData,
+          completedAt: new Date().toISOString(),
+          completedBy: "admin",
+        };
+      } else {
+        updatePayload[data.sectionType] = {
+          ...existingSectionData,
+          ...data.sectionData,
+        };
+      }
+      return apiRequest("PATCH", `/api/isnad/forms/${id}`, updatePayload);
+    },
+    onSuccess: (_, variables) => {
+      const action = variables.isComplete ? "completed" : "saved";
+      toast({ title: `Section ${action} successfully` });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save section data", variant: "destructive" });
+    },
+  });
+
+  const stageToSection: Record<IsnadStage, string | null> = {
+    ip_initiation: "investmentPartnershipsSection",
+    school_planning_review: "schoolPlanningSection",
+    ip_secondary_review: "investmentPartnershipsSection",
+    finance_review: "financeSection",
+    security_facilities_review: "securityFacilitiesSection",
+    head_of_education_review: "landRegistrySection",
+    investment_agency_review: null,
+    tbc_final_approval: null,
+  };
+
+  const canEditSection = (sectionName: string): boolean => {
+    if (!form) return false;
+    if (form.status === "approved" || form.status === "rejected" || form.status === "cancelled") return false;
+    const currentSectionName = stageToSection[form.currentStage];
+    return currentSectionName === sectionName;
+  };
 
   const canReview = form && form.status === "pending_verification" && form.currentStage !== "ip_initiation";
   const canSubmit = form && (form.status === "draft" || form.status === "changes_requested");
@@ -482,6 +540,74 @@ export default function IsnadFormDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardList className="w-5 h-5" />
+                Department Review Sections
+              </CardTitle>
+              <CardDescription>
+                Each department fills their specific sections during their workflow stage. Current stage determines which section is editable.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="school_planning" className="w-full">
+                <TabsList className="grid w-full grid-cols-5 mb-4">
+                  <TabsTrigger value="school_planning" data-testid="tab-school-planning">School Planning</TabsTrigger>
+                  <TabsTrigger value="investment_partnerships" data-testid="tab-ip">Investment & Partnerships</TabsTrigger>
+                  <TabsTrigger value="finance" data-testid="tab-finance">Finance</TabsTrigger>
+                  <TabsTrigger value="land_registry" data-testid="tab-land-registry">Land Registry</TabsTrigger>
+                  <TabsTrigger value="security_facilities" data-testid="tab-security">Security & Facilities</TabsTrigger>
+                </TabsList>
+                <TabsContent value="school_planning">
+                  <SchoolPlanningForm
+                    initialData={(form as any).schoolPlanningSection}
+                    onSave={(data) => saveSectionMutation.mutate({ sectionType: "schoolPlanningSection", sectionData: data })}
+                    onComplete={(data) => saveSectionMutation.mutate({ sectionType: "schoolPlanningSection", sectionData: data, isComplete: true })}
+                    isReadOnly={!canEditSection("schoolPlanningSection")}
+                    isPending={saveSectionMutation.isPending}
+                  />
+                </TabsContent>
+                <TabsContent value="investment_partnerships">
+                  <InvestmentPartnershipsForm
+                    initialData={(form as any).investmentPartnershipsSection}
+                    onSave={(data) => saveSectionMutation.mutate({ sectionType: "investmentPartnershipsSection", sectionData: data })}
+                    onComplete={(data) => saveSectionMutation.mutate({ sectionType: "investmentPartnershipsSection", sectionData: data, isComplete: true })}
+                    isReadOnly={!canEditSection("investmentPartnershipsSection")}
+                    isPending={saveSectionMutation.isPending}
+                  />
+                </TabsContent>
+                <TabsContent value="finance">
+                  <FinanceForm
+                    initialData={(form as any).financeSection}
+                    onSave={(data) => saveSectionMutation.mutate({ sectionType: "financeSection", sectionData: data })}
+                    onComplete={(data) => saveSectionMutation.mutate({ sectionType: "financeSection", sectionData: data, isComplete: true })}
+                    isReadOnly={!canEditSection("financeSection")}
+                    isPending={saveSectionMutation.isPending}
+                  />
+                </TabsContent>
+                <TabsContent value="land_registry">
+                  <LandRegistryForm
+                    initialData={(form as any).landRegistrySection}
+                    onSave={(data) => saveSectionMutation.mutate({ sectionType: "landRegistrySection", sectionData: data })}
+                    onComplete={(data) => saveSectionMutation.mutate({ sectionType: "landRegistrySection", sectionData: data, isComplete: true })}
+                    isReadOnly={!canEditSection("landRegistrySection")}
+                    isPending={saveSectionMutation.isPending}
+                  />
+                </TabsContent>
+                <TabsContent value="security_facilities">
+                  <SecurityFacilitiesForm
+                    initialData={(form as any).securityFacilitiesSection}
+                    onSave={(data) => saveSectionMutation.mutate({ sectionType: "securityFacilitiesSection", sectionData: data })}
+                    onComplete={(data) => saveSectionMutation.mutate({ sectionType: "securityFacilitiesSection", sectionData: data, isComplete: true })}
+                    isReadOnly={!canEditSection("securityFacilitiesSection")}
+                    isPending={saveSectionMutation.isPending}
+                  />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-6">
