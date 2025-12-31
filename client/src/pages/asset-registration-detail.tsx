@@ -35,6 +35,7 @@ import { workflowStageLabels, featureLabels, PredefinedFeature } from "@shared/s
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { AssetReviewWizard } from "@/components/asset-review-wizard";
 
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
@@ -199,6 +200,7 @@ export default function AssetRegistrationDetail() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [reviewWizardOpen, setReviewWizardOpen] = useState(false);
 
   const { data: asset, isLoading } = useQuery<AssetWithDetails>({
     queryKey: ["/api/assets/registrations", id],
@@ -346,7 +348,7 @@ export default function AssetRegistrationDetail() {
             Submit for Review
           </Button>
         ) : (
-          <Button data-testid="button-review-request">
+          <Button onClick={() => setReviewWizardOpen(true)} data-testid="button-review-request">
             Review request
           </Button>
         )}
@@ -355,6 +357,19 @@ export default function AssetRegistrationDetail() {
           <Download className="ml-2 h-4 w-4" />
         </Button>
       </div>
+
+      <AssetReviewWizard
+        asset={asset}
+        open={reviewWizardOpen}
+        onClose={() => setReviewWizardOpen(false)}
+        onSubmit={(decision, comments) => {
+          toast({
+            title: decision === "accept" ? "Asset Approved" : "Asset Rejected",
+            description: `The review decision has been submitted.`,
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/assets/registrations", id] });
+        }}
+      />
 
       <Card>
         <CardHeader className="pb-0">
