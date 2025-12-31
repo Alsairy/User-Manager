@@ -52,7 +52,6 @@ import {
   SchoolPlanningForm,
   InvestmentPartnershipsForm,
   FinanceForm,
-  LandRegistryForm,
   SecurityFacilitiesForm,
 } from "@/components/isnad-department-forms";
 
@@ -161,10 +160,14 @@ export default function IsnadFormDetailPage() {
     ip_secondary_review: "investmentPartnershipsSection",
     finance_review: "financeSection",
     security_facilities_review: "securityFacilitiesSection",
-    head_of_education_review: "landRegistrySection",
+    head_of_education_review: null,
     investment_agency_review: null,
     tbc_final_approval: null,
   };
+
+  const isReviewOnlyStage = form?.currentStage === "head_of_education_review" || 
+    form?.currentStage === "investment_agency_review" || 
+    form?.currentStage === "tbc_final_approval";
 
   const canEditSection = (sectionName: string): boolean => {
     if (!form) return false;
@@ -541,23 +544,50 @@ export default function IsnadFormDetailPage() {
             </Card>
           )}
 
+          {isReviewOnlyStage && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5" />
+                  Review Stage: {isnadStageLabels[form.currentStage]}
+                </CardTitle>
+                <CardDescription>
+                  {form.currentStage === "head_of_education_review" && 
+                    "The Head of Education Department is reviewing the complete form before forwarding to Investment Agency."}
+                  {form.currentStage === "investment_agency_review" && 
+                    "The Investment Agency is reviewing the full submission to make a final decision."}
+                  {form.currentStage === "tbc_final_approval" && 
+                    "TBC is preparing packages for approved assets. Once packaged, they can be sent for executive approval."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 rounded-md bg-muted/50">
+                  <p className="text-sm text-muted-foreground">
+                    All department sections are locked during this stage. The reviewer can approve or reject the complete form using the actions above.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5" />
-                Department Review Sections
+                Department Sections
               </CardTitle>
               <CardDescription>
-                Each department fills their specific sections during their workflow stage. Current stage determines which section is editable.
+                {isReviewOnlyStage 
+                  ? "Read-only view of completed department sections." 
+                  : "Each department fills their specific sections during their workflow stage. Current stage determines which section is editable."}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="school_planning" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 mb-4">
+                <TabsList className="grid w-full grid-cols-4 mb-4">
                   <TabsTrigger value="school_planning" data-testid="tab-school-planning">School Planning</TabsTrigger>
                   <TabsTrigger value="investment_partnerships" data-testid="tab-ip">Investment & Partnerships</TabsTrigger>
                   <TabsTrigger value="finance" data-testid="tab-finance">Finance</TabsTrigger>
-                  <TabsTrigger value="land_registry" data-testid="tab-land-registry">Land Registry</TabsTrigger>
                   <TabsTrigger value="security_facilities" data-testid="tab-security">Security & Facilities</TabsTrigger>
                 </TabsList>
                 <TabsContent value="school_planning">
@@ -584,15 +614,6 @@ export default function IsnadFormDetailPage() {
                     onSave={(data) => saveSectionMutation.mutate({ sectionType: "financeSection", sectionData: data })}
                     onComplete={(data) => saveSectionMutation.mutate({ sectionType: "financeSection", sectionData: data, isComplete: true })}
                     isReadOnly={!canEditSection("financeSection")}
-                    isPending={saveSectionMutation.isPending}
-                  />
-                </TabsContent>
-                <TabsContent value="land_registry">
-                  <LandRegistryForm
-                    initialData={(form as any).landRegistrySection}
-                    onSave={(data) => saveSectionMutation.mutate({ sectionType: "landRegistrySection", sectionData: data })}
-                    onComplete={(data) => saveSectionMutation.mutate({ sectionType: "landRegistrySection", sectionData: data, isComplete: true })}
-                    isReadOnly={!canEditSection("landRegistrySection")}
                     isPending={saveSectionMutation.isPending}
                   />
                 </TabsContent>
