@@ -40,8 +40,7 @@ import {
   isnadStageLabels,
   isnadActionLabels,
   IsnadStatus,
-  departmentLabels,
-  DepartmentReviewer,
+  WorkflowStep,
 } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -116,10 +115,10 @@ export default function IsnadFormDetailPage() {
     },
   });
 
-  const canReview = form && ["pending_verification", "verification_due", "verified_filled", "investment_agency_review", "pending_ceo", "pending_minister"].includes(form.status);
+  const canReview = form && form.status === "pending_verification" && form.currentStage !== "ip_initiation";
   const canSubmit = form && (form.status === "draft" || form.status === "changes_requested");
   const canEdit = form && (form.status === "draft" || form.status === "changes_requested");
-  const isDepartmentReview = form && form.currentStage === "department_review";
+  const isInReviewStage = form && form.currentStage !== "ip_initiation" && form.status !== "draft" && form.status !== "approved" && form.status !== "rejected" && form.status !== "cancelled";
 
   if (isLoading) {
     return (
@@ -512,115 +511,70 @@ export default function IsnadFormDetailPage() {
             </CardContent>
           </Card>
 
-          {form.departmentApprovals && form.departmentApprovals.length > 0 && (
+          {form.workflowSteps && form.workflowSteps.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Department Review Status</CardTitle>
+                <CardTitle>Workflow Steps</CardTitle>
                 <CardDescription>
-                  All 19 departments must approve. A single rejection will reject the entire form.
+                  Sequential approval process - each step must be approved to proceed to the next.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Core Departments</h4>
-                    <div className="space-y-2">
-                      {form.departmentApprovals
-                        .filter((dept) => ["school_planning", "safety_security_facilities", "investment_partnerships"].includes(dept.department))
-                        .map((dept) => (
-                          <div
-                            key={dept.department}
-                            className="flex items-center justify-between gap-2 p-2 rounded-md border"
-                            data-testid={`dept-approval-${dept.department}`}
-                          >
-                            <div className="flex items-center gap-2">
-                              {dept.status === "approved" && (
-                                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                              )}
-                              {dept.status === "rejected" && (
-                                <XCircle className="w-4 h-4 text-red-600" />
-                              )}
-                              {dept.status === "modification_requested" && (
-                                <RotateCcw className="w-4 h-4 text-amber-600" />
-                              )}
-                              {dept.status === "pending" && (
-                                <Clock className="w-4 h-4 text-muted-foreground" />
-                              )}
-                              <span className="text-sm font-medium">
-                                {departmentLabels[dept.department as DepartmentReviewer]}
-                              </span>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className={
-                                dept.status === "approved"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                  : dept.status === "rejected"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                  : dept.status === "modification_requested"
-                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                                  : ""
-                              }
-                            >
-                              {dept.status === "modification_requested" ? "Changes Requested" : dept.status.charAt(0).toUpperCase() + dept.status.slice(1)}
-                            </Badge>
-                          </div>
-                        ))}
+                <div className="space-y-2">
+                  {form.workflowSteps.map((step, index) => (
+                    <div
+                      key={step.stage}
+                      className={`flex items-center justify-between gap-2 p-3 rounded-md border ${
+                        step.status === "current" ? "border-primary bg-primary/5" : ""
+                      }`}
+                      data-testid={`workflow-step-${step.stage}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${
+                          step.status === "approved" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" :
+                          step.status === "rejected" ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" :
+                          step.status === "current" ? "bg-primary text-primary-foreground" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {step.status === "approved" ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                          ) : step.status === "rejected" ? (
+                            <XCircle className="w-4 h-4" />
+                          ) : (
+                            index + 1
+                          )}
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium">
+                            {isnadStageLabels[step.stage]}
+                          </span>
+                          {step.reviewerName && (
+                            <p className="text-xs text-muted-foreground">
+                              {step.reviewerName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          step.status === "approved"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : step.status === "rejected"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            : step.status === "current"
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                            : ""
+                        }
+                      >
+                        {step.status === "current" ? "In Progress" : step.status.charAt(0).toUpperCase() + step.status.slice(1)}
+                      </Badge>
                     </div>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Regional Education Departments</h4>
-                    <div className="space-y-2">
-                      {form.departmentApprovals
-                        .filter((dept) => !["school_planning", "safety_security_facilities", "investment_partnerships"].includes(dept.department))
-                        .map((dept) => (
-                          <div
-                            key={dept.department}
-                            className="flex items-center justify-between gap-2 p-2 rounded-md border"
-                            data-testid={`dept-approval-${dept.department}`}
-                          >
-                            <div className="flex items-center gap-2">
-                              {dept.status === "approved" && (
-                                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                              )}
-                              {dept.status === "rejected" && (
-                                <XCircle className="w-4 h-4 text-red-600" />
-                              )}
-                              {dept.status === "modification_requested" && (
-                                <RotateCcw className="w-4 h-4 text-amber-600" />
-                              )}
-                              {dept.status === "pending" && (
-                                <Clock className="w-4 h-4 text-muted-foreground" />
-                              )}
-                              <span className="text-sm font-medium">
-                                {departmentLabels[dept.department as DepartmentReviewer]}
-                              </span>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className={
-                                dept.status === "approved"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                  : dept.status === "rejected"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                  : dept.status === "modification_requested"
-                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                                  : ""
-                              }
-                            >
-                              {dept.status === "modification_requested" ? "Changes Requested" : dept.status.charAt(0).toUpperCase() + dept.status.slice(1)}
-                            </Badge>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
+                  ))}
                 </div>
-                {form.currentStage === "department_review" && (
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    {form.departmentApprovals.filter((d) => d.status === "approved").length} of{" "}
-                    {form.departmentApprovals.length} departments have approved
-                  </p>
-                )}
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Step {form.currentStepIndex + 1} of {form.workflowSteps.length}: {isnadStageLabels[form.currentStage]}
+                </p>
               </CardContent>
             </Card>
           )}

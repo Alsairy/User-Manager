@@ -974,47 +974,43 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/isnad/forms/:id/department-review", async (req, res) => {
+  app.post("/api/isnad/forms/:id/step-review", async (req, res) => {
     try {
-      const { department, action, comments, rejectionJustification } = req.body;
+      const { action, comments, rejectionReason } = req.body;
       
-      if (!department || !action) {
-        return res.status(400).json({ error: "Department and action are required" });
+      if (!action) {
+        return res.status(400).json({ error: "Action is required" });
       }
 
-      if (!["approved", "rejected", "modification_requested"].includes(action)) {
-        return res.status(400).json({ error: "Invalid action. Must be approved, rejected, or modification_requested" });
+      if (!["approved", "rejected", "returned"].includes(action)) {
+        return res.status(400).json({ error: "Invalid action. Must be approved, rejected, or returned" });
       }
 
-      const modificationRequest = req.body.modificationRequest;
-
-      const form = await storage.processDepartmentApproval(
+      const form = await storage.processStepApproval(
         req.params.id,
-        department,
         "admin",
-        action as "approved" | "rejected" | "modification_requested",
+        action as "approved" | "rejected" | "returned",
         comments || null,
-        rejectionJustification || null,
-        modificationRequest || null
+        rejectionReason || null
       );
 
       if (!form) {
-        return res.status(400).json({ error: "Cannot process department review" });
+        return res.status(400).json({ error: "Cannot process step review" });
       }
 
       await storage.createAuditLog({
         userId: "admin",
-        actionType: `isnad_department_${action}`,
+        actionType: `isnad_step_${action}`,
         entityType: "isnad_form",
         entityId: req.params.id,
-        changes: { department, action, status: form.status },
+        changes: { action, status: form.status, stage: form.currentStage },
         ipAddress: req.ip ?? null,
         sessionId: null,
       });
 
       res.json(form);
     } catch (error) {
-      res.status(500).json({ error: "Failed to process department review" });
+      res.status(500).json({ error: "Failed to process step review" });
     }
   });
 

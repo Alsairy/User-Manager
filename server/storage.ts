@@ -53,8 +53,6 @@ import type {
   NotificationFilters,
   NotificationType,
   SlaStatus,
-  DepartmentApproval,
-  DepartmentReviewer,
   Investor,
   InsertInvestor,
   Contract,
@@ -91,7 +89,7 @@ import type {
   InterestReviewAction,
   IstifadaReviewAction,
 } from "@shared/schema";
-import { permissionGroups, workflowStageEnum, isnadStageEnum, slaDaysConfig, departmentReviewersEnum, departmentSlaDays } from "@shared/schema";
+import { permissionGroups, workflowStageEnum, isnadStageEnum, slaDaysConfig, workflowStepsOrder, type WorkflowStep } from "@shared/schema";
 import { db, schema } from "./db";
 import { eq, and, or, ilike, desc, count, sql } from "drizzle-orm";
 
@@ -183,14 +181,12 @@ export interface IStorage {
   updateIsnadForm(id: string, updates: Partial<IsnadForm>): Promise<IsnadForm | undefined>;
   submitIsnadForm(id: string): Promise<IsnadForm | undefined>;
   processIsnadAction(id: string, reviewerId: string, action: IsnadReviewAction): Promise<IsnadForm | undefined>;
-  processDepartmentApproval(
+  processStepApproval(
     formId: string,
-    department: DepartmentReviewer,
     reviewerId: string,
-    action: "approved" | "rejected" | "modification_requested",
+    action: "approved" | "rejected" | "returned",
     comments: string | null,
-    rejectionJustification: string | null,
-    modificationRequest: string | null
+    rejectionReason: string | null
   ): Promise<IsnadForm | undefined>;
   cancelIsnadForm(id: string, userId: string, reason: string): Promise<IsnadForm | undefined>;
   getIsnadReviewQueue(stage: IsnadStage): Promise<IsnadReviewQueueItem[]>;
@@ -1889,15 +1885,15 @@ export class MemStorage implements IStorage {
     const now = new Date().toISOString();
     const formCode = await this.generateIsnadCode();
 
-    const initialDepartmentApprovals: DepartmentApproval[] = departmentReviewersEnum.map((dept) => ({
-      department: dept,
-      status: "pending" as const,
-      approverId: null,
-      approverName: null,
+    const initialWorkflowSteps: WorkflowStep[] = workflowStepsOrder.map((stage, index) => ({
+      stage,
+      stepIndex: index,
+      status: index === 0 ? "current" as const : "pending" as const,
+      reviewerId: null,
+      reviewerName: null,
       actionTakenAt: null,
       comments: null,
-      rejectionJustification: null,
-      modificationRequest: null,
+      rejectionReason: null,
       slaDeadline: null,
       slaStatus: null,
     }));
@@ -1908,17 +1904,17 @@ export class MemStorage implements IStorage {
       assetId: insertForm.assetId,
       status: "draft",
       currentStage: "ip_initiation",
+      currentStepIndex: 0,
       currentAssigneeId: createdBy,
       investmentCriteria: insertForm.investmentCriteria || null,
       technicalAssessment: insertForm.technicalAssessment || null,
       financialAnalysis: insertForm.financialAnalysis || null,
-      departmentApprovals: initialDepartmentApprovals,
-      investmentAgencyDecision: null,
+      workflowSteps: initialWorkflowSteps,
       attachments: [],
       submittedAt: null,
       completedAt: null,
       returnCount: 0,
-      returnedByDepartment: null,
+      returnedByStage: null,
       returnReason: null,
       slaDeadline: null,
       slaStatus: null,
@@ -1965,17 +1961,20 @@ export class MemStorage implements IStorage {
     if (!form || (form.status !== "draft" && form.status !== "changes_requested")) return undefined;
 
     const now = new Date().toISOString();
-    const slaDays = slaDaysConfig.department_review;
+    const nextStage = workflowStepsOrder[1];
+    const slaDays = slaDaysConfig[nextStage];
     const slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
 
-    form.departmentApprovals = form.departmentApprovals.map((dept) => ({
-      ...dept,
-      slaDeadline: new Date(Date.now() + departmentSlaDays[dept.department] * 24 * 60 * 60 * 1000).toISOString(),
-      slaStatus: "on_time" as SlaStatus,
-    }));
+    form.workflowSteps[0].status = "approved";
+    form.workflowSteps[0].actionTakenAt = now;
+    form.workflowSteps[0].reviewerId = form.createdBy;
+    form.workflowSteps[1].status = "current";
+    form.workflowSteps[1].slaDeadline = slaDeadline;
+    form.workflowSteps[1].slaStatus = "on_time";
 
     form.status = "pending_verification";
-    form.currentStage = "department_review";
+    form.currentStage = nextStage;
+    form.currentStepIndex = 1;
     form.submittedAt = now;
     form.slaDeadline = slaDeadline;
     form.slaStatus = "on_time";
@@ -2005,76 +2004,75 @@ export class MemStorage implements IStorage {
     return form;
   }
 
-  private getNextIsnadStage(currentStage: IsnadStage): IsnadStage | null {
-    const stageOrder: IsnadStage[] = [
-      "ip_initiation",
-      "department_review",
-      "investment_agency",
-      "package_preparation",
-      "ceo_approval",
-      "minister_approval",
-    ];
-    const currentIndex = stageOrder.indexOf(currentStage);
-    if (currentIndex < 0 || currentIndex >= stageOrder.length - 1) return null;
-    return stageOrder[currentIndex + 1];
+  private getNextStepIndex(currentIndex: number): number | null {
+    if (currentIndex < 0 || currentIndex >= workflowStepsOrder.length - 1) return null;
+    return currentIndex + 1;
   }
 
-  async processDepartmentApproval(
+  async processStepApproval(
     formId: string,
-    department: DepartmentReviewer,
     reviewerId: string,
-    action: "approved" | "rejected" | "modification_requested",
+    action: "approved" | "rejected" | "returned",
     comments: string | null,
-    rejectionJustification: string | null,
-    modificationRequest: string | null
+    rejectionReason: string | null
   ): Promise<IsnadForm | undefined> {
     const form = this.isnadForms.get(formId);
-    if (!form || form.currentStage !== "department_review") return undefined;
+    if (!form || form.status === "draft" || form.status === "approved" || form.status === "rejected" || form.status === "cancelled") {
+      return undefined;
+    }
 
     const now = new Date().toISOString();
     const reviewer = this.users.get(reviewerId);
+    const currentStepIndex = form.currentStepIndex;
 
-    const deptIndex = form.departmentApprovals.findIndex((d) => d.department === department);
-    if (deptIndex === -1) return undefined;
-
-    form.departmentApprovals[deptIndex] = {
-      ...form.departmentApprovals[deptIndex],
-      status: action,
-      approverId: reviewerId,
-      approverName: reviewer?.email || null,
+    form.workflowSteps[currentStepIndex] = {
+      ...form.workflowSteps[currentStepIndex],
+      status: action === "approved" ? "approved" : action === "rejected" ? "rejected" : "pending",
+      reviewerId,
+      reviewerName: reviewer?.email || null,
       actionTakenAt: now,
       comments,
-      rejectionJustification: action === "rejected" ? rejectionJustification : null,
-      modificationRequest: action === "modification_requested" ? modificationRequest : null,
+      rejectionReason: action === "rejected" ? rejectionReason : null,
     };
 
     if (action === "rejected") {
       form.status = "rejected";
-      form.returnedByDepartment = department;
-      form.returnReason = rejectionJustification;
+      form.returnedByStage = form.currentStage;
+      form.returnReason = rejectionReason;
       form.updatedAt = now;
       this.isnadForms.set(formId, form);
       return form;
     }
 
-    if (action === "modification_requested") {
+    if (action === "returned") {
       form.status = "changes_requested";
       form.currentStage = "ip_initiation";
-      form.returnedByDepartment = department;
-      form.returnReason = modificationRequest;
+      form.currentStepIndex = 0;
+      form.workflowSteps[0].status = "current";
+      form.returnedByStage = workflowStepsOrder[currentStepIndex];
+      form.returnReason = comments;
       form.returnCount = (form.returnCount || 0) + 1;
       form.updatedAt = now;
       this.isnadForms.set(formId, form);
       return form;
     }
 
-    const allApproved = form.departmentApprovals.every((d) => d.status === "approved");
-    if (allApproved) {
-      form.currentStage = "investment_agency";
-      form.status = "verified_filled";
-      const slaDays = slaDaysConfig.investment_agency;
-      form.slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
+    const nextStepIndex = this.getNextStepIndex(currentStepIndex);
+    if (nextStepIndex !== null) {
+      const nextStage = workflowStepsOrder[nextStepIndex];
+      form.currentStepIndex = nextStepIndex;
+      form.currentStage = nextStage;
+      form.workflowSteps[nextStepIndex].status = "current";
+      
+      const slaDays = slaDaysConfig[nextStage];
+      form.workflowSteps[nextStepIndex].slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
+      form.workflowSteps[nextStepIndex].slaStatus = "on_time";
+      form.slaDeadline = form.workflowSteps[nextStepIndex].slaDeadline;
       form.slaStatus = "on_time";
+      form.status = "pending_verification";
+    } else {
+      form.status = "approved";
+      form.completedAt = now;
     }
 
     form.updatedAt = now;
@@ -2090,6 +2088,7 @@ export class MemStorage implements IStorage {
 
     const now = new Date().toISOString();
     const reviewer = this.users.get(reviewerId);
+    const currentStepIndex = form.currentStepIndex;
 
     const approvalId = randomUUID();
     const approval: IsnadApproval = {
@@ -2112,32 +2111,41 @@ export class MemStorage implements IStorage {
     this.isnadApprovals.set(approvalId, approval);
 
     if (action.action === "approve") {
-      const nextStage = this.getNextIsnadStage(form.currentStage);
-      if (nextStage) {
+      form.workflowSteps[currentStepIndex].status = "approved";
+      form.workflowSteps[currentStepIndex].reviewerId = reviewerId;
+      form.workflowSteps[currentStepIndex].reviewerName = reviewer?.email || null;
+      form.workflowSteps[currentStepIndex].actionTakenAt = now;
+      form.workflowSteps[currentStepIndex].comments = action.comments || null;
+
+      const nextStepIndex = this.getNextStepIndex(currentStepIndex);
+      if (nextStepIndex !== null) {
+        const nextStage = workflowStepsOrder[nextStepIndex];
+        form.currentStepIndex = nextStepIndex;
         form.currentStage = nextStage;
-        if (nextStage === "investment_agency") {
-          form.status = "investment_agency_review";
-        } else if (nextStage === "package_preparation") {
-          form.status = "in_package";
-        } else if (nextStage === "ceo_approval") {
-          form.status = "pending_ceo";
-        } else if (nextStage === "minister_approval") {
-          form.status = "pending_minister";
-        } else {
-          form.status = "pending_verification";
-        }
+        form.workflowSteps[nextStepIndex].status = "current";
+        
         const slaDays = slaDaysConfig[nextStage];
-        form.slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
+        form.workflowSteps[nextStepIndex].slaDeadline = new Date(Date.now() + slaDays * 24 * 60 * 60 * 1000).toISOString();
+        form.workflowSteps[nextStepIndex].slaStatus = "on_time";
+        form.slaDeadline = form.workflowSteps[nextStepIndex].slaDeadline;
         form.slaStatus = "on_time";
+        form.status = "pending_verification";
       } else {
         form.status = "approved";
-        form.currentStage = "investment_agency";
         form.completedAt = now;
         form.slaDeadline = null;
         form.slaStatus = null;
       }
     } else if (action.action === "reject") {
+      form.workflowSteps[currentStepIndex].status = "rejected";
+      form.workflowSteps[currentStepIndex].reviewerId = reviewerId;
+      form.workflowSteps[currentStepIndex].reviewerName = reviewer?.email || null;
+      form.workflowSteps[currentStepIndex].actionTakenAt = now;
+      form.workflowSteps[currentStepIndex].rejectionReason = action.rejectionReason || null;
+
       form.status = "rejected";
+      form.returnedByStage = form.currentStage;
+      form.returnReason = action.rejectionReason || null;
       form.completedAt = now;
       form.slaDeadline = null;
       form.slaStatus = null;
@@ -2148,8 +2156,14 @@ export class MemStorage implements IStorage {
         this.assets.set(asset.id, asset);
       }
     } else if (action.action === "return") {
+      form.workflowSteps[currentStepIndex].status = "pending";
+      form.workflowSteps[0].status = "current";
+      
       form.status = "changes_requested";
       form.currentStage = "ip_initiation";
+      form.currentStepIndex = 0;
+      form.returnedByStage = workflowStepsOrder[currentStepIndex];
+      form.returnReason = action.comments || null;
       form.returnCount += 1;
       form.slaDeadline = null;
       form.slaStatus = null;
@@ -2404,7 +2418,7 @@ export class MemStorage implements IStorage {
     for (const pa of packageAssetRecs) {
       const form = this.isnadForms.get(pa.formId);
       if (form) {
-        form.currentStage = "ceo_approval";
+        form.currentStage = "tbc_final_approval";
         form.status = "pending_ceo";
         this.isnadForms.set(form.id, form);
       }
@@ -2431,7 +2445,7 @@ export class MemStorage implements IStorage {
         for (const pa of packageAssetRecs) {
           const form = this.isnadForms.get(pa.formId);
           if (form) {
-            form.currentStage = "minister_approval";
+            form.currentStage = "tbc_final_approval";
             form.status = "pending_minister";
             this.isnadForms.set(form.id, form);
           }
@@ -2518,7 +2532,7 @@ export class MemStorage implements IStorage {
 
   async getApprovedFormsForPackaging(): Promise<IsnadFormWithDetails[]> {
     const forms = Array.from(this.isnadForms.values()).filter(
-      (f) => f.status === "approved" && !f.packageId && f.currentStage === "investment_agency"
+      (f) => f.status === "approved" && !f.packageId && f.currentStage === "tbc_final_approval"
     );
     return forms.map((f) => this.enrichIsnadForm(f));
   }

@@ -189,11 +189,13 @@ export default function IsnadFormsPage() {
               <SelectContent>
                 <SelectItem value="all">All Stages</SelectItem>
                 <SelectItem value="ip_initiation">I&P Initiation</SelectItem>
-                <SelectItem value="department_review">Department Review</SelectItem>
-                <SelectItem value="investment_agency">Investment Agency</SelectItem>
-                <SelectItem value="package_preparation">Package Preparation</SelectItem>
-                <SelectItem value="ceo_approval">CEO Approval</SelectItem>
-                <SelectItem value="minister_approval">Minister Approval</SelectItem>
+                <SelectItem value="school_planning_review">School Planning Review</SelectItem>
+                <SelectItem value="ip_secondary_review">I&P Secondary Review</SelectItem>
+                <SelectItem value="finance_review">Finance Review</SelectItem>
+                <SelectItem value="security_facilities_review">Security & Facilities Review</SelectItem>
+                <SelectItem value="head_of_education_review">Head of Education Review</SelectItem>
+                <SelectItem value="investment_agency_review">Investment Agency Review</SelectItem>
+                <SelectItem value="tbc_final_approval">TBC Final Approval</SelectItem>
               </SelectContent>
             </Select>
           </div>

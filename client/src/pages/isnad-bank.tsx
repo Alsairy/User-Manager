@@ -138,9 +138,9 @@ export default function IsnadBank() {
   };
 
   const calculateApprovalProgress = (form: IsnadFormWithDetails) => {
-    if (!form.departmentApprovals) return 0;
-    const approved = form.departmentApprovals.filter((d) => d.status === "approved").length;
-    return Math.round((approved / 19) * 100);
+    if (!form.workflowSteps) return 0;
+    const approved = form.workflowSteps.filter((s) => s.status === "approved").length;
+    return Math.round((approved / form.workflowSteps.length) * 100);
   };
 
   return (

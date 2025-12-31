@@ -40,7 +40,7 @@ import type {
 } from "@shared/schema";
 import { 
   workflowStageLabels, featureLabels, PredefinedFeature, 
-  isnadStatusLabels, contractStatusLabels 
+  isnadStatusLabels, isnadStageLabels, contractStatusLabels 
 } from "@shared/schema";
 
 const isnadStatusColors: Record<IsnadStatus, string> = {
@@ -501,12 +501,7 @@ export default function AssetBankDetail() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm">
-                          {form.currentStage === "ip_initiation" && "I&P Initiation"}
-                          {form.currentStage === "department_review" && "Department Review"}
-                          {form.currentStage === "investment_agency" && "Investment Agency"}
-                          {form.currentStage === "package_preparation" && "Package Preparation"}
-                          {form.currentStage === "ceo_approval" && "CEO Approval"}
-                          {form.currentStage === "minister_approval" && "Minister Approval"}
+                          {isnadStageLabels[form.currentStage]}
                         </TableCell>
                         <TableCell>{new Date(form.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell>
