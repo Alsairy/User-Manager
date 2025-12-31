@@ -102,11 +102,22 @@ const assetSubTypes = {
 };
 
 const educationalDepartments = [
-  "General Education",
-  "Higher Education",
-  "Technical and Vocational Training",
-  "Special Education",
-  "Early Childhood Education",
+  "Education Department in Riyadh",
+  "Education Department in Makkah",
+  "Education Department in Asir",
+  "Education Department in Madinah",
+  "Education Department in Al-Jouf",
+  "Education Department in the Northern Borders",
+  "Education Department in Tabuk",
+  "Education Department in the Eastern",
+  "Education Department in Jazan",
+  "Education Department in Al-Baha",
+  "Education Department in Najran",
+  "Education Department in Al-Qassim",
+  "Education Department in Hail",
+  "Education Department in Jeddah",
+  "Education Department in Taif",
+  "Education Department in Al-Ahsa",
 ];
 
 const classifications = [
