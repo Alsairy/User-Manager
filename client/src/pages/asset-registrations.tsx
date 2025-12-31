@@ -18,6 +18,11 @@ import {
   Upload,
   FileText,
   Edit3,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { MapSelectionDialog } from "@/components/map-selection-dialog";
 import { Button } from "@/components/ui/button";
@@ -350,201 +355,320 @@ export default function AssetRegistrations() {
   const getSelectedCity = () => cities?.find((c) => c.id === formData.cityId);
   const getSelectedDistrict = () => districts?.find((d) => d.id === formData.districtId);
 
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+
+  const filteredStats = {
+    all: data?.total ?? 0,
+    inReview: stats?.inReviewAssets ?? 0,
+    approved: stats?.completedAssets ?? 0,
+    rejected: stats?.rejectedAssets ?? 0,
+    incomplete: stats?.draftAssets ?? 0,
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked && data?.assets) {
+      setSelectedAssets(data.assets.map(a => a.id));
+    } else {
+      setSelectedAssets([]);
+    }
+  };
+
+  const handleSelectAsset = (assetId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedAssets(prev => [...prev, assetId]);
+    } else {
+      setSelectedAssets(prev => prev.filter(id => id !== assetId));
+      setSelectAll(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">
-            Asset registration
-          </h1>
-          <p className="text-muted-foreground">
-            Manage asset registrations and track approval workflows
-          </p>
-        </div>
-        <div className="flex gap-2">
+        <h1 className="text-2xl font-semibold" data-testid="text-page-title">
+          Asset registration <span className="text-muted-foreground">({data?.total ?? 0})</span>
+        </h1>
+        <div className="flex items-center gap-2">
+          <Button onClick={openAddModal} className="bg-primary" data-testid="button-add-asset">
+            <Plus className="mr-2 h-4 w-4" />
+            Add a new asset
+          </Button>
+          <Button variant="outline" data-testid="button-upload-excel">
+            <Upload className="mr-2 h-4 w-4" />
+            Upload assets (Excel)
+          </Button>
           <Button variant="outline" data-testid="button-view-map">
             <Map className="mr-2 h-4 w-4" />
             View map
           </Button>
-          <Button onClick={openAddModal} data-testid="button-add-asset">
-            <Plus className="mr-2 h-4 w-4" />
-            Add a new asset
-          </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="ongoing">
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="ongoing">Ongoing ({stats?.inReviewAssets ?? 0})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({stats?.completedAssets ?? 0})</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected ({stats?.rejectedAssets ?? 0})</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search for assets"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="pl-9"
+            data-testid="input-search"
+          />
+        </div>
+        <Button variant="outline" data-testid="button-search">
+          Search
+        </Button>
+        <div className="flex-1" />
+        <Button variant="outline" data-testid="button-filters">
+          <Filter className="mr-2 h-4 w-4" />
+          Filters
+        </Button>
+      </div>
+      <p className="text-sm text-muted-foreground -mt-4">You can search by: Asset name & Land code.</p>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="You can search for assets based on type, asset code, etc"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="pl-9"
-                data-testid="input-search"
-              />
-            </div>
-            <Button variant="outline" data-testid="button-search">
-              Search
-            </Button>
-            <Button variant="outline" data-testid="button-filters">
-              Filters
-            </Button>
-          </div>
+      <div className="flex items-center gap-1 border-b">
+        <button
+          onClick={() => { setStatusFilter("all"); setPage(1); }}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            statusFilter === "all" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+          data-testid="tab-all"
+        >
+          All
+          <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">
+            {filteredStats.all}
+          </Badge>
+        </button>
+        <button
+          onClick={() => { setStatusFilter("in_review"); setPage(1); }}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            statusFilter === "in_review" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+          data-testid="tab-in-review"
+        >
+          In review
+          <span className="text-muted-foreground">{filteredStats.inReview}</span>
+        </button>
+        <button
+          onClick={() => { setStatusFilter("completed"); setPage(1); }}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            statusFilter === "completed" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+          data-testid="tab-approved"
+        >
+          Approved
+          <span className="text-muted-foreground">{filteredStats.approved}</span>
+        </button>
+        <button
+          onClick={() => { setStatusFilter("rejected"); setPage(1); }}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            statusFilter === "rejected" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+          data-testid="tab-rejected"
+        >
+          Rejected
+          <span className="text-muted-foreground">{filteredStats.rejected}</span>
+        </button>
+        <button
+          onClick={() => { setStatusFilter("incomplete_bulk"); setPage(1); }}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            statusFilter === "incomplete_bulk" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+          data-testid="tab-incomplete"
+        >
+          Incomplete
+          <span className="text-muted-foreground">{filteredStats.incomplete}</span>
+        </button>
+      </div>
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8">
-                    <Checkbox />
-                  </TableHead>
-                  <TableHead>Asset Code</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Current reviewer</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Land code</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 8 }).map((_, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className="h-4 w-full" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : data?.assets.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      No assets found
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10">
+                <Checkbox 
+                  checked={selectAll}
+                  onCheckedChange={handleSelectAll}
+                  data-testid="checkbox-select-all-header"
+                />
+              </TableHead>
+              <TableHead>Request number</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Verified by</TableHead>
+              <TableHead>Asset name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Land code</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  {Array.from({ length: 8 }).map((_, j) => (
+                    <TableCell key={j}>
+                      <Skeleton className="h-4 w-full" />
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  data?.assets.map((asset) => (
-                    <TableRow key={asset.id} data-testid={`row-asset-${asset.id}`}>
-                      <TableCell>
-                        <Checkbox />
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/assets/registrations/${asset.id}`} className="text-primary hover:underline">
-                          {asset.assetCode}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusColors[asset.status]}>
-                          {statusLabels[asset.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {asset.currentStage ? (
-                          <span className="text-sm">{workflowStageLabels[asset.currentStage]}</span>
-                        ) : (
-                          "-"
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {asset.district?.nameEn ? `${asset.district.nameEn} in ${asset.city?.nameEn}` : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{typeLabels[asset.assetType]}</Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {asset.assetCode}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link href={`/assets/registrations/${asset.id}`}>
-                          <Button variant="ghost" size="sm" data-testid={`button-check-details-${asset.id}`}>
-                            Check details
-                          </Button>
-                        </Link>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" data-testid={`button-actions-${asset.id}`}>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/assets/registrations/${asset.id}`}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </Link>
-                            </DropdownMenuItem>
-                            {asset.status === "draft" && (
-                              <>
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/assets/registrations/${asset.id}/edit`}>
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Edit
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive">
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableRow>
+              ))
+            ) : data?.assets.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  No assets found
+                </TableCell>
+              </TableRow>
+            ) : (
+              data?.assets.map((asset) => (
+                <TableRow key={asset.id} data-testid={`row-asset-${asset.id}`}>
+                  <TableCell>
+                    <Checkbox 
+                      checked={selectedAssets.includes(asset.id)}
+                      onCheckedChange={(checked) => handleSelectAsset(asset.id, !!checked)}
+                      data-testid={`checkbox-asset-${asset.id}`}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/assets/registrations/${asset.id}`} className="text-primary hover:underline font-medium">
+                      {asset.assetCode}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={statusColors[asset.status]}>
+                      {statusLabels[asset.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {asset.currentStage ? (
+                        <>
+                          <div className="font-medium">{workflowStageLabels[asset.currentStage]}</div>
+                          <div className="text-muted-foreground text-xs">Verification Dept.</div>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/assets/registrations/${asset.id}`} className="text-primary hover:underline">
+                      {asset.assetNameEn || `${asset.assetType === "land" ? "Land" : "Building"} in ${asset.city?.nameEn || "N/A"}`}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    {typeLabels[asset.assetType]}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {asset.assetCode}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {asset.status === "incomplete_bulk" ? (
+                      <Link href={`/assets/registrations/${asset.id}/edit`}>
+                        <Button variant="default" size="sm" className="bg-primary" data-testid={`button-complete-request-${asset.id}`}>
+                          Complete request
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Link href={`/assets/registrations/${asset.id}`}>
+                        <Button variant="outline" size="sm" data-testid={`button-check-details-${asset.id}`}>
+                          Check details
+                        </Button>
+                      </Link>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-muted-foreground">
-                Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, data?.total || 0)} of {data?.total || 0} assets
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 1}
-                  onClick={() => setPage(page - 1)}
-                  data-testid="button-prev-page"
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === totalPages}
-                  onClick={() => setPage(page + 1)}
-                  data-testid="button-next-page"
-                >
-                  Next
-                </Button>
-              </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Checkbox 
+            checked={selectAll}
+            onCheckedChange={handleSelectAll}
+            data-testid="checkbox-select-all-footer"
+          />
+          <span className="text-sm text-muted-foreground">Select all assets ({data?.total || 0})</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Items per page:</span>
+            <Select value={String(itemsPerPage)} onValueChange={(v) => setItemsPerPage(Number(v))}>
+              <SelectTrigger className="w-16" data-testid="select-items-per-page">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              Page {page} of {totalPages || 1}
+            </span>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={page === 1}
+                onClick={() => setPage(1)}
+                data-testid="button-first-page"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                data-testid="button-prev-page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={page >= totalPages}
+                onClick={() => setPage(page + 1)}
+                data-testid="button-next-page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={page >= totalPages}
+                onClick={() => setPage(totalPages)}
+                data-testid="button-last-page"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
             </div>
-          )}
-
-          <div className="mt-4 text-sm text-muted-foreground">
-            Select all assets ({data?.total || 0})
           </div>
+        </div>
+      </div>
+
+      <Card className="mt-4">
+        <CardContent className="flex items-center gap-4 py-4">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+            <Edit3 className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold">Drafts <span className="text-muted-foreground font-normal">({filteredStats.incomplete})</span></h3>
+            <p className="text-sm text-muted-foreground">Check your asset registration drafts and continue with the registration process.</p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-muted-foreground" />
         </CardContent>
       </Card>
 
