@@ -215,7 +215,8 @@ export default function AssetRegistrationDetail() {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/assets/registrations/${id}/submit`);
+      const mode = asset?.registrationMode || "direct";
+      const res = await apiRequest("POST", `/api/assets/registrations/${id}/submit`, { mode });
       return res.json();
     },
     onSuccess: () => {
