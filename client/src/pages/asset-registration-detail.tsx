@@ -1,24 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, MapPin, Building2, LandPlot, Clock, CheckCircle2, AlertCircle, FileText, Send } from "lucide-react";
+import { 
+  ChevronRight, 
+  Download, 
+  FileText, 
+  Clock, 
+  CheckCircle2, 
+  AlertCircle,
+  Send,
+  History,
+  MessageSquare,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import type { AssetWithDetails, AssetWorkflowHistory } from "@shared/schema";
@@ -32,14 +32,65 @@ const statusColors: Record<string, string> = {
   in_review: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  incomplete_bulk: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
 };
 
 const statusLabels: Record<string, string> = {
   draft: "Draft",
-  in_review: "In Review",
-  completed: "Completed",
+  in_review: "In review",
+  completed: "Approved",
   rejected: "Rejected",
+  incomplete_bulk: "Incomplete",
 };
+
+const departmentsList = [
+  { id: "school_planning", name: "School Planning Department" },
+  { id: "safety_security", name: "Safety and Security Department" },
+  { id: "investment_partnerships", name: "Investment & Partnerships Dept." },
+  { id: "investment_agency", name: "Investment Agency" },
+  { id: "tatweer", name: "Tatweer Building Company" },
+];
+
+function formatDate(date: string | Date | null | undefined): string {
+  if (!date) return "-";
+  const d = new Date(date);
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }) + " " + d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function InfoRow({ label, value, children }: { label: string; value?: string | number | null; children?: React.ReactNode }) {
+  return (
+    <div className="flex py-3 border-b last:border-b-0">
+      <div className="w-48 flex-shrink-0 text-muted-foreground text-sm">{label}</div>
+      <div className="flex-1 text-sm">{children || value || "-"}</div>
+    </div>
+  );
+}
+
+function CommentSection({ department, comment, date }: { department: string; comment: string; date?: string }) {
+  return (
+    <div className="mt-4 pt-4 border-t">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium">Most recent comment: {department}</p>
+          <p className="text-sm text-muted-foreground mt-1">{comment}</p>
+        </div>
+        {date && (
+          <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(date)}</span>
+        )}
+      </div>
+      <button className="text-sm text-primary hover:underline mt-2" data-testid="link-see-all-comments">
+        See all comments
+      </button>
+    </div>
+  );
+}
 
 export default function AssetRegistrationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -99,37 +150,44 @@ export default function AssetRegistrationDetail() {
     );
   }
 
+  const customFeatures = asset.customFeatures?.split(", ") || [];
+  const assetSubType = customFeatures[0] || "-";
+  const educationalDept = customFeatures[1] || "-";
+  const classification = customFeatures[2] || "-";
+
+  const verificationMap = new Map<string, { status: string; date?: string; userName?: string }>();
+  if (asset.verifiedBy) {
+    asset.verifiedBy.forEach((v) => {
+      verificationMap.set(v.department, { 
+        status: "approved", 
+        date: v.date,
+        userName: v.userName 
+      });
+    });
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/assets/registrations">
-          <Button variant="ghost" size="icon" data-testid="button-back">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/assets/registrations" className="hover:text-foreground">
+          Asset registration
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-semibold" data-testid="text-asset-name">
-              {asset.assetNameEn}
-            </h1>
-            <Badge variant="outline" className="font-mono">
-              {asset.assetCode}
-            </Badge>
-            <Badge className={statusColors[asset.status]}>
-              {statusLabels[asset.status]}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground">{asset.assetNameAr}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {asset.assetType === "land" ? (
-            <LandPlot className="h-5 w-5 text-muted-foreground" />
-          ) : (
-            <Building2 className="h-5 w-5 text-muted-foreground" />
-          )}
-          <span className="capitalize">{asset.assetType}</span>
-        </div>
-        {asset.status === "draft" && (
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground">Asset registration request {asset.assetCode?.split("-")[0]}...</span>
+      </div>
+
+      <div className="space-y-2">
+        <Badge className={statusColors[asset.status]}>
+          {statusLabels[asset.status]}
+        </Badge>
+        <h1 className="text-2xl font-semibold" data-testid="text-asset-title">
+          Asset registration request <span className="text-muted-foreground">{asset.assetCode}</span>
+        </h1>
+        <p className="text-muted-foreground font-mono">{asset.assetCode}</p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        {asset.status === "draft" ? (
           <Button
             onClick={() => submitMutation.mutate()}
             disabled={submitMutation.isPending}
@@ -138,332 +196,221 @@ export default function AssetRegistrationDetail() {
             <Send className="mr-2 h-4 w-4" />
             Submit for Review
           </Button>
+        ) : (
+          <Button data-testid="button-review-request">
+            Review request
+          </Button>
         )}
+        <Button variant="outline" data-testid="button-download-report">
+          Download asset report
+          <Download className="ml-2 h-4 w-4" />
+        </Button>
       </div>
 
-      <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-          <TabsTrigger value="workflow" data-testid="tab-workflow">Workflow History</TabsTrigger>
-        </TabsList>
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-lg">Asset details</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <InfoRow label="Asset creation date" value={formatDate(asset.createdAt)} />
+          <InfoRow label="Created by">
+            <span>{asset.createdBy || "System"}</span>
+          </InfoRow>
+          <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mt-3" data-testid="link-view-history">
+            <History className="h-4 w-4" />
+            View full change history
+          </button>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="overview" className="space-y-6 mt-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Basic Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Asset Code</p>
-                    <p className="font-mono">{asset.assetCode}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Asset Type</p>
-                    <p className="capitalize">{asset.assetType}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Status</p>
-                    <Badge className={statusColors[asset.status]}>
-                      {statusLabels[asset.status]}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Current Stage</p>
-                    <p>{asset.currentStage ? workflowStageLabels[asset.currentStage] : "-"}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Location
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Region</p>
-                    <p>{asset.region?.nameEn || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">City</p>
-                    <p>{asset.city?.nameEn || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">District</p>
-                    <p>{asset.district?.nameEn || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Neighborhood</p>
-                    <p>{asset.neighborhood || "-"}</p>
-                  </div>
-                  {asset.streetAddress && (
-                    <div className="col-span-2">
-                      <p className="text-muted-foreground">Street Address</p>
-                      <p>{asset.streetAddress}</p>
-                    </div>
-                  )}
-                  {asset.latitude && asset.longitude && (
-                    <div className="col-span-2">
-                      <p className="text-muted-foreground">Coordinates</p>
-                      <p className="font-mono text-xs">{asset.latitude}, {asset.longitude}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Area & Land Use</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Total Area</p>
-                    <p>{asset.totalArea?.toLocaleString() || "-"} m²</p>
-                  </div>
-                  {asset.builtUpArea && (
-                    <div>
-                      <p className="text-muted-foreground">Built-up Area</p>
-                      <p>{asset.builtUpArea.toLocaleString()} m²</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-muted-foreground">Land Use Type</p>
-                    <p className="capitalize">{asset.landUseType?.replace(/_/g, " ") || "-"}</p>
-                  </div>
-                  {asset.zoningClassification && (
-                    <div>
-                      <p className="text-muted-foreground">Zoning</p>
-                      <p>{asset.zoningClassification}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-muted-foreground">Current Status</p>
-                    <p className="capitalize">{asset.currentStatus?.replace(/_/g, " ") || "-"}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Ownership</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Ownership Type</p>
-                    <p className="capitalize">{asset.ownershipType?.replace(/_/g, " ") || "-"}</p>
-                  </div>
-                  {asset.deedNumber && (
-                    <div>
-                      <p className="text-muted-foreground">Deed Number</p>
-                      <p className="font-mono">{asset.deedNumber}</p>
-                    </div>
-                  )}
-                  {asset.deedDate && (
-                    <div>
-                      <p className="text-muted-foreground">Deed Date</p>
-                      <p>{new Date(asset.deedDate).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {asset.features && asset.features.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Features & Amenities</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {asset.features.map((feature) => (
-                    <Badge key={feature} variant="secondary">
-                      {featureLabels[feature as PredefinedFeature] || feature}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {asset.description && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Description</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{asset.description}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {asset.investmentPotential && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Investment Potential</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{asset.investmentPotential}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {asset.verifiedBy && asset.verifiedBy.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  Verification Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {asset.verifiedBy.map((verification, index) => (
-                    <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <div>
-                        <p className="font-medium capitalize">
-                          {workflowStageLabels[verification.department as keyof typeof workflowStageLabels] || verification.department.replace(/_/g, " ")}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Verified by {verification.userName}
-                        </p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(verification.date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {asset.rejectionReason && (
-            <Card className="border-destructive">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2 text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  Rejection Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Reason</p>
-                    <p className="capitalize">{asset.rejectionReason.replace(/_/g, " ")}</p>
-                  </div>
-                  {asset.rejectionJustification && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Justification</p>
-                      <p>{asset.rejectionJustification}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Timeline
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Created</p>
-                  <p>{new Date(asset.createdAt).toLocaleDateString()}</p>
-                </div>
-                {asset.submittedAt && (
-                  <div>
-                    <p className="text-muted-foreground">Submitted</p>
-                    <p>{new Date(asset.submittedAt).toLocaleDateString()}</p>
-                  </div>
-                )}
-                {asset.completedAt && (
-                  <div>
-                    <p className="text-muted-foreground">Completed</p>
-                    <p>{new Date(asset.completedAt).toLocaleDateString()}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-muted-foreground">Last Updated</p>
-                  <p>{new Date(asset.updatedAt).toLocaleDateString()}</p>
-                </div>
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-lg">Asset information</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <InfoRow label="Asset name" value={asset.assetNameEn || `${asset.assetType === "land" ? "Land" : "Building"} in ${asset.city?.nameEn || "N/A"}`} />
+          <InfoRow label="Land code" value={asset.assetCode} />
+          <InfoRow label="Asset size (m²)" value={asset.totalArea?.toLocaleString()} />
+          <InfoRow label="Asset type" value={asset.assetType === "land" ? "Land" : "Building"} />
+          <InfoRow label="Asset sub-type" value={assetSubType} />
+          <InfoRow label="Educational department" value={educationalDept} />
+          <InfoRow label="Classification" value={classification} />
+          <InfoRow label="Attached documents">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <a href="#" className="text-primary hover:underline">document_1768869391232_0.pdf</a>
+                <span className="text-xs text-muted-foreground">0 KB</span>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <a href="#" className="text-primary hover:underline">document_1768869391232_1.pdf</a>
+                <span className="text-xs text-muted-foreground">0 KB</span>
+              </div>
+            </div>
+          </InfoRow>
+          
+          <CommentSection 
+            department="Investment & Partnerships Dept."
+            comment="This is a comment from Amin Nasrallah number three about asset information"
+            date={asset.updatedAt}
+          />
+        </CardContent>
+      </Card>
 
-        <TabsContent value="workflow" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Workflow History</CardTitle>
-              <CardDescription>Track the approval process through each stage</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {workflowHistory && workflowHistory.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Stage</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Comments</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {workflowHistory.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell>
-                          {workflowStageLabels[entry.stage as keyof typeof workflowStageLabels] || entry.stage}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              entry.action === "approved"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                : entry.action === "rejected"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                            }
-                          >
-                            {entry.action}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{entry.reviewerId || "-"}</TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {entry.comments || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(entry.actionDate).toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-center py-8 text-muted-foreground">
-                  No workflow history yet
-                </p>
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-lg">Asset location</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <InfoRow label="Region" value={asset.region?.nameEn} />
+          <InfoRow label="City" value={asset.city?.nameEn} />
+          <InfoRow label="District" value={asset.district?.nameEn} />
+          <InfoRow label="Short National Address" value={asset.streetAddress || "N/A"} />
+          <InfoRow label="Latitude" value={asset.latitude?.toString()} />
+          <InfoRow label="Longitude" value={asset.longitude?.toString()} />
+          <InfoRow label="Justification">
+            <span className="text-muted-foreground italic">
+              {asset.administrativeNotes?.split("\n\n")[1] || "No justification provided"}
+            </span>
+          </InfoRow>
+          <InfoRow label="Aerial photograph">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <a href="#" className="text-primary hover:underline">photo_1768869391232_0.png</a>
+                <span className="text-xs text-muted-foreground">0 KB</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <a href="#" className="text-primary hover:underline">photo_1768869391232_1.png</a>
+                <span className="text-xs text-muted-foreground">0 KB</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <a href="#" className="text-primary hover:underline">photo_1768869391232_2.png</a>
+                <span className="text-xs text-muted-foreground">0 KB</span>
+              </div>
+            </div>
+          </InfoRow>
+
+          <CommentSection 
+            department="Investment & Partnerships Dept."
+            comment="This is a comment from Amin Nasrallah number three about asset location"
+            date={asset.updatedAt}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-lg">Features</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <InfoRow label="Asset description">
+            <span className="italic text-muted-foreground">
+              {asset.description || "No description provided"}
+            </span>
+          </InfoRow>
+          <InfoRow label="Features">
+            {asset.features && asset.features.length > 0 ? (
+              <ul className="list-disc list-inside space-y-1">
+                {asset.features.map((feature, idx) => (
+                  <li key={idx}>{featureLabels[feature as PredefinedFeature] || feature}</li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-muted-foreground">No features listed</span>
+            )}
+          </InfoRow>
+
+          <CommentSection 
+            department="Investment & Partnerships Dept."
+            comment="This is a comment from Amin Nasrallah number three about features"
+            date={asset.updatedAt}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-lg">Asset status</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="space-y-4">
+            {departmentsList.map((dept) => {
+              const verification = verificationMap.get(dept.id);
+              const isApproved = verification?.status === "approved";
+              const isPending = !isApproved;
+              
+              return (
+                <div key={dept.id} className="flex items-center justify-between py-3 border-b last:border-b-0">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                      isApproved 
+                        ? "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400" 
+                        : "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-400"
+                    }`}>
+                      {isApproved ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <Clock className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{dept.name}</p>
+                      {isApproved && verification?.date && (
+                        <p className="text-xs text-muted-foreground">
+                          Approved date: {formatDate(verification.date)}
+                        </p>
+                      )}
+                      {isPending && (
+                        <p className="text-xs text-muted-foreground">
+                          Due date: {formatDate(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000))}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Badge 
+                    variant="outline"
+                    className={isApproved 
+                      ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
+                      : "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800"
+                    }
+                  >
+                    {isApproved ? "Approved" : "Pending"}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {asset.rejectionReason && (
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              Rejection Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Reason</p>
+                <p className="capitalize">{asset.rejectionReason.replace(/_/g, " ")}</p>
+              </div>
+              {asset.rejectionJustification && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Justification</p>
+                  <p>{asset.rejectionJustification}</p>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
