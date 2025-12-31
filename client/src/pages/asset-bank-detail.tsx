@@ -108,8 +108,8 @@ export default function AssetBankDetail() {
       queryClient.invalidateQueries({ queryKey: ["/api/assets", id, "isnad-forms"] });
       queryClient.invalidateQueries({ queryKey: ["/api/assets/bank", id] });
       toast({
-        title: "ISNAD Form Created",
-        description: `ISNAD form ${data.formCode} has been initiated.`,
+        title: "ISNAD Request Created",
+        description: `ISNAD request ${data.formCode} has been initiated.`,
       });
       setShowInitiateDialog(false);
       navigate(`/isnad/forms/${data.id}`);
@@ -117,7 +117,7 @@ export default function AssetBankDetail() {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to initiate ISNAD form.",
+        description: error.message || "Failed to initiate ISNAD request.",
         variant: "destructive",
       });
     },
@@ -661,8 +661,8 @@ export default function AssetBankDetail() {
           <DialogHeader>
             <DialogTitle>Initiate ISNAD Workflow</DialogTitle>
             <DialogDescription>
-              This will create a new ISNAD form for the asset "{asset.assetNameEn}". 
-              The form will be submitted to all 19 reviewing departments for parallel approval.
+              This will create a new ISNAD request for the asset "{asset.assetNameEn}". 
+              The request will be submitted to all 19 reviewing departments for parallel approval.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -673,7 +673,7 @@ export default function AssetBankDetail() {
                 <p className="text-muted-foreground">
                   The ISNAD workflow involves 19 departments (3 core + 16 regional) 
                   reviewing in parallel. A single rejection from any department 
-                  will reject the entire form.
+                  will reject the entire request.
                 </p>
               </div>
             </div>
@@ -691,7 +691,7 @@ export default function AssetBankDetail() {
               disabled={initiateIsnadMutation.isPending}
               data-testid="button-confirm-initiate"
             >
-              {initiateIsnadMutation.isPending ? "Creating..." : "Create ISNAD Form"}
+              {initiateIsnadMutation.isPending ? "Creating..." : "Create ISNAD Request"}
             </Button>
           </DialogFooter>
         </DialogContent>

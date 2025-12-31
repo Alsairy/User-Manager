@@ -50,9 +50,12 @@ This is a comprehensive User Management System for the Madares Business platform
 - Added contracts dashboard with statistics (total value, overdue amounts, paid this month)
 - Updated sidebar navigation with Contracts section (4 menu items)
 
+### Terminology Update (December 31, 2025)
+- Changed "ISNAD Forms" to "ISNAD Requests" throughout the application UI (sidebar, page titles, dialogs, buttons, toast messages)
+
 ### Previous Updates
 - Added complete ISNAD Workflow System with 9-stage approval process
-- Created ISNAD Forms pages: list with filtering/search, 4-step creation wizard, detail view with approve/reject/return/request info dialogs
+- Created ISNAD Requests pages: list with filtering/search, 4-step creation wizard, detail view with approve/reject/return/request info dialogs
 - Implemented ISNAD Packages management with creation interface and executive review workflow
 - Added notifications dropdown in header with real-time notification display, mark as read, and error handling
 - Added updateIsnadFormSchema to prevent unauthorized status/stage mutations in update routes

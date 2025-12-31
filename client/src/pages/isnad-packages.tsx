@@ -282,7 +282,7 @@ export default function IsnadPackagesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Select Approved ISNAD Forms</Label>
+                <Label>Select Approved ISNAD Requests</Label>
                 {loadingForms ? (
                   <Skeleton className="h-32 w-full" />
                 ) : formsForPackaging && formsForPackaging.length > 0 ? (
@@ -314,8 +314,8 @@ export default function IsnadPackagesPage() {
                 ) : (
                   <div className="border rounded-md p-8 text-center text-muted-foreground">
                     <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No approved forms available for packaging</p>
-                    <p className="text-sm">Forms must be approved by Investment Agency to be packaged</p>
+                    <p>No approved requests available for packaging</p>
+                    <p className="text-sm">Requests must be approved by Investment Agency to be packaged</p>
                   </div>
                 )}
               </div>

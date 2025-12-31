@@ -113,7 +113,7 @@ export default function IsnadFormsPage() {
       return apiRequest("POST", `/api/isnad/forms/${formId}/submit`);
     },
     onSuccess: () => {
-      toast({ title: "Form submitted for review" });
+      toast({ title: "Request submitted for review" });
       queryClient.invalidateQueries({ predicate: (query) => (query.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
     },
   });
@@ -123,7 +123,7 @@ export default function IsnadFormsPage() {
       return apiRequest("POST", `/api/isnad/forms/${formId}/cancel`, { reason });
     },
     onSuccess: () => {
-      toast({ title: "Form cancelled" });
+      toast({ title: "Request cancelled" });
       queryClient.invalidateQueries({ predicate: (query) => (query.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
     },
   });
@@ -134,12 +134,12 @@ export default function IsnadFormsPage() {
     <div className="p-6 space-y-6" data-testid="page-isnad-forms">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">ISNAD Forms</h1>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">ISNAD Requests</h1>
           <p className="text-muted-foreground">Investment suitability assessment workflow</p>
         </div>
         <Button onClick={() => navigate("/isnad/forms/new")} data-testid="button-create-form">
           <Plus className="w-4 h-4 mr-2" />
-          New ISNAD Form
+          New ISNAD Request
         </Button>
       </div>
 

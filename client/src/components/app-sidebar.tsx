@@ -83,7 +83,7 @@ const assetNavItems = [
 
 const isnadNavItems = [
   {
-    title: "ISNAD Forms",
+    title: "ISNAD Requests",
     url: "/isnad/forms",
     icon: FileCheck2,
   },

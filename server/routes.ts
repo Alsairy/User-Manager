@@ -807,7 +807,7 @@ export async function registerRoutes(
     }
   });
 
-  // ISNAD Forms API Routes
+  // ISNAD Requests API Routes
   app.get("/api/isnad/dashboard/stats", async (req, res) => {
     try {
       const userId = req.query.userId as string | undefined;

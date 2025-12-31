@@ -173,7 +173,7 @@ export default function IsnadFormCreatePage() {
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold">Create ISNAD Form</h1>
+          <h1 className="text-2xl font-semibold">Create ISNAD Request</h1>
           <p className="text-muted-foreground">Initiate investment suitability assessment</p>
         </div>
       </div>

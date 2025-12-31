@@ -92,7 +92,7 @@ export default function IsnadFormDetailPage() {
   const submitMutation = useMutation({
     mutationFn: async () => apiRequest("POST", `/api/isnad/forms/${id}/submit`),
     onSuccess: () => {
-      toast({ title: "Form submitted for review" });
+      toast({ title: "Request submitted for review" });
       queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
     },
   });
@@ -185,7 +185,7 @@ export default function IsnadFormDetailPage() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Approve ISNAD Form</DialogTitle>
+                    <DialogTitle>Approve ISNAD Request</DialogTitle>
                     <DialogDescription>Confirm approval to move this form to the next review stage.</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
@@ -257,7 +257,7 @@ export default function IsnadFormDetailPage() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Reject ISNAD Form</DialogTitle>
+                    <DialogTitle>Reject ISNAD Request</DialogTitle>
                     <DialogDescription>Provide a detailed rejection reason and justification.</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
