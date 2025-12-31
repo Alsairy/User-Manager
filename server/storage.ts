@@ -1962,7 +1962,7 @@ export class MemStorage implements IStorage {
 
   async submitIsnadForm(id: string): Promise<IsnadForm | undefined> {
     const form = this.isnadForms.get(id);
-    if (!form || form.status !== "draft") return undefined;
+    if (!form || (form.status !== "draft" && form.status !== "changes_requested")) return undefined;
 
     const now = new Date().toISOString();
     const slaDays = slaDaysConfig.department_review;

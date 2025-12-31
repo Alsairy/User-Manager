@@ -117,7 +117,7 @@ export default function IsnadFormDetailPage() {
   });
 
   const canReview = form && ["pending_verification", "verification_due", "verified_filled", "investment_agency_review", "pending_ceo", "pending_minister"].includes(form.status);
-  const canSubmit = form && form.status === "draft";
+  const canSubmit = form && (form.status === "draft" || form.status === "changes_requested");
   const canEdit = form && (form.status === "draft" || form.status === "changes_requested");
   const isDepartmentReview = form && form.currentStage === "department_review";
 
@@ -163,15 +163,10 @@ export default function IsnadFormDetailPage() {
         </div>
 
         <div className="flex gap-2">
-          {canEdit && (
-            <Button variant="outline" onClick={() => navigate(`/isnad/forms/${id}/edit`)} data-testid="button-edit">
-              Edit Form
-            </Button>
-          )}
           {canSubmit && (
             <Button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending} data-testid="button-submit">
               <Send className="w-4 h-4 mr-2" />
-              Submit for Review
+              {form?.status === "changes_requested" ? "Resubmit for Review" : "Submit for Review"}
             </Button>
           )}
           {canReview && (

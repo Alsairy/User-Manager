@@ -289,7 +289,7 @@ export default function IsnadFormsPage() {
                                   </>
                                 )}
                                 {form.status === "changes_requested" && (
-                                  <DropdownMenuItem onClick={() => navigate(`/isnad/forms/${form.id}/edit`)}>
+                                  <DropdownMenuItem onClick={() => navigate(`/isnad/forms/${form.id}`)}>
                                     <RotateCcw className="w-4 h-4 mr-2" />
                                     Revise & Resubmit
                                   </DropdownMenuItem>

@@ -896,8 +896,8 @@ export async function registerRoutes(
       if (!form) {
         return res.status(404).json({ error: "ISNAD form not found" });
       }
-      if (form.status !== "draft" && form.status !== "returned") {
-        return res.status(400).json({ error: "Can only update draft or returned forms" });
+      if (form.status !== "draft" && form.status !== "returned" && form.status !== "changes_requested") {
+        return res.status(400).json({ error: "Can only update draft, returned, or changes requested forms" });
       }
 
       const validatedData = updateIsnadFormSchema.parse(req.body);
