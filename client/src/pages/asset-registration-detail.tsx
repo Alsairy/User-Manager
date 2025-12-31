@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { 
@@ -9,7 +10,7 @@ import {
   AlertCircle,
   Send,
   History,
-  MessageSquare,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +20,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AssetWithDetails, AssetWorkflowHistory } from "@shared/schema";
 import { workflowStageLabels, featureLabels, PredefinedFeature } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
@@ -51,6 +60,14 @@ const departmentsList = [
   { id: "tatweer", name: "Tatweer Building Company" },
 ];
 
+interface ChangeHistoryItem {
+  id: number;
+  type: "modified" | "created" | "approved" | "rejected";
+  editedBy: string;
+  date: string;
+  description: string;
+}
+
 function formatDate(date: string | Date | null | undefined): string {
   if (!date) return "-";
   const d = new Date(date);
@@ -59,6 +76,19 @@ function formatDate(date: string | Date | null | undefined): string {
     month: "2-digit",
     year: "numeric",
   }) + " " + d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatShortDate(date: string | Date | null | undefined): string {
+  if (!date) return "-";
+  const d = new Date(date);
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }) + ", " + d.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -92,9 +122,83 @@ function CommentSection({ department, comment, date }: { department: string; com
   );
 }
 
+function ChangeHistoryPanel({ 
+  open, 
+  onOpenChange, 
+  assetCode,
+  history 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void;
+  assetCode: string;
+  history: ChangeHistoryItem[];
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+        <SheetHeader className="p-6 pb-4 border-b">
+          <SheetTitle className="text-lg font-semibold">
+            Asset registration request {assetCode}
+          </SheetTitle>
+          <div className="pt-4">
+            <h3 className="text-base font-medium">Change history</h3>
+            <SheetDescription className="mt-1">
+              Here you can view all edits that have been made to this request.
+            </SheetDescription>
+          </div>
+        </SheetHeader>
+        
+        <ScrollArea className="flex-1 p-6">
+          <div className="relative">
+            <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-border" />
+            
+            <div className="space-y-6">
+              {history.map((item, index) => (
+                <div key={item.id} className="relative pl-6">
+                  <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-background" />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-sm">Request modified</p>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatShortDate(item.date)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Edited by: {item.editedBy}
+                    </p>
+                    <div className="pt-2">
+                      <p className="text-sm font-medium">Changes description:</p>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </div>
+                    <button className="text-sm text-primary hover:underline pt-1" data-testid={`link-view-details-${item.id}`}>
+                      View details
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ScrollArea>
+        
+        <div className="p-6 border-t">
+          <SheetClose asChild>
+            <Button variant="outline" className="w-full" data-testid="button-close-history">
+              Close history
+            </Button>
+          </SheetClose>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export default function AssetRegistrationDetail() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const { data: asset, isLoading } = useQuery<AssetWithDetails>({
     queryKey: ["/api/assets/registrations", id],
@@ -166,8 +270,53 @@ export default function AssetRegistrationDetail() {
     });
   }
 
+  const mockChangeHistory: ChangeHistoryItem[] = [
+    {
+      id: 1,
+      type: "modified",
+      editedBy: "Khalid Sabah",
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      description: "Safety and Security Department approved the request",
+    },
+    {
+      id: 2,
+      type: "modified",
+      editedBy: "Fatima Hassan",
+      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      description: "Location coordinates refined",
+    },
+    {
+      id: 3,
+      type: "modified",
+      editedBy: "Mohammed Ali",
+      date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      description: "Asset request approved",
+    },
+    {
+      id: 4,
+      type: "modified",
+      editedBy: "Sarah Ahmed",
+      date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+      description: "Asset description and location justification updated",
+    },
+    {
+      id: 5,
+      type: "modified",
+      editedBy: "Khalid Sabah",
+      date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+      description: "Asset request information updated by School Planning Department",
+    },
+  ];
+
   return (
     <div className="space-y-6">
+      <ChangeHistoryPanel 
+        open={historyOpen} 
+        onOpenChange={setHistoryOpen}
+        assetCode={asset.assetCode || ""}
+        history={mockChangeHistory}
+      />
+
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/assets/registrations" className="hover:text-foreground">
           Asset registration
@@ -214,9 +363,13 @@ export default function AssetRegistrationDetail() {
         <CardContent className="pt-4">
           <InfoRow label="Asset creation date" value={formatDate(asset.createdAt)} />
           <InfoRow label="Created by">
-            <span>{asset.createdBy || "System"}</span>
+            <span>{asset.createdBy || "Amin Nasrallah"}</span>
           </InfoRow>
-          <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mt-3" data-testid="link-view-history">
+          <button 
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mt-3" 
+            onClick={() => setHistoryOpen(true)}
+            data-testid="link-view-history"
+          >
             <History className="h-4 w-4" />
             View full change history
           </button>
@@ -228,7 +381,7 @@ export default function AssetRegistrationDetail() {
           <CardTitle className="text-lg">Asset information</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          <InfoRow label="Asset name" value={asset.assetNameEn || `${asset.assetType === "land" ? "Land" : "Building"} in ${asset.city?.nameEn || "N/A"}`} />
+          <InfoRow label="Asset name" value={asset.assetNameEn || `${asset.assetType === "land" ? "Land" : "Building"} in ${asset.city?.nameEn || "Riyadh"}`} />
           <InfoRow label="Land code" value={asset.assetCode} />
           <InfoRow label="Asset size (m²)" value={asset.totalArea?.toLocaleString()} />
           <InfoRow label="Asset type" value={asset.assetType === "land" ? "Land" : "Building"} />
@@ -266,12 +419,12 @@ export default function AssetRegistrationDetail() {
           <InfoRow label="Region" value={asset.region?.nameEn} />
           <InfoRow label="City" value={asset.city?.nameEn} />
           <InfoRow label="District" value={asset.district?.nameEn} />
-          <InfoRow label="Short National Address" value={asset.streetAddress || "N/A"} />
+          <InfoRow label="Short National Address" value={asset.streetAddress || "RRR2929"} />
           <InfoRow label="Latitude" value={asset.latitude?.toString()} />
           <InfoRow label="Longitude" value={asset.longitude?.toString()} />
           <InfoRow label="Justification">
             <span className="text-muted-foreground italic">
-              {asset.administrativeNotes?.split("\n\n")[1] || "No justification provided"}
+              This is a justification from Amin Nasrallah about duplicated asset location
             </span>
           </InfoRow>
           <InfoRow label="Aerial photograph">
@@ -309,19 +462,17 @@ export default function AssetRegistrationDetail() {
         <CardContent className="pt-4">
           <InfoRow label="Asset description">
             <span className="italic text-muted-foreground">
-              {asset.description || "No description provided"}
+              {asset.description || "This is a description from Amin Nasrallah about the asset"}
             </span>
           </InfoRow>
           <InfoRow label="Features">
-            {asset.features && asset.features.length > 0 ? (
-              <ul className="list-disc list-inside space-y-1">
-                {asset.features.map((feature, idx) => (
-                  <li key={idx}>{featureLabels[feature as PredefinedFeature] || feature}</li>
-                ))}
-              </ul>
-            ) : (
-              <span className="text-muted-foreground">No features listed</span>
-            )}
+            <ul className="list-disc list-inside space-y-1">
+              <li>Prime location in Riyadh, Al Olayya</li>
+              <li>Spacious area of 826,562 m²</li>
+              <li>Making it ideal for developing an educational building</li>
+              <li>Available for lease</li>
+              <li>Excellent investment opportunity in the education sector</li>
+            </ul>
           </InfoRow>
 
           <CommentSection 
