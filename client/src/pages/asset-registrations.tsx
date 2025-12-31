@@ -262,7 +262,7 @@ export default function AssetRegistrations() {
 
       const payload = {
         assetNameEn: data.assetName.trim(),
-        assetNameAr: data.assetName.trim(),
+        assetNameAr: null,
         assetType: data.assetType || "land",
         regionId: data.regionId,
         cityId: data.cityId,
@@ -283,7 +283,7 @@ export default function AssetRegistrations() {
           data.featuresComment,
         ].filter(Boolean).join("\n\n") || null,
         streetAddress: data.nationalAddress?.trim() || null,
-        registrationMode: registrationMode === "create" ? "manual" : "bulk",
+        registrationMode: registrationMode === "create" ? "direct" : "approval_cycle",
       };
       const res = await apiRequest("POST", "/api/assets/registrations", payload);
       return res.json();

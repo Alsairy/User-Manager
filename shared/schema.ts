@@ -411,8 +411,8 @@ export const assetSectionLabels: Record<AssetSection, string> = {
 };
 
 export const insertAssetSchema = z.object({
-  assetNameAr: z.string().min(1, "Arabic name is required").regex(/^[\u0600-\u06FF\s]+$/, "Arabic characters only"),
-  assetNameEn: z.string().min(1, "English name is required").regex(/^[a-zA-Z\s]+$/, "English letters only"),
+  assetNameAr: z.string().nullable().optional(),
+  assetNameEn: z.string().min(1, "English name is required"),
   assetType: z.enum(assetTypeEnum),
   regionId: z.string().min(1, "Region is required"),
   cityId: z.string().min(1, "City is required"),
