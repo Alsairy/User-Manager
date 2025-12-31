@@ -568,10 +568,10 @@ export default function AssetRegistrations() {
                     {asset.assetCode}
                   </TableCell>
                   <TableCell className="text-right">
-                    {asset.status === "incomplete_bulk" ? (
-                      <Link href={`/assets/registrations/${asset.id}/edit`}>
+                    {asset.status === "incomplete_bulk" || asset.status === "draft" ? (
+                      <Link href={`/assets/registrations/${asset.id}`}>
                         <Button variant="default" size="sm" className="bg-primary" data-testid={`button-complete-request-${asset.id}`}>
-                          Complete request
+                          {asset.status === "draft" ? "Continue Editing" : "Complete request"}
                         </Button>
                       </Link>
                     ) : (
