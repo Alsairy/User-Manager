@@ -97,8 +97,8 @@ const typeLabels: Record<AssetType, string> = {
 };
 
 const assetSubTypes = {
-  land: ["Vacant Land", "Agricultural", "Commercial Plot", "Industrial Plot", "Residential Plot"],
-  building: ["Office Building", "Warehouse", "School Building", "Residential Complex", "Commercial Complex"],
+  land: ["Kindergarten Land", "Educational Land"],
+  building: ["Kindergarten Building", "Educational Building", "Commercial Building", "Educational or Commercial Building", "Empty Building"],
 };
 
 const educationalDepartments = [
