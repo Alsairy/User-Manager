@@ -274,7 +274,7 @@ export default function AssetRegistrations() {
         streetAddress: data.nationalAddress?.trim() || null,
         registrationMode: registrationMode === "create" ? "manual" : "bulk",
       };
-      const res = await apiRequest("POST", "/api/assets", payload);
+      const res = await apiRequest("POST", "/api/assets/registrations", payload);
       return res.json();
     },
     onSuccess: (newAsset) => {
