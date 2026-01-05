@@ -1064,10 +1064,32 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/isnad/forms-for-packaging", async (_req, res) => {
+  app.get("/api/isnad/forms-for-packaging", async (req, res) => {
     try {
       const forms = await storage.getApprovedFormsForPackaging();
-      res.json(forms);
+      const search = (req.query.search as string) || "";
+      const regionId = req.query.regionId as string | undefined;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 25;
+      
+      let filtered = forms;
+      if (search) {
+        const q = search.toLowerCase();
+        filtered = filtered.filter(f => 
+          f.formCode.toLowerCase().includes(q) ||
+          f.asset?.assetNameEn?.toLowerCase().includes(q) ||
+          f.asset?.assetNameAr?.includes(q)
+        );
+      }
+      if (regionId && regionId !== "all") {
+        filtered = filtered.filter(f => f.asset?.regionId === regionId);
+      }
+      
+      const total = filtered.length;
+      const start = (page - 1) * limit;
+      const paged = filtered.slice(start, start + limit);
+      
+      res.json({ forms: paged, total, page, limit });
     } catch (error) {
       res.status(500).json({ error: "Failed to get forms for packaging" });
     }
