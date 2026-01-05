@@ -124,10 +124,17 @@ export default function IsnadPackagesPage() {
     queryFn: () => fetch(`/api/isnad/packages?${queryString}`).then((r) => r.json()),
   });
 
-  const { data: formsForPackaging, isLoading: loadingForms } = useQuery<IsnadFormWithDetails[]>({
+  const { data: formsForPackagingData, isLoading: loadingForms } = useQuery<{
+    forms: IsnadFormWithDetails[];
+    total: number;
+    page: number;
+    limit: number;
+  }>({
     queryKey: ["/api/isnad/forms-for-packaging"],
+    queryFn: () => fetch("/api/isnad/forms-for-packaging").then((r) => r.json()),
     enabled: createOpen,
   });
+  const formsForPackaging = formsForPackagingData?.forms;
 
   const createMutation = useMutation({
     mutationFn: async () => {
