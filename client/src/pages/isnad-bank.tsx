@@ -70,7 +70,7 @@ export default function IsnadBank() {
 
   const queryParams = new URLSearchParams();
   if (search) queryParams.set("search", search);
-  queryParams.set("status", "verified_filled");
+  queryParams.set("stage", "tbc_final_approval");
   if (regionFilter !== "all") queryParams.set("regionId", regionFilter);
   queryParams.set("page", String(page));
   queryParams.set("limit", String(limit));
@@ -151,7 +151,7 @@ export default function IsnadBank() {
             ISNAD Bank
           </h1>
           <p className="text-muted-foreground">
-            Pre-investable assets ready for executive package preparation
+            Investment Agency approved requests ready for TBC packaging
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -169,7 +169,7 @@ export default function IsnadBank() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Ready for Packaging</CardDescription>
+            <CardDescription>Approved for Investment</CardDescription>
             <CardTitle className="text-2xl" data-testid="text-stat-ready">
               {stats?.totalReadyForPackaging ?? data?.total ?? 0}
             </CardTitle>
@@ -212,9 +212,9 @@ export default function IsnadBank() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Pre-Investable Assets</CardTitle>
+          <CardTitle>Approved for Investment</CardTitle>
           <CardDescription>
-            Assets that have completed department review and are ready for executive packaging
+            ISNAD requests approved by Investment Agency - select multiple to bundle into a Package
           </CardDescription>
         </CardHeader>
         <CardContent>
