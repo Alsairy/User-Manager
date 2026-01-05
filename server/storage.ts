@@ -976,6 +976,313 @@ export class MemStorage implements IStorage {
     });
 
     this.assetCodeCounter = 1004;
+
+    // Seed sample ISNAD forms that are ready for packaging (at tbc_final_approval stage)
+    const sampleIsnadId1 = randomUUID();
+    const sampleIsnadId2 = randomUUID();
+    const sampleIsnadId3 = randomUUID();
+
+    const createApprovedWorkflowSteps = (): WorkflowStep[] => {
+      return workflowStepsOrder.map((stage, index) => ({
+        stage,
+        stepIndex: index,
+        status: index < 7 ? "approved" as const : (index === 7 ? "current" as const : "pending" as const),
+        slaDeadline: null,
+        slaStatus: index === 7 ? "on_time" as const : null,
+        reviewerId: index < 7 ? adminUserId : null,
+        reviewerName: index < 7 ? "Admin" : null,
+        comments: index < 7 ? "Approved" : null,
+        rejectionReason: null,
+        actionTakenAt: index < 7 ? new Date(Date.now() - (10 - index) * 24 * 60 * 60 * 1000).toISOString() : null,
+      }));
+    };
+
+    this.isnadForms.set(sampleIsnadId1, {
+      id: sampleIsnadId1,
+      formCode: "ISNAD-001001",
+      assetId: assetId1,
+      status: "pending_verification",
+      currentStage: "tbc_final_approval",
+      currentStepIndex: 7,
+      currentAssigneeId: null,
+      investmentCriteria: {
+        investmentPurpose: "Educational institution development",
+        revenueProjection: "SAR 2.5M annual",
+        projectTimeline: "25 years",
+        requiredModifications: "Minor upgrades needed",
+        complianceRequirements: "Educational regulations",
+        riskAssessment: "Low risk",
+      },
+      technicalAssessment: {
+        structuralCondition: "Good condition",
+        utilitiesAvailability: "Electricity and water available",
+        accessInfrastructure: "Paved road access",
+        environmentalConsiderations: "No environmental issues",
+        zoningCompliance: "Compliant with zoning regulations",
+      },
+      financialAnalysis: {
+        currentValuation: 25000000,
+        outstandingDues: 0,
+        maintenanceCosts: 100000,
+        expectedReturns: 2500000,
+        breakEvenAnalysis: "Expected break-even in 10 years",
+      },
+      schoolPlanningSection: {
+        assetStatus: "vacant_land",
+        planningNeed: "no_need",
+        hasProgrammingForm: false,
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      investmentPartnershipsSection: {
+        cityPreferred: true,
+        districtPreferred: true,
+        isCriticalArea: false,
+        hasInvestmentBlockers: false,
+        investmentProposal: "full",
+        investmentType: "educational",
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      financeSection: {
+        hasFinancialDues: false,
+        custodyItemsCleared: true,
+        electricityMeterNumbers: "EM-123456",
+        waterMeterNumbers: "WM-789012",
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      securityFacilitiesSection: {
+        structuralCondition: "operational",
+        hasDemolitionDecision: false,
+        dimensions: { north: "50m", east: "200m", south: "50m", west: "200m" },
+        boundaries: {
+          north: "commercial_street",
+          east: "internal_street",
+          south: "internal_street",
+          west: "commercial_street",
+        },
+        location: { region: "Riyadh", city: "Riyadh", district: "Al Olaya" },
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      landRegistrySection: null,
+      workflowSteps: createApprovedWorkflowSteps(),
+      attachments: [],
+      submittedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+      completedAt: null,
+      returnCount: 0,
+      returnedByStage: null,
+      returnReason: null,
+      slaDeadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      slaStatus: "on_time",
+      cancellationReason: null,
+      cancelledAt: null,
+      cancelledBy: null,
+      packageId: null,
+      createdBy: sampleUserId,
+      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: now,
+    });
+
+    this.isnadForms.set(sampleIsnadId2, {
+      id: sampleIsnadId2,
+      formCode: "ISNAD-001002",
+      assetId: assetId2,
+      status: "pending_verification",
+      currentStage: "tbc_final_approval",
+      currentStepIndex: 7,
+      currentAssigneeId: null,
+      investmentCriteria: {
+        investmentPurpose: "Commercial development",
+        revenueProjection: "SAR 1.5M annual",
+        projectTimeline: "20 years",
+        requiredModifications: "Utility upgrades required",
+        complianceRequirements: "Commercial regulations",
+        riskAssessment: "Medium risk",
+      },
+      technicalAssessment: {
+        structuralCondition: "Excellent condition",
+        utilitiesAvailability: "Electricity, water, and gas available",
+        accessInfrastructure: "Highway access",
+        environmentalConsiderations: "Environmental assessment completed",
+        zoningCompliance: "Fully compliant",
+      },
+      financialAnalysis: {
+        currentValuation: 15000000,
+        outstandingDues: 50000,
+        maintenanceCosts: 75000,
+        expectedReturns: 1500000,
+        breakEvenAnalysis: "Break-even in 8 years",
+      },
+      schoolPlanningSection: {
+        assetStatus: "vacated_building",
+        planningNeed: "no_need",
+        hasProgrammingForm: false,
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      investmentPartnershipsSection: {
+        cityPreferred: true,
+        districtPreferred: false,
+        isCriticalArea: false,
+        hasInvestmentBlockers: true,
+        blockers: { lackOfDeed: false, financialLiabilities: true },
+        investmentProposal: "partial",
+        investmentType: "commercial",
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      financeSection: {
+        hasFinancialDues: true,
+        financialDuesAction: "Payment plan in progress",
+        custodyItemsCleared: false,
+        electricityMeterNumbers: "EM-654321",
+        waterMeterNumbers: "WM-210987",
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      securityFacilitiesSection: {
+        structuralCondition: "operational",
+        hasDemolitionDecision: false,
+        dimensions: { north: "100m", east: "100m", south: "100m", west: "100m" },
+        boundaries: {
+          north: "commercial_street",
+          east: "commercial_street",
+          south: "internal_street",
+          west: "internal_street",
+        },
+        location: { region: "Riyadh", city: "Riyadh", district: "Al Malaz" },
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      landRegistrySection: null,
+      workflowSteps: createApprovedWorkflowSteps(),
+      attachments: [],
+      submittedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+      completedAt: null,
+      returnCount: 0,
+      returnedByStage: null,
+      returnReason: null,
+      slaDeadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      slaStatus: "warning",
+      cancellationReason: null,
+      cancelledAt: null,
+      cancelledBy: null,
+      packageId: null,
+      createdBy: sampleUserId,
+      createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: now,
+    });
+
+    this.isnadForms.set(sampleIsnadId3, {
+      id: sampleIsnadId3,
+      formCode: "ISNAD-001003",
+      assetId: assetId3,
+      status: "pending_verification",
+      currentStage: "tbc_final_approval",
+      currentStepIndex: 7,
+      currentAssigneeId: null,
+      investmentCriteria: {
+        investmentPurpose: "Vocational training facility",
+        revenueProjection: "SAR 4M annual",
+        projectTimeline: "30 years",
+        requiredModifications: "None required",
+        complianceRequirements: "Educational zone compliance",
+        riskAssessment: "Low risk",
+      },
+      technicalAssessment: {
+        structuralCondition: "Good condition",
+        utilitiesAvailability: "Electricity, water, internet available",
+        accessInfrastructure: "Multiple access points",
+        environmentalConsiderations: "Green building certified",
+        zoningCompliance: "Educational zone",
+      },
+      financialAnalysis: {
+        currentValuation: 35000000,
+        outstandingDues: 0,
+        maintenanceCosts: 200000,
+        expectedReturns: 4000000,
+        breakEvenAnalysis: "Break-even in 9 years",
+      },
+      schoolPlanningSection: {
+        assetStatus: "existing_building",
+        planningNeed: "has_need",
+        needExpectedPeriod: "5 years",
+        hasProgrammingForm: true,
+        programmingFormDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      investmentPartnershipsSection: {
+        cityPreferred: true,
+        districtPreferred: true,
+        isCriticalArea: true,
+        hasInvestmentBlockers: false,
+        investmentProposal: "full",
+        investmentType: "educational",
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      financeSection: {
+        hasFinancialDues: false,
+        custodyItemsCleared: true,
+        electricityMeterNumbers: "EM-111222",
+        waterMeterNumbers: "WM-333444",
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      securityFacilitiesSection: {
+        structuralCondition: "operational",
+        hasDemolitionDecision: false,
+        dimensions: { north: "80m", east: "100m", south: "80m", west: "100m" },
+        boundaries: {
+          north: "commercial_street",
+          east: "internal_street",
+          south: "commercial_street",
+          west: "internal_street",
+        },
+        location: { region: "Riyadh", city: "Riyadh", district: "Al Sulaimaniyah" },
+        completedBy: adminUserId,
+        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      landRegistrySection: null,
+      workflowSteps: createApprovedWorkflowSteps(),
+      attachments: [],
+      submittedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+      completedAt: null,
+      returnCount: 0,
+      returnedByStage: null,
+      returnReason: null,
+      slaDeadline: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      slaStatus: "overdue",
+      cancellationReason: null,
+      cancelledAt: null,
+      cancelledBy: null,
+      packageId: null,
+      createdBy: adminUserId,
+      createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: now,
+    });
+
+    // Update assets to have active ISNAD
+    const asset1 = this.assets.get(assetId1);
+    if (asset1) {
+      asset1.hasActiveIsnad = true;
+      this.assets.set(assetId1, asset1);
+    }
+    const asset2 = this.assets.get(assetId2);
+    if (asset2) {
+      asset2.hasActiveIsnad = true;
+      this.assets.set(assetId2, asset2);
+    }
+    const asset3 = this.assets.get(assetId3);
+    if (asset3) {
+      asset3.hasActiveIsnad = true;
+      this.assets.set(assetId3, asset3);
+    }
+
+    this.isnadCodeCounter = 1004;
   }
 
   async getUser(id: string): Promise<UserWithDetails | undefined> {
