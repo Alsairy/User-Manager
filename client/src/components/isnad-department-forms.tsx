@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Building2, MapPin, DollarSign, FileText, Shield, Save, CheckCircle } from "lucide-react";
+import { Building2, MapPin, Banknote, FileText, Shield, Save, CheckCircle } from "lucide-react";
 import type { 
   SchoolPlanningSection, 
   InvestmentPartnershipsSection, 
@@ -631,7 +631,7 @@ export function FinanceForm({ initialData, onSave, onComplete, isReadOnly, isPen
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5" />
+          <Banknote className="h-5 w-5" />
           Finance Department Section
         </CardTitle>
         <CardDescription>

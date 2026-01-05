@@ -30,7 +30,7 @@ import {
   User,
   Calendar,
   MapPin,
-  DollarSign,
+  Banknote,
   MessageSquareMore,
   Wrench,
   ClipboardList,
@@ -511,7 +511,7 @@ export default function IsnadFormDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
+                  <Banknote className="w-5 h-5" />
                   Financial Analysis
                 </CardTitle>
               </CardHeader>

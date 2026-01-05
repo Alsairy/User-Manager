@@ -7,7 +7,7 @@ import {
   Clock,
   Ban,
   Archive,
-  DollarSign,
+  Banknote,
   TrendingUp,
   Calendar,
   Wallet,
@@ -114,7 +114,7 @@ export default function ContractsDashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-md bg-primary/10">
-                <DollarSign className="h-6 w-6 text-primary" />
+                <Banknote className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Contract Value</p>

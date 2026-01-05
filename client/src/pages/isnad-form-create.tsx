@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Save, Send, Building2, DollarSign, ClipboardList, Wrench } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Send, Building2, Banknote, ClipboardList, Wrench } from "lucide-react";
 import { insertIsnadFormSchema, InsertIsnadForm, AssetWithDetails } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -35,7 +35,7 @@ const formSteps = [
   { id: "asset", title: "Select Asset", icon: Building2 },
   { id: "investment", title: "Investment Criteria", icon: ClipboardList },
   { id: "technical", title: "Technical Assessment", icon: Wrench },
-  { id: "financial", title: "Financial Analysis", icon: DollarSign },
+  { id: "financial", title: "Financial Analysis", icon: Banknote },
 ];
 
 const extendedSchema = z.object({

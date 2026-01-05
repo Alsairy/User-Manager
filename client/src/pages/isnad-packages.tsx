@@ -42,7 +42,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  DollarSign,
+  Banknote,
   Building2,
   LandPlot,
   UserCheck,
@@ -484,7 +484,7 @@ export default function IsnadPackagesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4 text-muted-foreground" />
+                            <Banknote className="w-4 h-4 text-muted-foreground" />
                             <span>SAR {pkg.totalValuation.toLocaleString()}</span>
                           </div>
                         </TableCell>

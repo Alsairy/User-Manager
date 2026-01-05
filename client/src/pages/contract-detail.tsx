@@ -8,7 +8,7 @@ import {
   Building2,
   UserCircle,
   Calendar,
-  DollarSign,
+  Banknote,
   Clock,
   AlertTriangle,
   CheckCircle2,
@@ -241,7 +241,7 @@ export default function ContractDetailPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-md bg-primary/10">
-                <DollarSign className="h-5 w-5 text-primary" />
+                <Banknote className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Contract</p>
@@ -361,7 +361,7 @@ export default function ContractDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
+                  <Banknote className="h-5 w-5" />
                   Financial Details
                 </CardTitle>
               </CardHeader>
