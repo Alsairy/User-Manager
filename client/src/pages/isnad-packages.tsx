@@ -169,11 +169,11 @@ export default function IsnadPackagesPage() {
   });
 
   const ceoReviewMutation = useMutation({
-    mutationFn: async ({ packageId, approved, comments }: { packageId: string; approved: boolean; comments?: string }) => {
-      return apiRequest("POST", `/api/isnad/packages/${packageId}/review-ceo`, { approved, comments });
+    mutationFn: async ({ packageId, action, comments }: { packageId: string; action: "approve" | "reject"; comments?: string }) => {
+      return apiRequest("POST", `/api/isnad/packages/${packageId}/review-ceo`, { action, comments });
     },
-    onSuccess: (_, { approved }) => {
-      toast({ title: approved ? "Package approved by CEO" : "Package rejected by CEO" });
+    onSuccess: (_, { action }) => {
+      toast({ title: action === "approve" ? "Package approved by CEO" : "Package rejected by CEO" });
       queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
       closeReviewDialog();
     },
@@ -183,11 +183,11 @@ export default function IsnadPackagesPage() {
   });
 
   const ministerReviewMutation = useMutation({
-    mutationFn: async ({ packageId, approved, comments }: { packageId: string; approved: boolean; comments?: string }) => {
-      return apiRequest("POST", `/api/isnad/packages/${packageId}/review-minister`, { approved, comments });
+    mutationFn: async ({ packageId, action, comments }: { packageId: string; action: "approve" | "reject"; comments?: string }) => {
+      return apiRequest("POST", `/api/isnad/packages/${packageId}/review-minister`, { action, comments });
     },
-    onSuccess: (_, { approved }) => {
-      toast({ title: approved ? "Package approved by Minister" : "Package rejected by Minister" });
+    onSuccess: (_, { action }) => {
+      toast({ title: action === "approve" ? "Package approved by Minister" : "Package rejected by Minister" });
       queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0]?.toString().includes("/api/isnad") ?? false) });
       closeReviewDialog();
     },
@@ -212,13 +212,12 @@ export default function IsnadPackagesPage() {
 
   const handleReviewSubmit = () => {
     if (!reviewPackage || !reviewAction) return;
-    const approved = reviewAction === "approve";
+    const action = reviewAction as "approve" | "reject";
     const comments = reviewComments.trim() || undefined;
-
     if (reviewPackage.status === "pending_ceo") {
-      ceoReviewMutation.mutate({ packageId: reviewPackage.id, approved, comments });
+      ceoReviewMutation.mutate({ packageId: reviewPackage.id, action, comments });
     } else if (reviewPackage.status === "ceo_approved" || reviewPackage.status === "pending_minister") {
-      ministerReviewMutation.mutate({ packageId: reviewPackage.id, approved, comments });
+      ministerReviewMutation.mutate({ packageId: reviewPackage.id, action, comments });
     }
   };
 
