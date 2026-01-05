@@ -44,6 +44,7 @@ import {
   Clock,
   DollarSign,
   Building2,
+  LandPlot,
   UserCheck,
   Award,
 } from "lucide-react";
@@ -92,6 +93,7 @@ export default function IsnadPackagesPage() {
   const [reviewAction, setReviewAction] = useState<"approve" | "reject" | null>(null);
   const [reviewComments, setReviewComments] = useState("");
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [viewPackage, setViewPackage] = useState<IsnadPackageWithDetails | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
@@ -499,7 +501,12 @@ export default function IsnadPackagesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" data-testid={`button-view-${pkg.id}`}>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              data-testid={`button-view-${pkg.id}`}
+                              onClick={() => setViewPackage(pkg)}
+                            >
                               <Eye className="w-4 h-4" />
                             </Button>
                             {pkg.status === "draft" && (
@@ -678,6 +685,107 @@ export default function IsnadPackagesPage() {
                   Reject
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Package Dialog */}
+      <Dialog open={!!viewPackage} onOpenChange={(open) => !open && setViewPackage(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Package Details</DialogTitle>
+            <DialogDescription>
+              {viewPackage?.packageCode} - {viewPackage?.packageName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <span className="text-sm text-muted-foreground">Status</span>
+                <div className="mt-1">
+                  <Badge className={statusColors[viewPackage?.status || "draft"]}>
+                    {packageStatusLabels[viewPackage?.status || "draft"]}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <span className="text-sm text-muted-foreground">Priority</span>
+                <div className="mt-1">
+                  <Badge className={priorityColors[viewPackage?.priority || "medium"]}>
+                    {viewPackage?.priority}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <span className="text-sm text-muted-foreground">Total Assets</span>
+                <p className="font-medium mt-1">{viewPackage?.totalAssets}</p>
+              </div>
+              <div>
+                <span className="text-sm text-muted-foreground">Total Value</span>
+                <p className="font-medium mt-1">SAR {viewPackage?.totalValuation?.toLocaleString()}</p>
+              </div>
+            </div>
+            
+            {viewPackage?.description && (
+              <div>
+                <span className="text-sm text-muted-foreground">Description</span>
+                <p className="mt-1">{viewPackage.description}</p>
+              </div>
+            )}
+
+            <div>
+              <h3 className="font-medium mb-3">Included Assets ({viewPackage?.assets?.length || 0})</h3>
+              <div className="space-y-2">
+                {viewPackage?.assets?.map((asset) => (
+                  <Card key={asset.id} className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {asset.assetType === "building" ? (
+                          <Building2 className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <LandPlot className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <div>
+                          <p className="font-medium">{asset.assetNameEn}</p>
+                          <p className="text-sm text-muted-foreground">{asset.assetCode}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">{asset.region?.nameEn}</p>
+                        <p className="text-sm">{asset.totalArea?.toLocaleString()} sqm</p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-medium mb-3">ISNAD Requests ({viewPackage?.forms?.length || 0})</h3>
+              <div className="space-y-2">
+                {viewPackage?.forms?.map((form) => (
+                  <Card key={form.id} className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-mono font-medium">{form.formCode}</p>
+                        <p className="text-sm text-muted-foreground">{form.asset?.assetNameEn}</p>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="outline">{form.status}</Badge>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          SAR {form.financialAnalysis?.currentValuation?.toLocaleString() || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewPackage(null)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
