@@ -64,16 +64,16 @@ function ActivityItem({ log, locale }: { log: AuditLog; locale: string }) {
 
   return (
     <div className="flex items-start gap-3 py-3">
-      <div className={`mt-1.5 h-2 w-2 rounded-full ${getActionColor(log.actionType)}`} />
+      <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${getActionColor(log.actionType)}`} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">
+        <p className="text-sm font-medium truncate text-start">
           {getActionLabel(log.actionType)}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground text-start">
           {log.entityType} {log.entityId ? `#${log.entityId.slice(0, 8)}` : ""}
         </p>
       </div>
-      <span className="text-xs text-muted-foreground whitespace-nowrap">
+      <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
         {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: dateLocale })}
       </span>
     </div>
@@ -173,10 +173,10 @@ export default function Dashboard() {
               className="flex items-center gap-3 rounded-md border p-4 hover-elevate"
               data-testid="link-quick-create-user"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <Users className="h-5 w-5 text-primary" />
               </div>
-              <div>
+              <div className="text-start">
                 <p className="text-sm font-medium">{t("pages:dashboard.createNewUser", { defaultValue: "Create New User" })}</p>
                 <p className="text-xs text-muted-foreground">
                   {t("pages:dashboard.addUserToSystem", { defaultValue: "Add a new user to the system" })}
@@ -188,10 +188,10 @@ export default function Dashboard() {
               className="flex items-center gap-3 rounded-md border p-4 hover-elevate"
               data-testid="link-quick-manage-roles"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <Shield className="h-5 w-5 text-primary" />
               </div>
-              <div>
+              <div className="text-start">
                 <p className="text-sm font-medium">{t("pages:dashboard.manageRoles", { defaultValue: "Manage Roles" })}</p>
                 <p className="text-xs text-muted-foreground">
                   {t("pages:dashboard.configureRolesPermissions", { defaultValue: "Configure roles and permissions" })}

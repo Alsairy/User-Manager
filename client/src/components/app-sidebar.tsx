@@ -1,5 +1,6 @@
 import { useLocation, Link } from "wouter";
 import { useTranslation } from "react-i18next";
+import { useLanguage } from "./language-provider";
 import {
   LayoutDashboard,
   Users,
@@ -45,6 +46,7 @@ export function AppSidebar() {
   const [location] = useLocation();
   const { toast } = useToast();
   const { t } = useTranslation("navigation");
+  const { direction } = useLanguage();
 
   const mainNavItems = [
     {
@@ -187,7 +189,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar>
+    <Sidebar side={direction === "rtl" ? "right" : "left"}>
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <img 
