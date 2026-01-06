@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Plus, Shield, Users, Edit, Trash2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,7 @@ interface RoleWithUsage extends Role {
 }
 
 export default function RolesList() {
+  const { t } = useTranslation(["pages", "common"]);
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -53,14 +55,14 @@ export default function RolesList() {
       setNewRoleName("");
       setNewRoleDescription("");
       toast({
-        title: "Role Created",
-        description: "The role has been created successfully.",
+        title: t("pages:roles.roleCreated"),
+        description: t("pages:roles.roleCreatedDesc"),
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to create role. Please try again.",
+        title: t("common:error"),
+        description: t("pages:roles.createError"),
         variant: "destructive",
       });
     },
@@ -75,14 +77,14 @@ export default function RolesList() {
       setEditDialogOpen(false);
       setSelectedRole(null);
       toast({
-        title: "Role Updated",
-        description: "The role has been updated successfully.",
+        title: t("pages:roles.roleUpdated"),
+        description: t("pages:roles.roleUpdatedDesc"),
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to update role. Please try again.",
+        title: t("common:error"),
+        description: t("pages:roles.updateError"),
         variant: "destructive",
       });
     },
@@ -97,14 +99,14 @@ export default function RolesList() {
       setDeleteDialogOpen(false);
       setSelectedRole(null);
       toast({
-        title: "Role Deleted",
-        description: "The role has been deleted successfully.",
+        title: t("pages:roles.roleDeleted"),
+        description: t("pages:roles.roleDeletedDesc"),
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to delete role. Please try again.",
+        title: t("common:error"),
+        description: t("pages:roles.deleteError"),
         variant: "destructive",
       });
     },
@@ -147,14 +149,14 @@ export default function RolesList() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Role Management</h1>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:roles.title")}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Create and manage roles with their permissions
+            {t("pages:roles.subtitle")}
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)} data-testid="button-create-role">
-          <Plus className="mr-2 h-4 w-4" />
-          Create Role
+          <Plus className="me-2 h-4 w-4" />
+          {t("pages:roles.addRole")}
         </Button>
       </div>
 
@@ -185,7 +187,7 @@ export default function RolesList() {
                     <CardTitle className="text-base">{role.name}</CardTitle>
                     {role.isSystemRole && (
                       <Badge variant="secondary" className="mt-1">
-                        System Role
+                        {t("pages:roles.systemRole")}
                       </Badge>
                     )}
                   </div>
@@ -204,8 +206,8 @@ export default function RolesList() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => openEditDialog(role)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Role
+                        <Edit className="me-2 h-4 w-4" />
+                        {t("pages:roles.editRole")}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -213,8 +215,8 @@ export default function RolesList() {
                         onClick={() => openDeleteDialog(role)}
                         disabled={role.userCount > 0}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Role
+                        <Trash2 className="me-2 h-4 w-4" />
+                        {t("pages:roles.deleteRole")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -222,11 +224,11 @@ export default function RolesList() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                  {role.description || "No description provided"}
+                  {role.description || t("pages:roles.noDescription")}
                 </p>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
-                  <span>{role.userCount} user{role.userCount !== 1 ? "s" : ""}</span>
+                  <span>{t("pages:roles.usersCount", { count: role.userCount })}</span>
                 </div>
               </CardContent>
             </Card>
@@ -236,13 +238,13 @@ export default function RolesList() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Shield className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-2">No Roles Created</h3>
+            <h3 className="text-lg font-medium mb-2">{t("pages:roles.noRolesFound")}</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Create your first role to get started
+              {t("pages:roles.createFirstRole")}
             </p>
             <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Role
+              <Plus className="me-2 h-4 w-4" />
+              {t("pages:roles.addRole")}
             </Button>
           </CardContent>
         </Card>
@@ -251,24 +253,24 @@ export default function RolesList() {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create New Role</DialogTitle>
+            <DialogTitle>{t("pages:roles.addRole")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="roleName">Role Name</Label>
+              <Label htmlFor="roleName">{t("pages:roles.roleName")}</Label>
               <Input
                 id="roleName"
-                placeholder="Enter role name"
+                placeholder={t("pages:roles.enterRoleName")}
                 value={newRoleName}
                 onChange={(e) => setNewRoleName(e.target.value)}
                 data-testid="input-role-name"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="roleDescription">Description</Label>
+              <Label htmlFor="roleDescription">{t("common:description")}</Label>
               <Textarea
                 id="roleDescription"
-                placeholder="Describe this role..."
+                placeholder={t("pages:roles.describeRole")}
                 value={newRoleDescription}
                 onChange={(e) => setNewRoleDescription(e.target.value)}
                 data-testid="input-role-description"
@@ -277,14 +279,14 @@ export default function RolesList() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-              Cancel
+              {t("common:cancel")}
             </Button>
             <Button
               onClick={handleCreateRole}
               disabled={!newRoleName.trim() || createRoleMutation.isPending}
               data-testid="button-confirm-create-role"
             >
-              {createRoleMutation.isPending ? "Creating..." : "Create Role"}
+              {createRoleMutation.isPending ? t("common:loading") : t("pages:roles.addRole")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -293,24 +295,24 @@ export default function RolesList() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Role</DialogTitle>
+            <DialogTitle>{t("pages:roles.editRole")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="editRoleName">Role Name</Label>
+              <Label htmlFor="editRoleName">{t("pages:roles.roleName")}</Label>
               <Input
                 id="editRoleName"
-                placeholder="Enter role name"
+                placeholder={t("pages:roles.enterRoleName")}
                 value={newRoleName}
                 onChange={(e) => setNewRoleName(e.target.value)}
                 data-testid="input-edit-role-name"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="editRoleDescription">Description</Label>
+              <Label htmlFor="editRoleDescription">{t("common:description")}</Label>
               <Textarea
                 id="editRoleDescription"
-                placeholder="Describe this role..."
+                placeholder={t("pages:roles.describeRole")}
                 value={newRoleDescription}
                 onChange={(e) => setNewRoleDescription(e.target.value)}
                 data-testid="input-edit-role-description"
@@ -319,14 +321,14 @@ export default function RolesList() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
+              {t("common:cancel")}
             </Button>
             <Button
               onClick={handleEditRole}
               disabled={!newRoleName.trim() || updateRoleMutation.isPending}
               data-testid="button-confirm-edit-role"
             >
-              {updateRoleMutation.isPending ? "Saving..." : "Save Changes"}
+              {updateRoleMutation.isPending ? t("common:loading") : t("common:save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -335,21 +337,21 @@ export default function RolesList() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Role</DialogTitle>
+            <DialogTitle>{t("pages:roles.deleteRole")}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
-              Are you sure you want to delete the role "{selectedRole?.name}"? This action cannot be undone.
+              {t("pages:roles.confirmDelete")} "{selectedRole?.name}"? {t("pages:roles.confirmDeleteDesc")}
             </p>
             {selectedRole && selectedRole.userCount > 0 && (
               <p className="text-sm text-destructive mt-2">
-                This role is assigned to {selectedRole.userCount} user(s). Please reassign them before deleting.
+                {t("pages:roles.roleInUse", { count: selectedRole.userCount })}
               </p>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {t("common:cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -357,7 +359,7 @@ export default function RolesList() {
               disabled={deleteRoleMutation.isPending || (selectedRole?.userCount ?? 0) > 0}
               data-testid="button-confirm-delete-role"
             >
-              {deleteRoleMutation.isPending ? "Deleting..." : "Delete Role"}
+              {deleteRoleMutation.isPending ? t("common:loading") : t("pages:roles.deleteRole")}
             </Button>
           </DialogFooter>
         </DialogContent>
