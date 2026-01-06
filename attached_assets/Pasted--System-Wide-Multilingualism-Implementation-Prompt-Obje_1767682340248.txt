@@ -1,0 +1,263 @@
+# System-Wide Multilingualism Implementation Prompt
+
+## Objective
+Implement comprehensive bilingual support (Arabic and English) across the entire Madares Business Platform, ensuring seamless language switching, cultural appropriateness, and consistent user experience in both languages.
+
+## Core Requirements
+
+### 1. Language Infrastructure
+- **Default Language**: Arabic (primary language for Saudi users)
+- **Secondary Language**: English (for international investors and stakeholders)
+- **Language Detection**: Automatic detection based on user browser settings with manual override option
+- **Language Persistence**: User's language preference stored in profile and maintained across sessions
+- **RTL/LTR Support**: Full support for Right-to-Left (Arabic) and Left-to-Right (English) layouts
+
+### 2. User Interface Elements
+
+#### Navigation & Menus
+- All navigation menus, buttons, and labels must be available in both languages
+- Language toggle switch prominently displayed in header (flag icons or language names)
+- Breadcrumbs and navigation paths translated dynamically
+- Tooltips and hover text translated
+
+#### Forms & Input Fields
+- All form labels, placeholders, and helper text in both languages
+- Error messages and validation feedback translated
+- Field names and dropdown options localized
+- Date pickers supporting both Hijri and Gregorian calendars with appropriate labels
+
+#### Content Areas
+- Page titles, headings, and descriptions
+- Dashboard widgets and cards
+- Table headers and data labels
+- Modal dialogs and confirmation messages
+- Success/failure notifications and alerts
+
+### 3. Data Management
+
+#### Database Design
+```sql
+-- Translatable content table structure example
+CREATE TABLE content_translations (
+    id UUID PRIMARY KEY,
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    language_code VARCHAR(5),
+    field_name VARCHAR(100),
+    translated_text TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+-- Supported languages reference
+CREATE TABLE languages (
+    code VARCHAR(5) PRIMARY KEY,
+    name_english VARCHAR(50),
+    name_native VARCHAR(50),
+    is_rtl BOOLEAN,
+    is_active BOOLEAN
+);
+```
+
+#### Translation Strategy
+- **Static Content**: Stored in language resource files (JSON/YAML)
+- **Dynamic Content**: Database-driven with translation tables
+- **User-Generated Content**: Translation service integration for automated translation with human review option
+- **Document Templates**: Separate templates for Arabic and English with proper formatting
+
+### 4. Module-Specific Implementation
+
+#### User Management Module
+- Profile fields in both languages (name, title, organization)
+- Role and permission descriptions translated
+- Notification preferences with language-specific templates
+- Email templates in user's preferred language
+
+#### Assets Bank & ISNAD Workflow
+- Asset descriptions, specifications, and details in both languages
+- Workflow stage names and instructions translated
+- Approval comments and feedback support bilingual input
+- Document attachments labeled in both languages
+- Generated reports available in selected language
+
+#### Contract Management
+- Contract templates in Arabic (legally binding) and English (reference)
+- Contract terms, clauses, and conditions translated
+- Status labels and milestone descriptions in both languages
+- Archive search supporting Arabic and English keywords
+
+#### Investors Portal & CRM
+- Investment opportunity descriptions in both languages
+- Communication logs supporting bilingual correspondence
+- Meeting notes and follow-up tasks in preferred language
+- Dashboard analytics with translated labels and legends
+
+#### Assets Registration
+- Registration forms with bilingual field labels
+- Document upload instructions in both languages
+- Verification status messages translated
+- Registration certificates generated in both languages
+
+### 5. Technical Implementation
+
+#### Frontend Framework
+```javascript
+// i18n configuration example
+{
+  "locales": ["ar", "en"],
+  "defaultLocale": "ar",
+  "localeDetection": true,
+  "pages": {
+    "*": ["common", "navigation"]
+  }
+}
+
+// Translation key structure
+{
+  "ar": {
+    "common": {
+      "submit": "إرسال",
+      "cancel": "إلغاء",
+      "save": "حفظ"
+    }
+  },
+  "en": {
+    "common": {
+      "submit": "Submit",
+      "cancel": "Cancel",
+      "save": "Save"
+    }
+  }
+}
+```
+
+#### API Layer
+- Accept `Accept-Language` header in all API requests
+- Return translated content based on language preference
+- Support `lang` query parameter for explicit language selection
+- Error responses in requested language
+
+#### CSS/Styling Considerations
+```css
+/* RTL/LTR layout switching */
+[dir="rtl"] .container {
+    direction: rtl;
+    text-align: right;
+}
+
+[dir="ltr"] .container {
+    direction: ltr;
+    text-align: left;
+}
+
+/* Font family switching */
+:lang(ar) {
+    font-family: 'Noto Sans Arabic', sans-serif;
+}
+
+:lang(en) {
+    font-family: 'Inter', sans-serif;
+}
+```
+
+### 6. Content Guidelines
+
+#### Arabic Content Standards
+- Use Modern Standard Arabic (MSA) for formal content
+- Employ culturally appropriate terminology for Saudi context
+- Respect Islamic values and cultural sensitivities
+- Use proper Arabic numerals (٠-٩) where culturally expected
+
+#### English Content Standards
+- Use clear, professional business English
+- Avoid idioms that don't translate well
+- Maintain consistency with Arabic terminology for technical terms
+- Use Western numerals (0-9) in English content
+
+#### Translation Quality
+- Professional translation for all official content
+- Native speaker review for both languages
+- Consistency in terminology across all modules
+- Regular translation audits and updates
+
+### 7. Reporting & Documents
+
+#### Generated Reports
+- Report templates in both languages
+- Charts and graphs with translated labels
+- Executive summaries in user's preferred language
+- Export options specify language (PDF reports, Excel exports)
+
+#### Email Notifications
+- Subject lines and body content translated
+- Email signatures in both languages
+- Unsubscribe links and preferences in user's language
+
+#### System Logs & Audit Trails
+- User-facing logs translated
+- Activity descriptions in both languages
+- Export functionality preserving language preference
+
+### 8. Search & Filtering
+
+#### Search Functionality
+- Support Arabic and English keywords simultaneously
+- Phonetic search for Arabic names
+- Transliteration support (Arabic ↔ English)
+- Search suggestions in both languages
+
+#### Filtering & Sorting
+- Filter labels translated
+- Sort order respecting language conventions (Arabic alphabetical vs English alphabetical)
+- Date range pickers with localized formats
+
+### 9. Mobile Responsiveness
+- Language toggle accessible on mobile devices
+- RTL/LTR layouts optimized for mobile screens
+- Touch-friendly language switching
+- Consistent experience across devices
+
+### 10. Accessibility Considerations
+- Screen reader support for both languages
+- Keyboard navigation respecting RTL/LTR
+- Alt text for images in both languages
+- ARIA labels translated appropriately
+
+### 11. Performance Optimization
+- Lazy loading of language resources
+- Caching translated content
+- CDN delivery for language assets
+- Minimize language switching latency
+
+### 12. Testing Requirements
+- UI testing in both languages
+- Translation accuracy verification
+- Layout testing for RTL/LTR switching
+- Cross-browser compatibility testing
+- Mobile device testing for both languages
+
+### 13. Documentation Requirements
+- User manuals in Arabic and English
+- Technical documentation in English
+- Training materials in both languages
+- Video tutorials with subtitles/voiceovers in both languages
+- FAQ sections fully translated
+
+### 14. Future Extensibility
+- Architecture supports adding additional languages (e.g., French, Urdu)
+- Translation management system integration ready
+- API design allows for language expansion
+- Database schema supports unlimited languages
+
+## Success Metrics
+- 100% UI coverage in both languages
+- < 2 seconds language switching time
+- Zero layout breaking issues on language toggle
+- User satisfaction scores for both language versions
+- Translation accuracy rate > 98%
+
+## Implementation Priority
+1. **Phase 1**: Core UI elements and navigation (Weeks 1-2)
+2. **Phase 2**: Forms and user-generated content (Weeks 3-4)
+3. **Phase 3**: Reports and documents (Weeks 5-6)
+4. **Phase 4**: Advanced features and optimization (Weeks 7-8)
