@@ -1112,7 +1112,25 @@ export function LandRegistryForm({ initialData, onSave, onComplete, isReadOnly, 
 }
 
 export function SecurityFacilitiesForm({ initialData, onSave, onComplete, isReadOnly, isPending }: DepartmentFormProps) {
+  const referenceTypes = ["deed", "building_permit", "receipt_record", "survey_decision", "allocation_decision", "regulatory_sketch", "other"] as const;
+  
   const formSchema = z.object({
+    assetOwnership: z.enum(["ministry_of_education", "education_department", "other"]).optional(),
+    assetOwnershipOther: z.string().optional(),
+    ownershipReference: z.enum(referenceTypes).optional(),
+    ownershipReferenceOther: z.string().optional(),
+    ownershipDocumentNumber: z.string().optional(),
+    ownershipDocumentDate: z.string().optional(),
+    regulatoryPlanReference: z.enum(referenceTypes).optional(),
+    regulatoryPlanReferenceOther: z.string().optional(),
+    plotNumber: z.string().optional(),
+    planNumber: z.string().optional(),
+    areaReference: z.enum(referenceTypes).optional(),
+    areaReferenceOther: z.string().optional(),
+    areaInWords: z.string().optional(),
+    areaInNumbers: z.number().optional(),
+    areaDocumentNumber: z.string().optional(),
+    areaDocumentDate: z.string().optional(),
     structuralCondition: z.enum(["operational", "requires_renovation", "dilapidated", "other"]),
     structuralConditionOther: z.string().optional(),
     hasDemolitionDecision: z.boolean(),
@@ -1148,6 +1166,22 @@ export function SecurityFacilitiesForm({ initialData, onSave, onComplete, isRead
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      assetOwnership: initialData?.assetOwnership || undefined,
+      assetOwnershipOther: initialData?.assetOwnershipOther || "",
+      ownershipReference: initialData?.ownershipReference || undefined,
+      ownershipReferenceOther: initialData?.ownershipReferenceOther || "",
+      ownershipDocumentNumber: initialData?.ownershipDocumentNumber || "",
+      ownershipDocumentDate: initialData?.ownershipDocumentDate || "",
+      regulatoryPlanReference: initialData?.regulatoryPlanReference || undefined,
+      regulatoryPlanReferenceOther: initialData?.regulatoryPlanReferenceOther || "",
+      plotNumber: initialData?.plotNumber || "",
+      planNumber: initialData?.planNumber || "",
+      areaReference: initialData?.areaReference || undefined,
+      areaReferenceOther: initialData?.areaReferenceOther || "",
+      areaInWords: initialData?.areaInWords || "",
+      areaInNumbers: initialData?.areaInNumbers || undefined,
+      areaDocumentNumber: initialData?.areaDocumentNumber || "",
+      areaDocumentDate: initialData?.areaDocumentDate || "",
       structuralCondition: initialData?.structuralCondition || "operational",
       structuralConditionOther: initialData?.structuralConditionOther || "",
       hasDemolitionDecision: initialData?.hasDemolitionDecision || false,
@@ -1172,6 +1206,10 @@ export function SecurityFacilitiesForm({ initialData, onSave, onComplete, isRead
     },
   });
 
+  const assetOwnership = form.watch("assetOwnership");
+  const ownershipReference = form.watch("ownershipReference");
+  const regulatoryPlanReference = form.watch("regulatoryPlanReference");
+  const areaReference = form.watch("areaReference");
   const structuralCondition = form.watch("structuralCondition");
   const hasDemolitionDecision = form.watch("hasDemolitionDecision");
 
@@ -1183,12 +1221,322 @@ export function SecurityFacilitiesForm({ initialData, onSave, onComplete, isRead
           Security, Safety & Facilities Section
         </CardTitle>
         <CardDescription>
-          Sections 13-16: Structural Condition, Dimensions, Boundaries, and Location
+          Sections 10-16: Asset Ownership, Regulatory Plan, Asset Area, Structural Condition, Dimensions, Boundaries, and Location
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form className="space-y-6">
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Section 10: Asset Ownership Reference</h4>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="assetOwnership"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Asset Ownership</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-asset-ownership">
+                            <SelectValue placeholder="Select ownership" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="ministry_of_education">Ministry of Education</SelectItem>
+                          <SelectItem value="education_department">Education Department</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {assetOwnership === "other" && (
+                  <FormField
+                    control={form.control}
+                    name="assetOwnershipOther"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Specify Other</FormLabel>
+                        <FormControl>
+                          <Input {...field} disabled={isReadOnly} data-testid="input-ownership-other" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              <FormField
+                control={form.control}
+                name="ownershipReference"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ownership Reference Document</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-ownership-reference">
+                          <SelectValue placeholder="Select reference type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="deed">Deed</SelectItem>
+                        <SelectItem value="building_permit">Building Permit</SelectItem>
+                        <SelectItem value="receipt_record">Receipt Record</SelectItem>
+                        <SelectItem value="survey_decision">Survey Decision</SelectItem>
+                        <SelectItem value="allocation_decision">Allocation Decision</SelectItem>
+                        <SelectItem value="regulatory_sketch">Regulatory Sketch</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {ownershipReference === "other" && (
+                <FormField
+                  control={form.control}
+                  name="ownershipReferenceOther"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Specify Other Reference</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isReadOnly} data-testid="input-ownership-ref-other" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="ownershipDocumentNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Document Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isReadOnly} data-testid="input-ownership-doc-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="ownershipDocumentDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Document Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} disabled={isReadOnly} data-testid="input-ownership-doc-date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Section 11: Regulatory Plan</h4>
+              
+              <FormField
+                control={form.control}
+                name="regulatoryPlanReference"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Regulatory Plan Reference</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-regulatory-reference">
+                          <SelectValue placeholder="Select reference type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="deed">Deed</SelectItem>
+                        <SelectItem value="building_permit">Building Permit</SelectItem>
+                        <SelectItem value="receipt_record">Receipt Record</SelectItem>
+                        <SelectItem value="survey_decision">Survey Decision</SelectItem>
+                        <SelectItem value="allocation_decision">Allocation Decision</SelectItem>
+                        <SelectItem value="regulatory_sketch">Regulatory Sketch</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {regulatoryPlanReference === "other" && (
+                <FormField
+                  control={form.control}
+                  name="regulatoryPlanReferenceOther"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Specify Other Reference</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isReadOnly} data-testid="input-regulatory-ref-other" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="plotNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Plot Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isReadOnly} data-testid="input-plot-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="planNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Plan Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isReadOnly} data-testid="input-plan-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Section 12: Asset Area</h4>
+              
+              <FormField
+                control={form.control}
+                name="areaReference"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Area Reference Document</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-area-reference">
+                          <SelectValue placeholder="Select reference type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="deed">Deed</SelectItem>
+                        <SelectItem value="building_permit">Building Permit</SelectItem>
+                        <SelectItem value="receipt_record">Receipt Record</SelectItem>
+                        <SelectItem value="survey_decision">Survey Decision</SelectItem>
+                        <SelectItem value="allocation_decision">Allocation Decision</SelectItem>
+                        <SelectItem value="regulatory_sketch">Regulatory Sketch</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {areaReference === "other" && (
+                <FormField
+                  control={form.control}
+                  name="areaReferenceOther"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Specify Other Reference</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isReadOnly} data-testid="input-area-ref-other" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="areaInWords"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Area (in words)</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isReadOnly} placeholder="e.g., Five thousand square meters" data-testid="input-area-words" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="areaInNumbers"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Area (in numbers, sqm)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          {...field} 
+                          value={field.value ?? ""} 
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} 
+                          disabled={isReadOnly} 
+                          data-testid="input-area-numbers" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="areaDocumentNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Area Document Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isReadOnly} data-testid="input-area-doc-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="areaDocumentDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Area Document Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} disabled={isReadOnly} data-testid="input-area-doc-date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
             <div className="space-y-4">
               <h4 className="font-medium text-sm text-muted-foreground">Section 13: Structural Condition (if building)</h4>
               

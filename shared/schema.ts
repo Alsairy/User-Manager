@@ -729,19 +729,41 @@ export interface LandRegistrySection {
   completedBy?: string;
 }
 
-// Section 13-16: Security, Safety & Facilities Department
+// Section 10-16: Security, Safety & Facilities Department (Shared Services)
 export interface SecurityFacilitiesSection {
+  // Section 10: Asset Ownership Reference
+  assetOwnership?: "ministry_of_education" | "education_department" | "other";
+  assetOwnershipOther?: string;
+  ownershipReference?: "deed" | "building_permit" | "receipt_record" | "survey_decision" | "allocation_decision" | "regulatory_sketch" | "other";
+  ownershipReferenceOther?: string;
+  ownershipDocumentNumber?: string;
+  ownershipDocumentDate?: string;
+  // Section 11: Regulatory Plan
+  regulatoryPlanReference?: "deed" | "building_permit" | "receipt_record" | "survey_decision" | "allocation_decision" | "regulatory_sketch" | "other";
+  regulatoryPlanReferenceOther?: string;
+  plotNumber?: string;
+  planNumber?: string;
+  // Section 12: Asset Area
+  areaReference?: "deed" | "building_permit" | "receipt_record" | "survey_decision" | "allocation_decision" | "regulatory_sketch" | "other";
+  areaReferenceOther?: string;
+  areaInWords?: string;
+  areaInNumbers?: number;
+  areaDocumentNumber?: string;
+  areaDocumentDate?: string;
+  // Section 13: Structural Condition
   structuralCondition: "operational" | "requires_renovation" | "dilapidated" | "other";
   structuralConditionOther?: string;
   hasDemolitionDecision: boolean;
   demolitionDecisionNumber?: string;
   demolitionDecisionDate?: string;
+  // Section 14: Dimensions
   dimensions: {
     north?: string;
     east?: string;
     south?: string;
     west?: string;
   };
+  // Section 15: Boundaries
   boundaries: {
     north: "commercial_street" | "internal_street" | "other";
     northOther?: string;
@@ -752,6 +774,7 @@ export interface SecurityFacilitiesSection {
     west: "commercial_street" | "internal_street" | "other";
     westOther?: string;
   };
+  // Section 16: Location
   location: {
     region?: string;
     governorate?: string;
