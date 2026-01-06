@@ -755,28 +755,61 @@ export default function IsnadPackagesPage() {
 
             <div>
               <h3 className="font-medium mb-3">Included Assets ({viewPackage?.assets?.length || 0})</h3>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {viewPackage?.assets?.map((asset) => (
-                  <Card key={asset.id} className="p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {asset.assetType === "building" ? (
-                          <Building2 className="w-5 h-5 text-muted-foreground" />
-                        ) : (
-                          <LandPlot className="w-5 h-5 text-muted-foreground" />
-                        )}
-                        <div>
-                          <p className="font-medium">{asset.assetNameEn}</p>
-                          <p className="text-sm text-muted-foreground">{asset.assetCode}</p>
+                  <Card key={asset.id} className="p-4" data-testid={`card-asset-${asset.id}`}>
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-md bg-muted">
+                            {asset.assetType === "building" ? (
+                              <Building2 className="w-5 h-5 text-muted-foreground" />
+                            ) : (
+                              <LandPlot className="w-5 h-5 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">{asset.assetNameEn}</p>
+                            <p className="text-sm text-muted-foreground">{asset.assetNameAr}</p>
+                            <p className="text-xs font-mono text-muted-foreground mt-1">{asset.assetCode}</p>
+                          </div>
                         </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/assets/bank/${asset.id}`)}
+                          data-testid={`button-view-asset-${asset.id}`}
+                        >
+                          <Eye className="w-4 h-4 me-2" />
+                          View Details
+                        </Button>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">{asset.region?.nameEn}</p>
-                        <p className="text-sm">{asset.totalArea?.toLocaleString()} sqm</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Location</p>
+                          <p className="text-sm font-medium">
+                            {asset.district?.nameEn || asset.city?.nameEn || asset.region?.nameEn || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Total Area</p>
+                          <p className="text-sm font-medium">{asset.totalArea?.toLocaleString()} sqm</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Ownership</p>
+                          <p className="text-sm font-medium">{asset.ownershipType?.replace(/_/g, " ") || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Market Value</p>
+                          <p className="text-sm font-medium">SAR {asset.marketValue?.toLocaleString() || "-"}</p>
+                        </div>
                       </div>
                     </div>
                   </Card>
                 ))}
+                {(!viewPackage?.assets || viewPackage.assets.length === 0) && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No assets in this package</p>
+                )}
               </div>
             </div>
 
