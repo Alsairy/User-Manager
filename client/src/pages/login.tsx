@@ -57,7 +57,7 @@ export default function LoginPage() {
           />
         </div>
         <button
-          onClick={() => window.close()}
+          onClick={() => window.location.href = "https://business.madares.sa/"}
           className="flex items-center gap-1.5 h-10 px-4 bg-white dark:bg-background border border-gray-300 dark:border-border rounded-full shadow-sm text-sm font-semibold text-gray-900 dark:text-foreground"
           data-testid="button-cancel"
         >
