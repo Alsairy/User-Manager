@@ -214,9 +214,9 @@ export function AppSidebar() {
                     asChild
                     isActive={location === item.url || (item.url !== "/" && location.startsWith(item.url))}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{t(item.titleKey)}</span>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -236,9 +236,9 @@ export function AppSidebar() {
                     asChild
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{t(item.titleKey)}</span>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -258,9 +258,9 @@ export function AppSidebar() {
                     asChild
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{t(item.titleKey)}</span>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -280,9 +280,9 @@ export function AppSidebar() {
                     asChild
                     isActive={location === item.url || (item.url !== "/contracts" && location.startsWith(item.url))}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{t(item.titleKey)}</span>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -302,9 +302,9 @@ export function AppSidebar() {
                     asChild
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{t(item.titleKey)}</span>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -324,9 +324,9 @@ export function AppSidebar() {
                     asChild
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{t(item.titleKey)}</span>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -346,9 +346,9 @@ export function AppSidebar() {
                     asChild
                     isActive={location === item.url}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{t(item.titleKey)}</span>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
