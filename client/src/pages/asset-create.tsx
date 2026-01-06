@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -86,6 +87,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function AssetCreate() {
+  const { t } = useTranslation(["pages", "common"]);
   const [currentStep, setCurrentStep] = useState(1);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [, navigate] = useLocation();
@@ -833,9 +835,9 @@ export default function AssetCreate() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold">New Asset Registration</h1>
+          <h1 className="text-2xl font-semibold">{t("pages:assets.newRegistration")}</h1>
           <p className="text-muted-foreground">
-            Complete all sections to register a new asset
+            {t("pages:assets.newRegistrationSubtitle")}
           </p>
         </div>
       </div>

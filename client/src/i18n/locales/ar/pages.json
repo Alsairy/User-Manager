@@ -113,6 +113,10 @@
   "assets": {
     "title": "بنك الأصول",
     "subtitle": "المستودع المركزي للأصول المكتملة",
+    "reviewQueue": "قائمة المراجعة",
+    "reviewQueueSubtitle": "مراجعة والموافقة على تسجيلات الأصول المعلقة",
+    "newRegistration": "تسجيل أصل جديد",
+    "newRegistrationSubtitle": "أكمل جميع الأقسام لتسجيل أصل جديد",
     "addAsset": "إضافة أصل",
     "editAsset": "تعديل الأصل",
     "deleteAsset": "حذف الأصل",
@@ -172,7 +176,12 @@
   "isnad": {
     "title": "طلبات إسناد",
     "subtitle": "سير عمل تقييم ملاءمة الاستثمار",
+    "newRequest": "طلب إسناد جديد",
     "createRequest": "طلب إسناد جديد",
+    "bank": "بنك إسناد",
+    "bankSubtitle": "الطلبات الموافق عليها من وكالة الاستثمار جاهزة للتجميع",
+    "packages": "حزم إسناد",
+    "packagesSubtitle": "تجميع الأصول الموافق عليها للمراجعة التنفيذية",
     "requestDetails": "تفاصيل الطلب",
     "requestNumber": "رقم الطلب",
     "currentStage": "المرحلة الحالية",
@@ -237,6 +246,11 @@
   "contracts": {
     "title": "إدارة العقود",
     "subtitle": "إدارة عقود المستثمرين والأقساط والمدفوعات",
+    "dashboard": "لوحة العقود",
+    "dashboardSubtitle": "نظرة عامة على أداء العقود والمدفوعات",
+    "newContract": "عقد جديد",
+    "installments": "الأقساط",
+    "installmentsSubtitle": "تتبع وإدارة أقساط الدفع عبر جميع العقود",
     "createContract": "عقد جديد",
     "contractDetails": "تفاصيل العقد",
     "contractNumber": "رقم العقد",
@@ -281,6 +295,7 @@
   },
   "investors": {
     "title": "المستثمرون",
+    "subtitle": "إدارة ملفات المستثمرين ومعلوماتهم",
     "addInvestor": "إضافة مستثمر",
     "editInvestor": "تعديل المستثمر",
     "investorDetails": "تفاصيل المستثمر",
@@ -292,6 +307,12 @@
     "individual": "فرد",
     "company": "شركة",
     "government": "جهة حكومية"
+  },
+  "portal": {
+    "myFavorites": "المفضلة",
+    "favoritesSubtitle": "الأصول التي حفظتها لوقت لاحق",
+    "browseAssets": "فرص الاستثمار المتاحة",
+    "browseAssetsSubtitle": "تصفح الأصول المتاحة للاستثمار"
   },
   "auditLogs": {
     "title": "سجلات التدقيق",

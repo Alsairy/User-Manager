@@ -109,6 +109,10 @@
   "assets": {
     "title": "Asset Bank",
     "subtitle": "Central repository of completed assets",
+    "reviewQueue": "Review Queue",
+    "reviewQueueSubtitle": "Review and approve pending asset registrations",
+    "newRegistration": "New Asset Registration",
+    "newRegistrationSubtitle": "Complete all sections to register a new asset",
     "addAsset": "Add Asset",
     "editAsset": "Edit Asset",
     "deleteAsset": "Delete Asset",
@@ -168,7 +172,12 @@
   "isnad": {
     "title": "ISNAD Requests",
     "subtitle": "Investment suitability assessment workflow",
+    "newRequest": "New ISNAD Request",
     "createRequest": "New ISNAD Request",
+    "bank": "ISNAD Bank",
+    "bankSubtitle": "Investment Agency approved requests ready for TBC packaging",
+    "packages": "ISNAD Packages",
+    "packagesSubtitle": "Group approved assets for executive review",
     "requestDetails": "Request Details",
     "requestNumber": "Request Number",
     "currentStage": "Current Stage",
@@ -233,6 +242,11 @@
   "contracts": {
     "title": "Contract Management",
     "subtitle": "Manage investor contracts, installments, and payments",
+    "dashboard": "Contracts Dashboard",
+    "dashboardSubtitle": "Overview of contract performance and payments",
+    "newContract": "New Contract",
+    "installments": "Installments",
+    "installmentsSubtitle": "Track and manage payment installments across all contracts",
     "createContract": "New Contract",
     "contractDetails": "Contract Details",
     "contractNumber": "Contract Number",
@@ -274,6 +288,7 @@
   },
   "investors": {
     "title": "Investors",
+    "subtitle": "Manage investor profiles and information",
     "addInvestor": "Add Investor",
     "editInvestor": "Edit Investor",
     "investorDetails": "Investor Details",
@@ -285,6 +300,12 @@
     "individual": "Individual",
     "company": "Company",
     "government": "Government Entity"
+  },
+  "portal": {
+    "myFavorites": "My Favorites",
+    "favoritesSubtitle": "Assets you've saved for later",
+    "browseAssets": "Available Investment Opportunities",
+    "browseAssetsSubtitle": "Browse assets available for investment"
   },
   "auditLogs": {
     "title": "Audit Logs",

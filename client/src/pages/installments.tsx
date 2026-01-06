@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { format, isPast, isToday } from "date-fns";
@@ -56,6 +57,7 @@ interface InstallmentWithContract extends Installment {
 }
 
 export default function InstallmentsPage() {
+  const { t } = useTranslation(["pages", "common"]);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -144,8 +146,8 @@ export default function InstallmentsPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Installments</h1>
-          <p className="text-muted-foreground text-sm">Track and manage payment installments across all contracts</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:contracts.installments")}</h1>
+          <p className="text-muted-foreground text-sm">{t("pages:contracts.installmentsSubtitle")}</p>
         </div>
       </div>
 

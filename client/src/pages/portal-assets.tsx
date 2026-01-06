@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Search, Building2, MapPin, Ruler, Heart, ChevronLeft, ChevronRight, Gri
 import type { AssetWithDetails } from "@shared/schema";
 
 export default function PortalAssets() {
+  const { t } = useTranslation(["pages", "common"]);
   const [search, setSearch] = useState("");
   const [assetType, setAssetType] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
@@ -43,8 +45,8 @@ export default function PortalAssets() {
         <div className="flex items-center gap-2">
           <Grid3X3 className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-semibold" data-testid="text-page-title">Available Investment Opportunities</h1>
-            <p className="text-sm text-muted-foreground">Browse assets available for investment</p>
+            <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:portal.browseAssets")}</h1>
+            <p className="text-sm text-muted-foreground">{t("pages:portal.browseAssetsSubtitle")}</p>
           </div>
         </div>
 

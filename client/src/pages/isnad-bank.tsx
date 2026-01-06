@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { 
@@ -51,6 +52,7 @@ const slaStatusLabels: Record<SlaStatus, string> = {
 };
 
 export default function IsnadBank() {
+  const { t } = useTranslation(["pages", "common"]);
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [regionFilter, setRegionFilter] = useState<string>("all");
@@ -148,10 +150,10 @@ export default function IsnadBank() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-page-title">
-            ISNAD Bank
+            {t("pages:isnad.bank")}
           </h1>
           <p className="text-muted-foreground">
-            Investment Agency approved requests ready for TBC packaging
+            {t("pages:isnad.bankSubtitle")}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -68,6 +69,7 @@ const statusConfig: Record<InvestorStatus, { label: string; variant: "default" |
 };
 
 export default function InvestorsPage() {
+  const { t } = useTranslation(["pages", "common"]);
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -185,12 +187,12 @@ export default function InvestorsPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Investors</h1>
-          <p className="text-muted-foreground text-sm">Manage investor profiles and information</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:investors.title")}</h1>
+          <p className="text-muted-foreground text-sm">{t("pages:investors.subtitle")}</p>
         </div>
         <Button onClick={openCreateDialog} data-testid="button-create-investor">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Investor
+          <Plus className="h-4 w-4 me-2" />
+          {t("pages:investors.addInvestor")}
         </Button>
       </div>
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Clock, CheckCircle2, XCircle, AlertTriangle, Eye } from "lucide-react";
@@ -67,6 +68,7 @@ const slaLabels: Record<SlaStatus, string> = {
 };
 
 export default function ReviewQueue() {
+  const { t } = useTranslation(["pages", "common"]);
   const [selectedDepartment, setSelectedDepartment] = useState<WorkflowStage>("school_planning");
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -163,10 +165,10 @@ export default function ReviewQueue() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-page-title">
-            Review Queue
+            {t("pages:assets.reviewQueue")}
           </h1>
           <p className="text-muted-foreground">
-            Review and approve pending asset registrations
+            {t("pages:assets.reviewQueueSubtitle")}
           </p>
         </div>
         <Select value={selectedDepartment} onValueChange={(v) => setSelectedDepartment(v as WorkflowStage)}>

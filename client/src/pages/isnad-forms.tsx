@@ -82,6 +82,7 @@ const slaStatusIcons = {
 };
 
 export default function IsnadFormsPage() {
+  const { t } = useTranslation(["pages", "common"]);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -135,12 +136,12 @@ export default function IsnadFormsPage() {
     <div className="p-6 space-y-6" data-testid="page-isnad-forms">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">ISNAD Requests</h1>
-          <p className="text-muted-foreground">Investment suitability assessment workflow</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:isnad.title")}</h1>
+          <p className="text-muted-foreground">{t("pages:isnad.subtitle")}</p>
         </div>
         <Button onClick={() => navigate("/isnad/forms/new")} data-testid="button-create-form">
-          <Plus className="w-4 h-4 mr-2" />
-          New ISNAD Request
+          <Plus className="w-4 h-4 me-2" />
+          {t("pages:isnad.newRequest")}
         </Button>
       </div>
 

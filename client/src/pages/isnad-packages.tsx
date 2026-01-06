@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,6 +76,7 @@ const priorityColors: Record<string, string> = {
 };
 
 export default function IsnadPackagesPage() {
+  const { t } = useTranslation(["pages", "common"]);
   const [, navigate] = useLocation();
   const searchParams = useSearch();
   const { toast } = useToast();
@@ -240,8 +242,8 @@ export default function IsnadPackagesPage() {
     <div className="p-6 space-y-6" data-testid="page-isnad-packages">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">ISNAD Packages</h1>
-          <p className="text-muted-foreground">Group approved assets for executive review</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:isnad.packages")}</h1>
+          <p className="text-muted-foreground">{t("pages:isnad.packagesSubtitle")}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>

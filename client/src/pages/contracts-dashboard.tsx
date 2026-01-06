@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -18,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ContractDashboardStats } from "@shared/schema";
 
 export default function ContractsDashboardPage() {
+  const { t } = useTranslation(["pages", "common"]);
   const { data: stats, isLoading } = useQuery<ContractDashboardStats>({
     queryKey: ["/api/contracts/dashboard"],
   });
@@ -56,13 +58,13 @@ export default function ContractsDashboardPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Contracts Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Overview of contract performance and payments</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:contracts.dashboard")}</h1>
+          <p className="text-muted-foreground text-sm">{t("pages:contracts.dashboardSubtitle")}</p>
         </div>
         <Link href="/contracts/new">
           <Button data-testid="button-new-contract">
-            <FileSignature className="h-4 w-4 mr-2" />
-            New Contract
+            <FileSignature className="h-4 w-4 me-2" />
+            {t("pages:contracts.newContract")}
           </Button>
         </Link>
       </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import type { InvestorFavoriteWithAsset } from "@shared/schema";
 const DEMO_INVESTOR_ACCOUNT_ID = "demo-investor-001";
 
 export default function PortalFavorites() {
+  const { t } = useTranslation(["pages", "common"]);
   const { toast } = useToast();
 
   const queryString = `investorAccountId=${DEMO_INVESTOR_ACCOUNT_ID}`;
@@ -36,8 +38,8 @@ export default function PortalFavorites() {
       <div className="flex items-center gap-2">
         <Heart className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">My Favorites</h1>
-          <p className="text-sm text-muted-foreground">Assets you've saved for later</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:portal.myFavorites")}</h1>
+          <p className="text-sm text-muted-foreground">{t("pages:portal.favoritesSubtitle")}</p>
         </div>
       </div>
 
