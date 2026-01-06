@@ -17,13 +17,25 @@
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome back",
-    "overview": "Overview",
+    "overview": "Overview of your user management system",
     "totalUsers": "Total Users",
     "totalAssets": "Total Assets",
+    "activeUsers": "Active Users",
     "activeContracts": "Active Contracts",
     "pendingApprovals": "Pending Approvals",
+    "pendingActivation": "Pending Activation",
+    "totalRoles": "Total Roles",
     "recentActivity": "Recent Activity",
-    "quickActions": "Quick Actions"
+    "quickActions": "Quick Actions",
+    "registeredInSystem": "Registered in the system",
+    "currentlyActive": "Currently active",
+    "awaitingFirstLogin": "Awaiting first login",
+    "definedInSystem": "Defined in the system",
+    "noRecentActivity": "No recent activity",
+    "createNewUser": "Create New User",
+    "addUserToSystem": "Add a new user to the system",
+    "manageRoles": "Manage Roles",
+    "configureRolesPermissions": "Configure roles and permissions"
   },
   "users": {
     "title": "User Management",

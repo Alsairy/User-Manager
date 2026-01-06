@@ -17,13 +17,25 @@
   "dashboard": {
     "title": "لوحة التحكم",
     "welcome": "مرحباً بعودتك",
-    "overview": "نظرة عامة",
+    "overview": "نظرة عامة على نظام إدارة المستخدمين",
     "totalUsers": "إجمالي المستخدمين",
     "totalAssets": "إجمالي الأصول",
+    "activeUsers": "المستخدمون النشطون",
     "activeContracts": "العقود النشطة",
     "pendingApprovals": "الموافقات المعلقة",
+    "pendingActivation": "في انتظار التفعيل",
+    "totalRoles": "إجمالي الأدوار",
     "recentActivity": "النشاط الأخير",
-    "quickActions": "الإجراءات السريعة"
+    "quickActions": "الإجراءات السريعة",
+    "registeredInSystem": "مسجل في النظام",
+    "currentlyActive": "نشط حالياً",
+    "awaitingFirstLogin": "في انتظار أول تسجيل دخول",
+    "definedInSystem": "محدد في النظام",
+    "noRecentActivity": "لا يوجد نشاط حديث",
+    "createNewUser": "إنشاء مستخدم جديد",
+    "addUserToSystem": "إضافة مستخدم جديد إلى النظام",
+    "manageRoles": "إدارة الأدوار",
+    "configureRolesPermissions": "تكوين الأدوار والصلاحيات"
   },
   "users": {
     "title": "إدارة المستخدمين",

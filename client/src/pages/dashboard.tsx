@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, UserCheck, Clock, Shield, Activity } from "lucide-react";
 import type { DashboardStats, AuditLog } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
+import { ar, enUS } from "date-fns/locale";
 
 function StatCard({
   title,
@@ -42,7 +44,7 @@ function StatCard({
   );
 }
 
-function ActivityItem({ log }: { log: AuditLog }) {
+function ActivityItem({ log, locale }: { log: AuditLog; locale: string }) {
   const getActionColor = (actionType: string) => {
     if (actionType.includes("create")) return "bg-green-500";
     if (actionType.includes("update")) return "bg-blue-500";
@@ -58,6 +60,8 @@ function ActivityItem({ log }: { log: AuditLog }) {
       .join(" ");
   };
 
+  const dateLocale = locale === "ar" ? ar : enUS;
+
   return (
     <div className="flex items-start gap-3 py-3">
       <div className={`mt-1.5 h-2 w-2 rounded-full ${getActionColor(log.actionType)}`} />
@@ -70,13 +74,14 @@ function ActivityItem({ log }: { log: AuditLog }) {
         </p>
       </div>
       <span className="text-xs text-muted-foreground whitespace-nowrap">
-        {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+        {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: dateLocale })}
       </span>
     </div>
   );
 }
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation(["pages", "common"]);
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -84,39 +89,39 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold" data-testid="text-page-title">Dashboard</h1>
+        <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:dashboard.title")}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Overview of your user management system
+          {t("pages:dashboard.overview")}
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Users"
+          title={t("pages:dashboard.totalUsers")}
           value={stats?.totalUsers ?? 0}
           icon={Users}
-          description="Registered in the system"
+          description={t("pages:dashboard.registeredInSystem", { defaultValue: "Registered in the system" })}
           isLoading={isLoading}
         />
         <StatCard
-          title="Active Users"
+          title={t("pages:dashboard.activeUsers", { defaultValue: "Active Users" })}
           value={stats?.activeUsers ?? 0}
           icon={UserCheck}
-          description="Currently active"
+          description={t("pages:dashboard.currentlyActive", { defaultValue: "Currently active" })}
           isLoading={isLoading}
         />
         <StatCard
-          title="Pending Activation"
+          title={t("pages:dashboard.pendingActivation", { defaultValue: "Pending Activation" })}
           value={stats?.pendingUsers ?? 0}
           icon={Clock}
-          description="Awaiting first login"
+          description={t("pages:dashboard.awaitingFirstLogin", { defaultValue: "Awaiting first login" })}
           isLoading={isLoading}
         />
         <StatCard
-          title="Total Roles"
+          title={t("pages:dashboard.totalRoles", { defaultValue: "Total Roles" })}
           value={stats?.totalRoles ?? 0}
           icon={Shield}
-          description="Defined in the system"
+          description={t("pages:dashboard.definedInSystem", { defaultValue: "Defined in the system" })}
           isLoading={isLoading}
         />
       </div>
@@ -124,7 +129,7 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-            <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+            <CardTitle className="text-lg font-semibold">{t("pages:dashboard.recentActivity")}</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -144,14 +149,14 @@ export default function Dashboard() {
             ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
               <div className="divide-y">
                 {stats.recentActivity.map((log) => (
-                  <ActivityItem key={log.id} log={log} />
+                  <ActivityItem key={log.id} log={log} locale={i18n.language} />
                 ))}
               </div>
             ) : (
               <div className="py-8 text-center">
                 <Activity className="mx-auto h-8 w-8 text-muted-foreground/50" />
                 <p className="mt-2 text-sm text-muted-foreground">
-                  No recent activity
+                  {t("pages:dashboard.noRecentActivity", { defaultValue: "No recent activity" })}
                 </p>
               </div>
             )}
@@ -160,7 +165,7 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+            <CardTitle className="text-lg font-semibold">{t("pages:dashboard.quickActions")}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
             <a
@@ -172,9 +177,9 @@ export default function Dashboard() {
                 <Users className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium">Create New User</p>
+                <p className="text-sm font-medium">{t("pages:dashboard.createNewUser", { defaultValue: "Create New User" })}</p>
                 <p className="text-xs text-muted-foreground">
-                  Add a new user to the system
+                  {t("pages:dashboard.addUserToSystem", { defaultValue: "Add a new user to the system" })}
                 </p>
               </div>
             </a>
@@ -187,9 +192,9 @@ export default function Dashboard() {
                 <Shield className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium">Manage Roles</p>
+                <p className="text-sm font-medium">{t("pages:dashboard.manageRoles", { defaultValue: "Manage Roles" })}</p>
                 <p className="text-xs text-muted-foreground">
-                  Configure roles and permissions
+                  {t("pages:dashboard.configureRolesPermissions", { defaultValue: "Configure roles and permissions" })}
                 </p>
               </div>
             </a>
