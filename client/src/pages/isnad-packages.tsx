@@ -90,6 +90,7 @@ export default function IsnadPackagesPage() {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<PackagePriority>("medium");
   const [durationYears, setDurationYears] = useState<number>(5);
+  const [durationMonths, setDurationMonths] = useState<number>(0);
   const [selectedForms, setSelectedForms] = useState<string[]>([]);
 
   const [reviewPackage, setReviewPackage] = useState<IsnadPackageWithDetails | null>(null);
@@ -148,6 +149,7 @@ export default function IsnadPackagesPage() {
         description,
         priority,
         durationYears,
+        durationMonths,
         formIds: selectedForms,
       });
     },
@@ -230,6 +232,7 @@ export default function IsnadPackagesPage() {
     setDescription("");
     setPriority("medium");
     setDurationYears(5);
+    setDurationMonths(0);
     setSelectedForms([]);
   };
 
@@ -295,19 +298,37 @@ export default function IsnadPackagesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Duration (Years)</Label>
-                <Select value={durationYears.toString()} onValueChange={(v) => setDurationYears(parseInt(v))}>
-                  <SelectTrigger data-testid="select-duration">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 20 }, (_, i) => i + 1).map((year) => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year} {year === 1 ? "Year" : "Years"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Duration</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Select value={durationYears.toString()} onValueChange={(v) => setDurationYears(parseInt(v))}>
+                      <SelectTrigger data-testid="select-duration-years">
+                        <SelectValue placeholder="Years" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 50 }, (_, i) => i + 1).map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year} {year === 1 ? "Year" : "Years"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Select value={durationMonths.toString()} onValueChange={(v) => setDurationMonths(parseInt(v))}>
+                      <SelectTrigger data-testid="select-duration-months">
+                        <SelectValue placeholder="Months" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 13 }, (_, i) => i).map((month) => (
+                          <SelectItem key={month} value={month.toString()}>
+                            {month} {month === 1 ? "Month" : "Months"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Select Approved ISNAD Requests</Label>
@@ -800,8 +821,8 @@ export default function IsnadPackagesPage() {
                           <p className="text-sm font-medium">{asset.ownershipType?.replace(/_/g, " ") || "-"}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">Market Value</p>
-                          <p className="text-sm font-medium">SAR {asset.marketValue?.toLocaleString() || "-"}</p>
+                          <p className="text-xs text-muted-foreground">Type</p>
+                          <p className="text-sm font-medium capitalize">{asset.assetType || "-"}</p>
                         </div>
                       </div>
                     </div>

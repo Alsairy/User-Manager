@@ -1077,6 +1077,7 @@ export interface IsnadPackage {
   investmentStrategy: string | null;
   priority: PackagePriority;
   durationYears: number | null;
+  durationMonths: number | null;
   status: PackageStatus;
   expectedRevenue: number;
   totalValuation: number;
@@ -1112,7 +1113,8 @@ export const insertPackageSchema = z.object({
   description: z.string().optional(),
   investmentStrategy: z.string().optional(),
   priority: z.enum(packagePriorityEnum).default("medium"),
-  durationYears: z.number().int().min(1).max(20).optional(),
+  durationYears: z.number().int().min(1).max(50).optional(),
+  durationMonths: z.number().int().min(0).max(12).optional(),
   formIds: z.array(z.string()).min(1, "At least one ISNAD form is required"),
 });
 

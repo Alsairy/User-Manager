@@ -2664,6 +2664,7 @@ export class MemStorage implements IStorage {
       investmentStrategy: insertPkg.investmentStrategy || null,
       priority: insertPkg.priority,
       durationYears: insertPkg.durationYears || null,
+      durationMonths: insertPkg.durationMonths || null,
       status: "draft",
       expectedRevenue,
       totalValuation,
