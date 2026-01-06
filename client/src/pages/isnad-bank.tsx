@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { 
   Search, Package, Building2, LandPlot, Clock, CheckCircle2, AlertCircle, 
-  FileSpreadsheet, Eye, Filter
+  FileSpreadsheet, Eye, Filter, Award, Calendar, Banknote, FileCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +34,9 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import type { IsnadFormWithDetails, SlaStatus, Region } from "@shared/schema";
-import { isnadStatusLabels, isnadStageLabels } from "@shared/schema";
+import type { IsnadFormWithDetails, IsnadPackageWithDetails, SlaStatus, Region } from "@shared/schema";
+import { isnadStatusLabels, isnadStageLabels, packageStatusLabels } from "@shared/schema";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const slaStatusColors: Record<SlaStatus, string> = {
   on_time: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
@@ -54,11 +55,14 @@ const slaStatusLabels: Record<SlaStatus, string> = {
 export default function IsnadBank() {
   const { t } = useTranslation(["pages", "common"]);
   const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState("approved-forms");
   const [search, setSearch] = useState("");
+  const [packageSearch, setPackageSearch] = useState("");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [slaFilter, setSlaFilter] = useState<string>("all");
   const [selectedForms, setSelectedForms] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [packagePage, setPackagePage] = useState(1);
   const limit = 25;
   const { toast } = useToast();
 
@@ -101,7 +105,24 @@ export default function IsnadBank() {
     queryKey: ["/api/isnad/bank/stats"],
   });
 
+  const ministerPackageParams = new URLSearchParams();
+  ministerPackageParams.set("status", "minister_approved");
+  if (packageSearch) ministerPackageParams.set("search", packageSearch);
+  ministerPackageParams.set("page", String(packagePage));
+  ministerPackageParams.set("limit", String(limit));
+
+  const { data: ministerApprovedPackages, isLoading: isLoadingPackages } = useQuery<{
+    packages: IsnadPackageWithDetails[];
+    total: number;
+    page: number;
+    limit: number;
+  }>({
+    queryKey: ["/api/isnad/packages", ministerPackageParams.toString()],
+    queryFn: () => fetch(`/api/isnad/packages?${ministerPackageParams.toString()}`).then((r) => r.json()),
+  });
+
   const totalPages = Math.ceil((data?.total || 0) / limit);
+  const totalPackagePages = Math.ceil((ministerApprovedPackages?.total || 0) / limit);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked && data?.forms) {
@@ -168,7 +189,7 @@ export default function IsnadBank() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Approved for Investment</CardDescription>
@@ -176,6 +197,17 @@ export default function IsnadBank() {
               {stats?.totalReadyForPackaging ?? data?.total ?? 0}
             </CardTitle>
           </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center gap-2">
+            <Award className="h-4 w-4 text-emerald-600" />
+            <CardDescription>Minister Approved</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600" data-testid="text-stat-minister-approved">
+              {ministerApprovedPackages?.total ?? 0}
+            </div>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center gap-2">
@@ -212,7 +244,20 @@ export default function IsnadBank() {
         </Card>
       </div>
 
-      <Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="approved-forms" data-testid="tab-approved-forms">
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Approved Requests
+          </TabsTrigger>
+          <TabsTrigger value="minister-approved" data-testid="tab-minister-approved">
+            <Award className="mr-2 h-4 w-4" />
+            Minister Approved Packages
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="approved-forms">
+          <Card>
         <CardHeader>
           <CardTitle>Approved for Investment</CardTitle>
           <CardDescription>
@@ -417,8 +462,160 @@ export default function IsnadBank() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="minister-approved">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-emerald-600" />
+                <div>
+                  <CardTitle>Minister Approved Packages</CardTitle>
+                  <CardDescription>
+                    ISNAD packages that have received final approval from the Associate Minister of MOE
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center mb-6">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by package code, name..."
+                    value={packageSearch}
+                    onChange={(e) => {
+                      setPackageSearch(e.target.value);
+                      setPackagePage(1);
+                    }}
+                    className="pl-9"
+                    data-testid="input-package-search"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Package Code</TableHead>
+                      <TableHead>Package Name</TableHead>
+                      <TableHead>Assets</TableHead>
+                      <TableHead>Total Value (SAR)</TableHead>
+                      <TableHead>Priority</TableHead>
+                      <TableHead>Approved Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoadingPackages ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                          {Array.from({ length: 7 }).map((_, j) => (
+                            <TableCell key={j}>
+                              <Skeleton className="h-4 w-full" />
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : !ministerApprovedPackages?.packages || ministerApprovedPackages.packages.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          <div className="flex flex-col items-center gap-2">
+                            <Award className="h-8 w-8 text-muted-foreground/50" />
+                            <p>No minister-approved packages yet</p>
+                            <p className="text-sm">Packages will appear here after the Associate Minister approves them</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      ministerApprovedPackages.packages.map((pkg) => (
+                        <TableRow key={pkg.id} data-testid={`row-package-${pkg.id}`}>
+                          <TableCell className="font-mono text-sm" data-testid={`text-package-code-${pkg.id}`}>
+                            {pkg.packageCode}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{pkg.packageName}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              <Building2 className="mr-1 h-3 w-3" />
+                              {pkg.forms?.length || pkg.totalAssets || 0} Assets
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Banknote className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">
+                                {(pkg.totalValuation || 0).toLocaleString("en-SA")}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={pkg.priority === "high" ? "destructive" : pkg.priority === "medium" ? "default" : "secondary"}
+                            >
+                              {pkg.priority?.charAt(0).toUpperCase() + pkg.priority?.slice(1) || "Medium"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1 text-sm">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              {pkg.ministerApprovedAt 
+                                ? new Date(pkg.ministerApprovedAt).toLocaleDateString()
+                                : pkg.updatedAt
+                                  ? new Date(pkg.updatedAt).toLocaleDateString()
+                                  : "-"}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Link href={`/isnad/packages/${pkg.id}`}>
+                              <Button variant="ghost" size="sm" data-testid={`button-view-package-${pkg.id}`}>
+                                <Eye className="mr-1 h-4 w-4" />
+                                View
+                              </Button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {totalPackagePages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {((packagePage - 1) * limit) + 1} to {Math.min(packagePage * limit, ministerApprovedPackages?.total || 0)} of {ministerApprovedPackages?.total || 0} packages
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={packagePage === 1}
+                      onClick={() => setPackagePage(packagePage - 1)}
+                      data-testid="button-prev-package-page"
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={packagePage === totalPackagePages}
+                      onClick={() => setPackagePage(packagePage + 1)}
+                      data-testid="button-next-package-page"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
