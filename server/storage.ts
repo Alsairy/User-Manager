@@ -983,17 +983,18 @@ export class MemStorage implements IStorage {
     const sampleIsnadId3 = randomUUID();
 
     const createApprovedWorkflowSteps = (): WorkflowStep[] => {
+      const lastStepIndex = workflowStepsOrder.length - 1;
       return workflowStepsOrder.map((stage, index) => ({
         stage,
         stepIndex: index,
-        status: index < 7 ? "approved" as const : (index === 7 ? "current" as const : "pending" as const),
+        status: index < lastStepIndex ? "approved" as const : "current" as const,
         slaDeadline: null,
-        slaStatus: index === 7 ? "on_time" as const : null,
-        reviewerId: index < 7 ? adminUserId : null,
-        reviewerName: index < 7 ? "Admin" : null,
-        comments: index < 7 ? "Approved" : null,
+        slaStatus: index === lastStepIndex ? "on_time" as const : null,
+        reviewerId: index < lastStepIndex ? adminUserId : null,
+        reviewerName: index < lastStepIndex ? "Admin" : null,
+        comments: index < lastStepIndex ? "Approved" : null,
         rejectionReason: null,
-        actionTakenAt: index < 7 ? new Date(Date.now() - (10 - index) * 24 * 60 * 60 * 1000).toISOString() : null,
+        actionTakenAt: index < lastStepIndex ? new Date(Date.now() - (10 - index) * 24 * 60 * 60 * 1000).toISOString() : null,
       }));
     };
 
@@ -1003,7 +1004,7 @@ export class MemStorage implements IStorage {
       assetId: assetId1,
       status: "approved",
       currentStage: "tbc_final_approval",
-      currentStepIndex: 7,
+      currentStepIndex: 8,
       currentAssigneeId: null,
       investmentCriteria: {
         investmentPurpose: "Educational institution development",
@@ -1091,7 +1092,7 @@ export class MemStorage implements IStorage {
       assetId: assetId2,
       status: "approved",
       currentStage: "tbc_final_approval",
-      currentStepIndex: 7,
+      currentStepIndex: 8,
       currentAssigneeId: null,
       investmentCriteria: {
         investmentPurpose: "Commercial development",
@@ -1181,7 +1182,7 @@ export class MemStorage implements IStorage {
       assetId: assetId3,
       status: "approved",
       currentStage: "tbc_final_approval",
-      currentStepIndex: 7,
+      currentStepIndex: 8,
       currentAssigneeId: null,
       investmentCriteria: {
         investmentPurpose: "Vocational training facility",
@@ -2662,6 +2663,7 @@ export class MemStorage implements IStorage {
       description: insertPkg.description || null,
       investmentStrategy: insertPkg.investmentStrategy || null,
       priority: insertPkg.priority,
+      durationYears: insertPkg.durationYears || null,
       status: "draft",
       expectedRevenue,
       totalValuation,
