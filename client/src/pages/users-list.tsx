@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { Plus, Search, MoreHorizontal, Mail, Edit, UserX, Trash2, Filter, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ interface UsersResponse {
 }
 
 export default function UsersList() {
+  const { t } = useTranslation(["pages", "common"]);
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -75,14 +77,14 @@ export default function UsersList() {
     },
     onSuccess: () => {
       toast({
-        title: "Invitation Sent",
-        description: "The invitation email has been resent successfully.",
+        title: t("pages:users.invitationSent"),
+        description: t("pages:users.invitationSentDesc"),
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to resend invitation. Please try again.",
+        title: t("common:error"),
+        description: t("pages:users.invitationError"),
         variant: "destructive",
       });
     },
@@ -97,14 +99,14 @@ export default function UsersList() {
         typeof query.queryKey[0] === "string" && query.queryKey[0].startsWith("/api/users")
       });
       toast({
-        title: "User Deactivated",
-        description: "The user has been deactivated successfully.",
+        title: t("pages:users.userDeactivated"),
+        description: t("pages:users.userDeactivatedDesc"),
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to deactivate user. Please try again.",
+        title: t("common:error"),
+        description: t("pages:users.deactivateError"),
         variant: "destructive",
       });
     },
@@ -133,24 +135,24 @@ export default function UsersList() {
   };
 
   const getRoleName = (roleId: string | null) => {
-    if (!roleId) return "Custom Permissions";
+    if (!roleId) return t("pages:users.customPermissions");
     const role = roles?.find((r) => r.id === roleId);
-    return role?.name ?? "Unknown";
+    return role?.name ?? t("pages:users.unknown");
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">User Management</h1>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:users.title")}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage users, roles, and permissions
+            {t("pages:users.subtitle")}
           </p>
         </div>
         <Link href="/users/create">
           <Button data-testid="button-create-user">
-            <Plus className="mr-2 h-4 w-4" />
-            Create User
+            <Plus className="me-2 h-4 w-4" />
+            {t("pages:users.addUser")}
           </Button>
         </Link>
       </div>
@@ -161,34 +163,34 @@ export default function UsersList() {
             <div className="relative flex-1 min-w-[200px] max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by email..."
+                placeholder={t("pages:users.searchByEmail")}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="pl-9"
+                className="ps-9"
                 data-testid="input-search-users"
               />
             </div>
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
               <SelectTrigger className="w-[140px]" data-testid="select-status-filter">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Status" />
+                <Filter className="me-2 h-4 w-4" />
+                <SelectValue placeholder={t("common:status")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="all">{t("pages:users.allStatus")}</SelectItem>
+                <SelectItem value="active">{t("common:active")}</SelectItem>
+                <SelectItem value="inactive">{t("common:inactive")}</SelectItem>
+                <SelectItem value="pending">{t("common:pending")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={orgFilter} onValueChange={(v) => { setOrgFilter(v); setPage(1); }}>
               <SelectTrigger className="w-[180px]" data-testid="select-org-filter">
-                <SelectValue placeholder="Organization" />
+                <SelectValue placeholder={t("pages:users.organization")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Organizations</SelectItem>
+                <SelectItem value="all">{t("pages:users.allOrganizations")}</SelectItem>
                 {organizations?.map((org) => (
                   <SelectItem key={org.id} value={org.id}>
                     {org.name}
@@ -212,12 +214,12 @@ export default function UsersList() {
                     data-testid="checkbox-select-all"
                   />
                 </TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide">Email</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide">Organization</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide">Work Unit</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide">Role</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide">Status</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide">Last Login</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide">{t("common:email")}</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide">{t("pages:users.organization")}</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide">{t("pages:users.workUnit")}</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide">{t("pages:users.role")}</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide">{t("common:status")}</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide">{t("pages:users.lastLogin")}</TableHead>
                 <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -240,11 +242,11 @@ export default function UsersList() {
                   <TableCell colSpan={8} className="h-32 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <UserX className="h-8 w-8 text-muted-foreground/50" />
-                      <p className="text-sm text-muted-foreground">No users found</p>
+                      <p className="text-sm text-muted-foreground">{t("pages:users.noUsersFound")}</p>
                       <Link href="/users/create">
                         <Button variant="outline" size="sm">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Create First User
+                          <Plus className="me-2 h-4 w-4" />
+                          {t("pages:users.createFirstUser")}
                         </Button>
                       </Link>
                     </div>
@@ -293,8 +295,8 @@ export default function UsersList() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link href={`/users/${user.id}/edit`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit User
+                              <Edit className="me-2 h-4 w-4" />
+                              {t("pages:users.editUser")}
                             </Link>
                           </DropdownMenuItem>
                           {user.status === "pending" && (
@@ -302,8 +304,8 @@ export default function UsersList() {
                               onClick={() => resendInvitationMutation.mutate(user.id)}
                               disabled={resendInvitationMutation.isPending}
                             >
-                              <Mail className="mr-2 h-4 w-4" />
-                              Resend Invitation
+                              <Mail className="me-2 h-4 w-4" />
+                              {t("pages:users.resendInvitation")}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
@@ -312,8 +314,8 @@ export default function UsersList() {
                             onClick={() => deactivateUserMutation.mutate(user.id)}
                             disabled={deactivateUserMutation.isPending}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Deactivate
+                            <Trash2 className="me-2 h-4 w-4" />
+                            {t("pages:users.deactivate")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -326,7 +328,7 @@ export default function UsersList() {
           {total > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-4 border-t p-4">
               <p className="text-sm text-muted-foreground">
-                Showing {(page - 1) * 25 + 1}-{Math.min(page * 25, total)} of {total} users
+                {t("pages:users.showingUsers", { start: (page - 1) * 25 + 1, end: Math.min(page * 25, total), total })}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -336,10 +338,10 @@ export default function UsersList() {
                   disabled={page <= 1}
                   data-testid="button-prev-page"
                 >
-                  Previous
+                  {t("common:previous")}
                 </Button>
                 <span className="text-sm px-2">
-                  Page {page} of {totalPages}
+                  {t("common:page")} {page} {t("common:of")} {totalPages}
                 </span>
                 <Button
                   variant="outline"
@@ -348,7 +350,7 @@ export default function UsersList() {
                   disabled={page >= totalPages}
                   data-testid="button-next-page"
                 >
-                  Next
+                  {t("common:next")}
                 </Button>
               </div>
             </div>
