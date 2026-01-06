@@ -692,7 +692,8 @@ export interface InvestmentPartnershipsSection {
   investmentProposal: "partial" | "full";
   investmentType: "educational" | "commercial" | "other";
   investmentTypeOther?: string;
-  partialSketchAttached?: boolean;
+  partialSketchFileName?: string;
+  partialSketchFileUrl?: string;
   completedAt?: string;
   completedBy?: string;
 }

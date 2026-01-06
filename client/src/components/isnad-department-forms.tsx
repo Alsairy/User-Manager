@@ -11,7 +11,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Building2, MapPin, Banknote, FileText, Shield, Save, CheckCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Building2, MapPin, Banknote, FileText, Shield, Save, CheckCircle, Upload } from "lucide-react";
 import type { 
   SchoolPlanningSection, 
   InvestmentPartnershipsSection, 
@@ -312,6 +313,8 @@ export function InvestmentPartnershipsForm({ initialData, onSave, onComplete, is
     investmentProposal: z.enum(["partial", "full"]),
     investmentType: z.enum(["educational", "commercial", "other"]),
     investmentTypeOther: z.string().optional(),
+    partialSketchFileName: z.string().optional(),
+    partialSketchFileUrl: z.string().optional(),
   });
 
   const form = useForm({
@@ -325,11 +328,23 @@ export function InvestmentPartnershipsForm({ initialData, onSave, onComplete, is
       investmentProposal: initialData?.investmentProposal || "full",
       investmentType: initialData?.investmentType || "educational",
       investmentTypeOther: initialData?.investmentTypeOther || "",
+      partialSketchFileName: initialData?.partialSketchFileName || "",
+      partialSketchFileUrl: initialData?.partialSketchFileUrl || "",
     },
   });
 
   const hasBlockers = form.watch("hasInvestmentBlockers");
   const investmentType = form.watch("investmentType");
+  const investmentProposal = form.watch("investmentProposal");
+  const partialSketchFileName = form.watch("partialSketchFileName");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      form.setValue("partialSketchFileName", file.name);
+      form.setValue("partialSketchFileUrl", URL.createObjectURL(file));
+    }
+  };
 
   return (
     <Card>
@@ -521,6 +536,42 @@ export function InvestmentPartnershipsForm({ initialData, onSave, onComplete, is
                   </FormItem>
                 )}
               />
+
+              {investmentProposal === "partial" && (
+                <div className="space-y-2 rounded-md border p-4 bg-muted/50">
+                  <FormLabel className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Illustrative Sketch (Required) *
+                  </FormLabel>
+                  <FormDescription>
+                    Upload an illustrative sketch showing the partial investment area
+                  </FormDescription>
+                  {!isReadOnly ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={handleFileChange}
+                        className="flex-1"
+                        data-testid="input-partial-sketch-file"
+                      />
+                      {partialSketchFileName && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          {partialSketchFileName}
+                        </Badge>
+                      )}
+                    </div>
+                  ) : (
+                    partialSketchFileName && (
+                      <Badge variant="secondary" className="flex items-center gap-1 w-fit">
+                        <FileText className="h-3 w-3" />
+                        {partialSketchFileName}
+                      </Badge>
+                    )
+                  )}
+                </div>
+              )}
 
               <FormField
                 control={form.control}
