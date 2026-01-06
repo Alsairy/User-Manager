@@ -27,7 +27,7 @@ export function LanguageToggle() {
           className={language === "ar" ? "bg-accent" : ""}
           data-testid="menu-item-arabic"
         >
-          <span className="me-2">🇸🇦</span>
+          <span className="ltr:mr-2 rtl:ml-2 text-xs font-semibold text-muted-foreground w-6">AR</span>
           {t("arabic")}
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -35,7 +35,7 @@ export function LanguageToggle() {
           className={language === "en" ? "bg-accent" : ""}
           data-testid="menu-item-english"
         >
-          <span className="me-2">🇬🇧</span>
+          <span className="ltr:mr-2 rtl:ml-2 text-xs font-semibold text-muted-foreground w-6">EN</span>
           {t("english")}
         </DropdownMenuItem>
       </DropdownMenuContent>
