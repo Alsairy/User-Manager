@@ -518,6 +518,7 @@ export default function AssetBank() {
                   <TableHead>District</TableHead>
                   <TableHead>Total Area</TableHead>
                   <TableHead>Ownership</TableHead>
+                  <TableHead>Approved ISNAD</TableHead>
                   <TableHead>Investor Visibility</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -526,7 +527,7 @@ export default function AssetBank() {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 8 }).map((_, j) => (
+                      {Array.from({ length: 9 }).map((_, j) => (
                         <TableCell key={j}>
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
@@ -535,7 +536,7 @@ export default function AssetBank() {
                   ))
                 ) : data?.assets.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No completed assets found
                     </TableCell>
                   </TableRow>
@@ -562,6 +563,16 @@ export default function AssetBank() {
                       <TableCell>{asset.totalArea.toLocaleString()} sqm</TableCell>
                       <TableCell className="text-sm">
                         {asset.ownershipType?.replace(/_/g, " ") || "-"}
+                      </TableCell>
+                      <TableCell data-testid={`text-isnad-status-${asset.id}`}>
+                        {asset.hasActiveIsnad ? (
+                          <Badge variant="default" className="bg-emerald-600">
+                            <CheckCircle2 className="mr-1 h-3 w-3" />
+                            Approved
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
