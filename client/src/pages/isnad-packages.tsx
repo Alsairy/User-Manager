@@ -89,6 +89,7 @@ export default function IsnadPackagesPage() {
   const [packageName, setPackageName] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<PackagePriority>("medium");
+  const [durationYears, setDurationYears] = useState<number>(5);
   const [selectedForms, setSelectedForms] = useState<string[]>([]);
 
   const [reviewPackage, setReviewPackage] = useState<IsnadPackageWithDetails | null>(null);
@@ -146,6 +147,7 @@ export default function IsnadPackagesPage() {
         packageName,
         description,
         priority,
+        durationYears,
         formIds: selectedForms,
       });
     },
@@ -227,6 +229,7 @@ export default function IsnadPackagesPage() {
     setPackageName("");
     setDescription("");
     setPriority("medium");
+    setDurationYears(5);
     setSelectedForms([]);
   };
 
@@ -288,6 +291,21 @@ export default function IsnadPackagesPage() {
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Duration (Years)</Label>
+                <Select value={durationYears.toString()} onValueChange={(v) => setDurationYears(parseInt(v))}>
+                  <SelectTrigger data-testid="select-duration">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 20 }, (_, i) => i + 1).map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year} {year === 1 ? "Year" : "Years"}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
