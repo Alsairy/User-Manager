@@ -1,4 +1,5 @@
 import { useLocation, Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
   Users,
@@ -40,146 +41,147 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 
-const mainNavItems = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "User Management",
-    url: "/users",
-    icon: Users,
-  },
-  {
-    title: "Role Management",
-    url: "/roles",
-    icon: Shield,
-  },
-  {
-    title: "Audit Logs",
-    url: "/audit-logs",
-    icon: ClipboardList,
-  },
-];
-
-const assetNavItems = [
-  {
-    title: "Asset Registration",
-    url: "/assets/registrations",
-    icon: FileText,
-  },
-  {
-    title: "Review Queue",
-    url: "/assets/reviews",
-    icon: CheckSquare,
-  },
-  {
-    title: "Asset Bank",
-    url: "/assets/bank",
-    icon: Building2,
-  },
-];
-
-const isnadNavItems = [
-  {
-    title: "ISNAD Requests",
-    url: "/isnad/forms",
-    icon: FileCheck2,
-  },
-  {
-    title: "ISNAD Bank",
-    url: "/isnad/bank",
-    icon: Database,
-  },
-  {
-    title: "ISNAD Packages",
-    url: "/isnad/packages",
-    icon: Package,
-  },
-];
-
-const contractNavItems = [
-  {
-    title: "Contracts",
-    url: "/contracts",
-    icon: FileSignature,
-  },
-  {
-    title: "Installments",
-    url: "/contracts/installments",
-    icon: Wallet,
-  },
-  {
-    title: "Investors",
-    url: "/contracts/investors",
-    icon: UserCircle,
-  },
-  {
-    title: "Dashboard",
-    url: "/contracts/dashboard",
-    icon: BarChart3,
-  },
-];
-
-const portalNavItems = [
-  {
-    title: "Browse Assets",
-    url: "/portal/assets",
-    icon: Grid3X3,
-  },
-  {
-    title: "My Favorites",
-    url: "/portal/favorites",
-    icon: Heart,
-  },
-  {
-    title: "My Interests",
-    url: "/portal/interests",
-    icon: Send,
-  },
-  {
-    title: "Istifada Requests",
-    url: "/portal/istifada",
-    icon: Landmark,
-  },
-];
-
-const crmNavItems = [
-  {
-    title: "CRM Analytics",
-    url: "/crm/dashboard",
-    icon: TrendingUp,
-  },
-  {
-    title: "Investor Records",
-    url: "/crm/investors",
-    icon: UserCheck,
-  },
-  {
-    title: "Interest Pipeline",
-    url: "/crm/interests",
-    icon: Send,
-  },
-];
-
-const settingsItems = [
-  {
-    title: "System Settings",
-    url: "/settings",
-    icon: Settings,
-  },
-];
-
 export function AppSidebar() {
   const [location] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("navigation");
+
+  const mainNavItems = [
+    {
+      titleKey: "dashboard",
+      url: "/",
+      icon: LayoutDashboard,
+    },
+    {
+      titleKey: "userManagement",
+      url: "/users",
+      icon: Users,
+    },
+    {
+      titleKey: "roles",
+      url: "/roles",
+      icon: Shield,
+    },
+    {
+      titleKey: "auditLogs",
+      url: "/audit-logs",
+      icon: ClipboardList,
+    },
+  ];
+
+  const assetNavItems = [
+    {
+      titleKey: "assetRegistration",
+      url: "/assets/registrations",
+      icon: FileText,
+    },
+    {
+      titleKey: "reviewQueue",
+      url: "/assets/reviews",
+      icon: CheckSquare,
+    },
+    {
+      titleKey: "assetsBank",
+      url: "/assets/bank",
+      icon: Building2,
+    },
+  ];
+
+  const isnadNavItems = [
+    {
+      titleKey: "isnadRequests",
+      url: "/isnad/forms",
+      icon: FileCheck2,
+    },
+    {
+      titleKey: "isnadBank",
+      url: "/isnad/bank",
+      icon: Database,
+    },
+    {
+      titleKey: "isnadPackages",
+      url: "/isnad/packages",
+      icon: Package,
+    },
+  ];
+
+  const contractNavItems = [
+    {
+      titleKey: "contracts",
+      url: "/contracts",
+      icon: FileSignature,
+    },
+    {
+      titleKey: "installments",
+      url: "/contracts/installments",
+      icon: Wallet,
+    },
+    {
+      titleKey: "investors",
+      url: "/contracts/investors",
+      icon: UserCircle,
+    },
+    {
+      titleKey: "contractsDashboard",
+      url: "/contracts/dashboard",
+      icon: BarChart3,
+    },
+  ];
+
+  const portalNavItems = [
+    {
+      titleKey: "browseAssets",
+      url: "/portal/assets",
+      icon: Grid3X3,
+    },
+    {
+      titleKey: "myFavorites",
+      url: "/portal/favorites",
+      icon: Heart,
+    },
+    {
+      titleKey: "myInterests",
+      url: "/portal/interests",
+      icon: Send,
+    },
+    {
+      titleKey: "istifadaRequests",
+      url: "/portal/istifada",
+      icon: Landmark,
+    },
+  ];
+
+  const crmNavItems = [
+    {
+      titleKey: "crmAnalytics",
+      url: "/crm/dashboard",
+      icon: TrendingUp,
+    },
+    {
+      titleKey: "investorRecords",
+      url: "/crm/investors",
+      icon: UserCheck,
+    },
+    {
+      titleKey: "interestPipeline",
+      url: "/crm/interests",
+      icon: Send,
+    },
+  ];
+
+  const settingsItems = [
+    {
+      titleKey: "settings",
+      url: "/settings",
+      icon: Settings,
+    },
+  ];
 
   const handleLogout = () => {
     localStorage.removeItem("isLoggedIn");
     toast({
-      title: "Logged out successfully",
-      description: "You have been signed out of your account",
+      title: t("logoutSuccess", { ns: "common", defaultValue: "Logged out successfully" }),
+      description: t("logoutDescription", { ns: "common", defaultValue: "You have been signed out of your account" }),
     });
     window.location.href = "/";
   };
@@ -200,19 +202,19 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs uppercase tracking-wide">
-            Main Menu
+            {t("mainMenu", { defaultValue: "Main Menu" })}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url || (item.url !== "/" && location.startsWith(item.url))}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -222,19 +224,19 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs uppercase tracking-wide">
-            Asset Management
+            {t("assetsManagement", { defaultValue: "Asset Management" })}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {assetNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -244,19 +246,19 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs uppercase tracking-wide">
-            ISNAD Workflow
+            {t("isnadWorkflow", { defaultValue: "ISNAD Workflow" })}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {isnadNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -266,19 +268,19 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs uppercase tracking-wide">
-            Contracts
+            {t("contractManagement", { defaultValue: "Contracts" })}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {contractNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url || (item.url !== "/contracts" && location.startsWith(item.url))}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -288,19 +290,19 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs uppercase tracking-wide">
-            Investor Portal
+            {t("investorPortal", { defaultValue: "Investor Portal" })}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {portalNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -310,19 +312,19 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs uppercase tracking-wide">
-            Investor CRM
+            {t("investorsCrm", { defaultValue: "Investor CRM" })}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {crmNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -332,19 +334,19 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs uppercase tracking-wide">
-            Configuration
+            {t("configuration", { defaultValue: "Configuration" })}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
                   >
-                    <Link href={item.url} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <Link href={item.url} data-testid={`link-nav-${item.titleKey}`}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span>{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -362,7 +364,7 @@ export function AppSidebar() {
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-1 flex-col overflow-hidden">
-            <span className="truncate text-sm font-medium">Platform Admin</span>
+            <span className="truncate text-sm font-medium">{t("platformAdmin", { defaultValue: "Platform Admin" })}</span>
             <span className="truncate text-xs text-muted-foreground">
               admin@madares.sa
             </span>

@@ -7,6 +7,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { NotificationsDropdown } from "@/components/notifications-dropdown";
+import { LanguageProvider } from "@/components/language-provider";
+import { LanguageToggle } from "@/components/language-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
+import "@/i18n/config";
 import LoginPage from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import UsersList from "@/pages/users-list";
@@ -108,33 +112,41 @@ function App() {
   if (!isLoggedIn) {
     return (
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <LoginPage />
-          <Toaster />
-        </TooltipProvider>
+        <LanguageProvider>
+          <TooltipProvider>
+            <LoginPage />
+            <Toaster />
+          </TooltipProvider>
+        </LanguageProvider>
       </QueryClientProvider>
     );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <SidebarProvider style={style as React.CSSProperties}>
-          <div className="flex h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <header className="flex items-center justify-between gap-4 border-b px-4 py-2 bg-background">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <NotificationsDropdown />
-              </header>
-              <main className="flex-1 overflow-auto p-6">
-                <Router />
-              </main>
+      <LanguageProvider>
+        <TooltipProvider>
+          <SidebarProvider style={style as React.CSSProperties}>
+            <div className="flex h-screen w-full">
+              <AppSidebar />
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <header className="flex items-center justify-between gap-4 border-b px-4 py-2 bg-background">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  <div className="flex items-center gap-2">
+                    <LanguageToggle />
+                    <ThemeToggle />
+                    <NotificationsDropdown />
+                  </div>
+                </header>
+                <main className="flex-1 overflow-auto p-6">
+                  <Router />
+                </main>
+              </div>
             </div>
-          </div>
-        </SidebarProvider>
-        <Toaster />
-      </TooltipProvider>
+          </SidebarProvider>
+          <Toaster />
+        </TooltipProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }
