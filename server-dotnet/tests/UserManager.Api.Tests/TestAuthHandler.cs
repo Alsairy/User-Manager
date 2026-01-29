@@ -18,10 +18,18 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        // Check if there's an Authorization header or a test header to skip auth
+        if (!Request.Headers.ContainsKey("Authorization") &&
+            !Request.Headers.ContainsKey("X-Test-Auth"))
+        {
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, "test-user"),
+            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.Name, "Test User"),
+            new Claim(ClaimTypes.Email, "test@example.com"),
             new Claim(ClaimTypes.Role, "Admin")
         };
 

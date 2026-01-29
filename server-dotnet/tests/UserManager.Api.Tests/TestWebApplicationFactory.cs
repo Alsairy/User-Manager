@@ -66,4 +66,19 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             }
         });
     }
+
+    public HttpClient CreateUnauthenticatedClient()
+    {
+        return CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+    }
+
+    public new HttpClient CreateClient()
+    {
+        var client = base.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Test-Auth", "true");
+        return client;
+    }
 }

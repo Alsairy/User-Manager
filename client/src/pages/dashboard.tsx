@@ -1,63 +1,206 @@
-import { useQuery } from '@tanstack/react-query'
-import { useAuth } from '../hooks/use-auth'
-import { apiGet } from '../lib/api'
-import Layout from '../components/layout'
+import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Users, UserCheck, Clock, Shield, Activity } from "lucide-react";
+import type { DashboardStats, AuditLog } from "@shared/schema";
+import { formatDistanceToNow } from "date-fns";
+import { ar, enUS } from "date-fns/locale";
 
-interface DashboardStats {
-  totalUsers: number
-  activeUsers: number
-  totalAssets: number
-  assetsInReview: number
-  totalContracts: number
-  activeContracts: number
-  totalInvestors: number
-  totalIsnadForms: number
-  pendingIsnadForms: number
-  totalContractValue: number
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  description,
+  isLoading,
+}: {
+  title: string;
+  value: number | string;
+  icon: typeof Users;
+  description?: string;
+  isLoading?: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Skeleton className="h-8 w-20" />
+        ) : (
+          <div className="text-2xl font-semibold" data-testid={`stat-${title.toLowerCase().replace(/\s+/g, "-")}`}>
+            {value}
+          </div>
+        )}
+        {description && (
+          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
-export default function DashboardPage() {
-  const { user } = useAuth()
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: () => apiGet<DashboardStats>('/api/v1/dashboard/stats'),
-  })
+function ActivityItem({ log, locale }: { log: AuditLog; locale: string }) {
+  const getActionColor = (actionType: string) => {
+    if (actionType.includes("create")) return "bg-green-500";
+    if (actionType.includes("update")) return "bg-blue-500";
+    if (actionType.includes("delete")) return "bg-red-500";
+    if (actionType.includes("login")) return "bg-purple-500";
+    return "bg-gray-500";
+  };
+
+  const getActionLabel = (actionType: string) => {
+    return actionType
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  const dateLocale = locale === "ar" ? ar : enUS;
 
   return (
-    <Layout>
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
-      <p className="text-gray-600 mb-8">Welcome back, {user?.fullName}</p>
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="bg-white p-6 rounded-lg shadow animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-              <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Users" value={stats?.totalUsers ?? 0} />
-          <StatCard title="Active Users" value={stats?.activeUsers ?? 0} />
-          <StatCard title="Total Assets" value={stats?.totalAssets ?? 0} />
-          <StatCard title="Assets In Review" value={stats?.assetsInReview ?? 0} />
-          <StatCard title="Total Contracts" value={stats?.totalContracts ?? 0} />
-          <StatCard title="Active Contracts" value={stats?.activeContracts ?? 0} />
-          <StatCard title="Total Investors" value={stats?.totalInvestors ?? 0} />
-          <StatCard title="Pending ISNAD Forms" value={stats?.pendingIsnadForms ?? 0} />
-        </div>
-      )}
-    </Layout>
-  )
-}
-
-function StatCard({ title, value }: { title: string; value: number }) {
-  return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <p className="text-sm text-gray-500">{title}</p>
-      <p className="text-2xl font-bold">{value.toLocaleString()}</p>
+    <div className="flex items-start gap-3 py-3">
+      <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${getActionColor(log.actionType)}`} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate text-start">
+          {getActionLabel(log.actionType)}
+        </p>
+        <p className="text-xs text-muted-foreground text-start">
+          {log.entityType} {log.entityId ? `#${log.entityId.slice(0, 8)}` : ""}
+        </p>
+      </div>
+      <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+        {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: dateLocale })}
+      </span>
     </div>
-  )
+  );
+}
+
+export default function Dashboard() {
+  const { t, i18n } = useTranslation(["pages", "common"]);
+  const { data: stats, isLoading } = useQuery<DashboardStats>({
+    queryKey: ["/api/dashboard/stats"],
+  });
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:dashboard.title")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {t("pages:dashboard.overview")}
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title={t("pages:dashboard.totalUsers")}
+          value={stats?.totalUsers ?? 0}
+          icon={Users}
+          description={t("pages:dashboard.registeredInSystem", { defaultValue: "Registered in the system" })}
+          isLoading={isLoading}
+        />
+        <StatCard
+          title={t("pages:dashboard.activeUsers", { defaultValue: "Active Users" })}
+          value={stats?.activeUsers ?? 0}
+          icon={UserCheck}
+          description={t("pages:dashboard.currentlyActive", { defaultValue: "Currently active" })}
+          isLoading={isLoading}
+        />
+        <StatCard
+          title={t("pages:dashboard.pendingActivation", { defaultValue: "Pending Activation" })}
+          value={stats?.pendingUsers ?? 0}
+          icon={Clock}
+          description={t("pages:dashboard.awaitingFirstLogin", { defaultValue: "Awaiting first login" })}
+          isLoading={isLoading}
+        />
+        <StatCard
+          title={t("pages:dashboard.totalRoles", { defaultValue: "Total Roles" })}
+          value={stats?.totalRoles ?? 0}
+          icon={Shield}
+          description={t("pages:dashboard.definedInSystem", { defaultValue: "Defined in the system" })}
+          isLoading={isLoading}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+            <CardTitle className="text-lg font-semibold">{t("pages:dashboard.recentActivity")}</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="h-2 w-2 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                ))}
+              </div>
+            ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
+              <div className="divide-y">
+                {stats.recentActivity.map((log) => (
+                  <ActivityItem key={log.id} log={log} locale={i18n.language} />
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center">
+                <Activity className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {t("pages:dashboard.noRecentActivity", { defaultValue: "No recent activity" })}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold">{t("pages:dashboard.quickActions")}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <a
+              href="/users/create"
+              className="flex items-center gap-3 rounded-md border p-4 hover-elevate"
+              data-testid="link-quick-create-user"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <div className="text-start">
+                <p className="text-sm font-medium">{t("pages:dashboard.createNewUser", { defaultValue: "Create New User" })}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("pages:dashboard.addUserToSystem", { defaultValue: "Add a new user to the system" })}
+                </p>
+              </div>
+            </a>
+            <a
+              href="/roles"
+              className="flex items-center gap-3 rounded-md border p-4 hover-elevate"
+              data-testid="link-quick-manage-roles"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
+              <div className="text-start">
+                <p className="text-sm font-medium">{t("pages:dashboard.manageRoles", { defaultValue: "Manage Roles" })}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("pages:dashboard.configureRolesPermissions", { defaultValue: "Configure roles and permissions" })}
+                </p>
+              </div>
+            </a>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
