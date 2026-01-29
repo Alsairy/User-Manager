@@ -30,3 +30,27 @@ variable "db_tier" {
   type        = string
   default     = "db-custom-2-4096"
 }
+
+variable "github_owner" {
+  description = "GitHub repository owner"
+  type        = string
+  default     = ""
+}
+
+variable "github_repo" {
+  description = "GitHub repository name"
+  type        = string
+  default     = "User-Manager"
+}
+
+variable "domain" {
+  description = "Custom domain for the application"
+  type        = string
+  default     = ""
+}
+
+variable "enable_cloud_build" {
+  description = "Enable Cloud Build triggers"
+  type        = bool
+  default     = false
+}

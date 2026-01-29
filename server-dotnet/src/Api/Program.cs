@@ -1,8 +1,9 @@
 using System.Text;
 using Asp.Versioning;
-using Elsa.Extensions;
 using Elsa.EntityFrameworkCore.Modules.Management;
 using Elsa.EntityFrameworkCore.Modules.Runtime;
+using Elsa.EntityFrameworkCore.SqlServer;
+using Elsa.Extensions;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -15,6 +16,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
@@ -138,7 +140,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwtOptions.Issuer,
             ValidAudience = jwtOptions.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
-            ClockSkew = TimeSpan.FromMinutes(1)
+            ClockSkew = TimeSpan.FromSeconds(5)
         };
     });
 
@@ -162,8 +164,8 @@ builder.Services.AddCors(options =>
             : new[] { "http://localhost:5173" };
 
         policy.WithOrigins(origins)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
+            .WithHeaders("Authorization", "Content-Type", "Accept", "X-Correlation-Id", "X-Requested-With")
+            .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
             .AllowCredentials();
     });
 });
@@ -193,43 +195,84 @@ builder.Services.AddRateLimiter(options =>
         });
     });
 
+    // Auth endpoints use stricter rate limiting (5 attempts per 5 minutes by default)
+    var authWindowSeconds = rateLimitSection.GetValue("AuthWindowSeconds", 300);
     options.AddPolicy("auth", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
+        RateLimitPartition.GetSlidingWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? $"unknown:{Guid.NewGuid()}",
+            _ => new SlidingWindowRateLimiterOptions
             {
                 PermitLimit = authPermitLimit,
-                Window = TimeSpan.FromSeconds(windowSeconds),
-                QueueLimit = queueLimit,
+                Window = TimeSpan.FromSeconds(authWindowSeconds),
+                SegmentsPerWindow = 5,
+                QueueLimit = 0,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             }));
 });
 
 var serviceName = "UserManager.Api";
+var serviceVersion = "1.0.0";
+var otlpEndpoint = builder.Configuration["OpenTelemetry:OtlpEndpoint"];
+
 builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(serviceName, serviceVersion: serviceVersion)
+        .AddAttributes(new Dictionary<string, object>
+        {
+            ["environment"] = builder.Environment.EnvironmentName,
+            ["host.name"] = Environment.MachineName
+        }))
     .WithTracing(tracing =>
     {
-        tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))
-            .AddAspNetCoreInstrumentation()
-            .AddHttpClientInstrumentation()
-            .AddOtlpExporter();
+        tracing
+            .AddAspNetCoreInstrumentation(options =>
+            {
+                options.RecordException = true;
+                options.Filter = context =>
+                    !context.Request.Path.StartsWithSegments("/health") &&
+                    !context.Request.Path.StartsWithSegments("/swagger");
+            })
+            .AddHttpClientInstrumentation(options =>
+            {
+                options.RecordException = true;
+            })
+            .AddSqlClientInstrumentation(options =>
+            {
+                options.RecordException = true;
+            });
+
+        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+        {
+            tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+        }
     })
     .WithMetrics(metrics =>
     {
-        metrics.AddMeter(serviceName);
+        metrics
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddMeter(serviceName);
+
+        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+        {
+            metrics.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+        }
     });
 
+var redisHealthConnection = builder.Configuration.GetConnectionString("Redis");
 builder.Services.AddHealthChecks()
-    .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" });
+    .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" })
+    .AddRedis(
+        redisHealthConnection ?? "localhost:6379",
+        name: "redis",
+        tags: new[] { "ready" },
+        timeout: TimeSpan.FromSeconds(5));
 
 var elsaConnection = builder.Configuration.GetConnectionString("Elsa");
-if (!builder.Environment.IsEnvironment("Testing"))
+var skipElsa = builder.Configuration.GetValue<bool>("SkipElsa", false);
+if (!builder.Environment.IsEnvironment("Testing") && !skipElsa && !string.IsNullOrWhiteSpace(elsaConnection))
 {
-    if (string.IsNullOrWhiteSpace(elsaConnection))
-    {
-        throw new InvalidOperationException("ConnectionStrings:Elsa is required.");
-    }
-
     builder.Services.AddDbContext<ManagementElsaDbContext>(options =>
     {
         options.UseSqlServer(elsaConnection);
@@ -242,11 +285,19 @@ if (!builder.Environment.IsEnvironment("Testing"))
     {
         elsa.UseWorkflowManagement(management =>
         {
-            management.UseEntityFrameworkCore(_ => { });
+            management.UseEntityFrameworkCore(ef =>
+            {
+                ef.DbContextOptionsBuilder = (_, db) => db.UseSqlServer(elsaConnection);
+                ef.RunMigrations = true;
+            });
         });
         elsa.UseWorkflowRuntime(runtime =>
         {
-            runtime.UseEntityFrameworkCore(_ => { });
+            runtime.UseEntityFrameworkCore(ef =>
+            {
+                ef.DbContextOptionsBuilder = (_, db) => db.UseSqlServer(elsaConnection);
+                ef.RunMigrations = true;
+            });
         });
         elsa.AddWorkflow<AssetRegistrationWorkflow>();
         elsa.AddWorkflow<IsnadWorkflow>();

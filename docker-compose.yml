@@ -43,8 +43,9 @@ services:
       Cors__AllowedOrigins__0: ${CORS_ORIGIN:-http://localhost:5173}
       Email__SendGridApiKey: ${SENDGRID_API_KEY:-}
       Email__Enabled: ${EMAIL_ENABLED:-false}
+      SkipElsa: ${SKIP_ELSA:-true}
     ports:
-      - "5000:5000"
+      - "5050:5050"
     depends_on:
       db:
         condition: service_healthy

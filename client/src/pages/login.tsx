@@ -20,24 +20,39 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      if (email === "admin@madares.sa" && password === "admin123") {
-        localStorage.setItem("isLoggedIn", "true");
-        toast({
-          title: t("common:loginSuccessful"),
-          description: t("common:welcomeMessage"),
-        });
-        setLocation("/");
-        window.location.reload();
-      } else {
-        toast({
-          title: t("common:loginFailed"),
-          description: t("common:invalidCredentials"),
-          variant: "destructive",
-        });
+    try {
+      const response = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Email: email, Password: password }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ title: 'Login failed' }));
+        throw new Error(error.title || 'Invalid credentials');
       }
+
+      const data = await response.json();
+      // Store tokens (API returns PascalCase)
+      sessionStorage.setItem('access_token', data.AccessToken);
+      sessionStorage.setItem('refresh_token', data.RefreshToken);
+      localStorage.setItem("isLoggedIn", "true");
+
+      toast({
+        title: t("common:loginSuccessful"),
+        description: t("common:welcomeMessage"),
+      });
+      setLocation("/");
+      window.location.reload();
+    } catch (err) {
+      toast({
+        title: t("common:loginFailed"),
+        description: err instanceof Error ? err.message : t("common:invalidCredentials"),
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleOneTimePassword = () => {
@@ -162,7 +177,7 @@ export default function LoginPage() {
 
             <div className="p-4 rounded-xl bg-gray-50 dark:bg-muted">
               <p className="text-sm text-gray-500 dark:text-muted-foreground text-center">
-                {t("common:demoCredentials")}: admin@madares.sa / admin123
+                {t("common:demoCredentials")}: admin@madares.sa / Admin123!
               </p>
             </div>
           </div>

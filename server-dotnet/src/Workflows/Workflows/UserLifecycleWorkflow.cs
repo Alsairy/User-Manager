@@ -1,6 +1,8 @@
 using Elsa.Extensions;
 using Elsa.Workflows;
 using Elsa.Workflows.Activities;
+using UserManager.Domain.Enums;
+using UserManager.Workflows.Activities;
 
 namespace UserManager.Workflows.Workflows;
 
@@ -26,10 +28,9 @@ public class UserLifecycleWorkflow : WorkflowBase
                 new SetVariable<string>(email, context => context.GetInput<string>("Email") ?? ""),
                 new SetVariable<string>(action, context => context.GetInput<string>("Action") ?? "created"),
 
-                new WriteLine(context => $"User: {email.Get(context)}"),
-                new WriteLine(context => $"Action: {action.Get(context)}"),
+                new WriteLine(context => $"User: {email.Get(context)}, Action: {action.Get(context)}"),
 
-                // Action: created
+                // Action: User created - send invitation email
                 new If
                 {
                     Condition = new(context => action.Get(context) == "created"),
@@ -38,13 +39,33 @@ public class UserLifecycleWorkflow : WorkflowBase
                         Activities =
                         {
                             new WriteLine("User created with Pending status"),
-                            new WriteLine("Sending invitation email"),
-                            new WriteLine("Awaiting user activation")
+                            new SendEmailActivity
+                            {
+                                To = new(context => email.Get(context)),
+                                Subject = new("Welcome to Madares Business Platform"),
+                                Body = new(context => $@"
+                                    <h2>Welcome to Madares Business Platform</h2>
+                                    <p>Your account has been created.</p>
+                                    <p>Please click the link below to activate your account and set your password.</p>
+                                    <p><a href='https://madares.sa/activate?email={email.Get(context)}'>Activate Account</a></p>
+                                    <p>If you did not request this account, please ignore this email.</p>
+                                    <br/>
+                                    <p>Best regards,<br/>Madares Business Platform</p>
+                                ")
+                            },
+                            new SendNotificationActivity
+                            {
+                                UserId = new(context => userId.Get(context)),
+                                Type = new("info"),
+                                Title = new("Welcome to Madares Business Platform"),
+                                Message = new("Your account has been created. Please check your email for activation instructions.")
+                            },
+                            new WriteLine("Invitation email sent")
                         }
                     }
                 },
 
-                // Action: activated
+                // Action: User activated
                 new If
                 {
                     Condition = new(context => action.Get(context) == "activated"),
@@ -52,14 +73,19 @@ public class UserLifecycleWorkflow : WorkflowBase
                     {
                         Activities =
                         {
-                            new WriteLine("User activated"),
-                            new WriteLine("Status changed to Active"),
-                            new WriteLine("User can now access the system")
+                            new WriteLine("Activating user account"),
+                            new UpdateUserStatusActivity
+                            {
+                                UserId = new(context => userId.Get(context)),
+                                NewStatus = new(UserStatus.Active),
+                                SendEmail = new(true)
+                            },
+                            new WriteLine("User activated")
                         }
                     }
                 },
 
-                // Action: deactivated
+                // Action: User deactivated
                 new If
                 {
                     Condition = new(context => action.Get(context) == "deactivated"),
@@ -67,15 +93,19 @@ public class UserLifecycleWorkflow : WorkflowBase
                     {
                         Activities =
                         {
-                            new WriteLine("User deactivated by admin"),
-                            new WriteLine("Status changed to Inactive"),
-                            new WriteLine("Sending deactivation notification"),
-                            new WriteLine("Revoking active sessions")
+                            new WriteLine("Deactivating user account"),
+                            new UpdateUserStatusActivity
+                            {
+                                UserId = new(context => userId.Get(context)),
+                                NewStatus = new(UserStatus.Inactive),
+                                SendEmail = new(true)
+                            },
+                            new WriteLine("User deactivated")
                         }
                     }
                 },
 
-                // Action: reactivated
+                // Action: User reactivated
                 new If
                 {
                     Condition = new(context => action.Get(context) == "reactivated"),
@@ -83,9 +113,41 @@ public class UserLifecycleWorkflow : WorkflowBase
                     {
                         Activities =
                         {
-                            new WriteLine("User reactivated"),
-                            new WriteLine("Status changed back to Active"),
-                            new WriteLine("Sending reactivation notification")
+                            new WriteLine("Reactivating user account"),
+                            new UpdateUserStatusActivity
+                            {
+                                UserId = new(context => userId.Get(context)),
+                                NewStatus = new(UserStatus.Active),
+                                SendEmail = new(true)
+                            },
+                            new WriteLine("User reactivated")
+                        }
+                    }
+                },
+
+                // Action: Resend invitation
+                new If
+                {
+                    Condition = new(context => action.Get(context) == "resend_invitation"),
+                    Then = new Sequence
+                    {
+                        Activities =
+                        {
+                            new WriteLine("Resending invitation email"),
+                            new SendEmailActivity
+                            {
+                                To = new(context => email.Get(context)),
+                                Subject = new("Reminder: Activate Your Madares Business Account"),
+                                Body = new(context => $@"
+                                    <h2>Reminder: Account Activation</h2>
+                                    <p>We noticed you haven't activated your account yet.</p>
+                                    <p>Please click the link below to activate your account:</p>
+                                    <p><a href='https://madares.sa/activate?email={email.Get(context)}'>Activate Account</a></p>
+                                    <br/>
+                                    <p>Best regards,<br/>Madares Business Platform</p>
+                                ")
+                            },
+                            new WriteLine("Invitation email resent")
                         }
                     }
                 },

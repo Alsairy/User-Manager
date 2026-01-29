@@ -1,5 +1,18 @@
+# GCP Project Configuration
 project_id   = "your-gcp-project-id"
 project_name = "user-manager"
-region       = "me-central1"
-environment  = "staging"
-db_tier      = "db-custom-2-4096"
+region       = "me-central1"  # Middle East (Qatar)
+
+# Environment (staging or production)
+environment = "staging"
+
+# Database Configuration
+db_tier = "db-custom-2-4096"  # 2 vCPU, 4GB RAM
+
+# GitHub Configuration (for Cloud Build triggers)
+enable_cloud_build = false
+github_owner       = "your-github-username"
+github_repo        = "User-Manager"
+
+# Custom Domain (optional)
+domain = ""

@@ -32,8 +32,9 @@ export async function login(email: string, password: string): Promise<{ accessTo
   }
 
   const data = await response.json()
-  setTokens(data.accessToken, data.refreshToken)
-  return data
+  // API returns PascalCase: AccessToken, RefreshToken
+  setTokens(data.AccessToken, data.RefreshToken)
+  return { accessToken: data.AccessToken, refreshToken: data.RefreshToken }
 }
 
 export async function logout(): Promise<void> {
@@ -69,8 +70,9 @@ export async function refreshAccessToken(): Promise<string | null> {
     }
 
     const data = await response.json()
-    setTokens(data.accessToken, data.refreshToken)
-    return data.accessToken
+    // API returns PascalCase: AccessToken, RefreshToken
+    setTokens(data.AccessToken, data.RefreshToken)
+    return data.AccessToken
   } catch {
     clearTokens()
     return null

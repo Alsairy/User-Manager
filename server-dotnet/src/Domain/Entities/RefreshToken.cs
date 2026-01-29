@@ -13,4 +13,7 @@ public class RefreshToken : EntityBase
     public string? ReplacedByToken { get; set; }
     public string? CreatedByIp { get; set; }
     public string? RevokedByIp { get; set; }
+    public string? ReasonRevoked { get; set; }
+
+    public bool IsActive => RevokedAt == null && ExpiresAt > DateTimeOffset.UtcNow;
 }

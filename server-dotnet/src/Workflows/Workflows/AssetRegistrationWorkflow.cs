@@ -1,6 +1,8 @@
 using Elsa.Extensions;
 using Elsa.Workflows;
 using Elsa.Workflows.Activities;
+using UserManager.Domain.Enums;
+using UserManager.Workflows.Activities;
 
 namespace UserManager.Workflows.Workflows;
 
@@ -11,6 +13,7 @@ public class AssetRegistrationWorkflow : WorkflowBase
         var assetId = builder.WithVariable<Guid>();
         var assetCode = builder.WithVariable<string>();
         var action = builder.WithVariable<string>();
+        var reason = builder.WithVariable<string>();
 
         builder.Root = new Sequence
         {
@@ -19,11 +22,10 @@ public class AssetRegistrationWorkflow : WorkflowBase
                 new WriteLine("Asset Registration Workflow Started"),
                 new SetVariable<Guid>(assetId, context => context.GetInput<Guid>("AssetId")),
                 new SetVariable<string>(assetCode, context => context.GetInput<string>("AssetCode") ?? ""),
-                new WriteLine(context => $"Processing asset: {assetCode.Get(context)}"),
-
-                // Wait for review action
-                new WriteLine("Asset submitted for review - awaiting reviewer action"),
                 new SetVariable<string>(action, context => context.GetInput<string>("Action") ?? "pending"),
+                new SetVariable<string>(reason, context => context.GetInput<string>("Reason") ?? ""),
+
+                new WriteLine(context => $"Processing asset: {assetCode.Get(context)}, Action: {action.Get(context)}"),
 
                 // Handle approve action
                 new If
@@ -33,9 +35,15 @@ public class AssetRegistrationWorkflow : WorkflowBase
                     {
                         Activities =
                         {
-                            new WriteLine(context => $"Asset {assetCode.Get(context)} APPROVED"),
-                            new WriteLine("Setting status to Completed, notifying creator"),
-                            new WriteLine("Asset is now visible to investors")
+                            new WriteLine(context => $"Approving asset {assetCode.Get(context)}"),
+                            new UpdateAssetStatusActivity
+                            {
+                                AssetId = new(context => assetId.Get(context)),
+                                NewStatus = new(AssetStatus.Completed),
+                                Reason = new(context => reason.Get(context)),
+                                SetVisibleToInvestors = new(true)
+                            },
+                            new WriteLine("Asset approved and visible to investors")
                         }
                     }
                 },
@@ -48,8 +56,15 @@ public class AssetRegistrationWorkflow : WorkflowBase
                     {
                         Activities =
                         {
-                            new WriteLine(context => $"Asset {assetCode.Get(context)} REJECTED"),
-                            new WriteLine("Setting status to Rejected, notifying creator with reason")
+                            new WriteLine(context => $"Rejecting asset {assetCode.Get(context)}"),
+                            new UpdateAssetStatusActivity
+                            {
+                                AssetId = new(context => assetId.Get(context)),
+                                NewStatus = new(AssetStatus.Rejected),
+                                Reason = new(context => reason.Get(context)),
+                                SetVisibleToInvestors = new(false)
+                            },
+                            new WriteLine("Asset rejected")
                         }
                     }
                 },
@@ -62,18 +77,54 @@ public class AssetRegistrationWorkflow : WorkflowBase
                     {
                         Activities =
                         {
-                            new WriteLine(context => $"Asset {assetCode.Get(context)} returned for changes"),
-                            new WriteLine("Returning to Draft, incrementing return count"),
-                            new WriteLine("Notifying creator to make changes")
+                            new WriteLine(context => $"Returning asset {assetCode.Get(context)} for changes"),
+                            new UpdateAssetStatusActivity
+                            {
+                                AssetId = new(context => assetId.Get(context)),
+                                NewStatus = new(AssetStatus.Draft),
+                                Reason = new(context => reason.Get(context)),
+                                SetVisibleToInvestors = new(false)
+                            },
+                            new WriteLine("Asset returned to draft for changes")
                         }
                     }
                 },
 
-                // Handle pending (default) action
+                // Handle submit action (move to InReview)
+                new If
+                {
+                    Condition = new(context => action.Get(context) == "submit"),
+                    Then = new Sequence
+                    {
+                        Activities =
+                        {
+                            new WriteLine(context => $"Submitting asset {assetCode.Get(context)} for review"),
+                            new UpdateAssetStatusActivity
+                            {
+                                AssetId = new(context => assetId.Get(context)),
+                                NewStatus = new(AssetStatus.InReview),
+                                Reason = new(context => null as string),
+                                SetVisibleToInvestors = new(false)
+                            },
+                            new SendNotificationActivity
+                            {
+                                RoleName = new("AssetManager"),
+                                Type = new("info"),
+                                Title = new("New Asset for Review"),
+                                Message = new(context => $"Asset '{assetCode.Get(context)}' has been submitted for review."),
+                                EntityType = new("Asset"),
+                                EntityId = new(context => assetId.Get(context))
+                            },
+                            new WriteLine("Asset submitted for review")
+                        }
+                    }
+                },
+
+                // Handle pending (no action yet)
                 new If
                 {
                     Condition = new(context => action.Get(context) == "pending" || string.IsNullOrEmpty(action.Get(context))),
-                    Then = new WriteLine("Asset is pending review")
+                    Then = new WriteLine("Asset is pending review - no action taken")
                 },
 
                 new WriteLine("Asset Registration Workflow Completed")

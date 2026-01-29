@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddHostedService<SeedDataHostedService>();
         services.AddScoped<IEmailService, SendGridEmailService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddSingleton<IMetricsService, MetricsService>();
         services.AddHostedService<ScheduledTasksService>();
 
         var redisConnection = configuration.GetConnectionString("Redis");
@@ -53,7 +54,15 @@ public static class DependencyInjection
             services.AddStackExchangeRedisCache(options =>
             {
                 options.Configuration = redisConnection;
+                options.InstanceName = "UserManager:";
             });
+            services.AddScoped<ICacheService, RedisCacheService>();
+        }
+        else
+        {
+            // Fallback to in-memory cache when Redis is not configured
+            services.AddDistributedMemoryCache();
+            services.AddScoped<ICacheService, InMemoryCacheService>();
         }
 
         return services;

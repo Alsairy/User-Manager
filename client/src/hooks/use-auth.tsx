@@ -9,6 +9,14 @@ interface User {
   roles: string[]
 }
 
+// API returns PascalCase
+interface ApiUser {
+  Id: string
+  Email: string
+  FullName: string
+  Roles: string[]
+}
+
 interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
@@ -25,8 +33,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = useCallback(async () => {
     try {
-      const userData = await apiGet<User>('/api/v1/auth/me')
-      setUser(userData)
+      const apiUser = await apiGet<ApiUser>('/api/v1/auth/me')
+      // Map PascalCase API response to camelCase
+      setUser({
+        id: apiUser.Id,
+        email: apiUser.Email,
+        fullName: apiUser.FullName,
+        roles: apiUser.Roles
+      })
     } catch {
       setUser(null)
     }

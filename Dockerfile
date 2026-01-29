@@ -15,9 +15,9 @@ COPY --from=build /app/publish .
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:5000/health/live || exit 1
+  CMD curl -f http://localhost:5050/health/live || exit 1
 
 USER appuser
-ENV ASPNETCORE_URLS=http://+:5000
-EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5050
+EXPOSE 5050
 ENTRYPOINT ["dotnet", "UserManager.Api.dll"]

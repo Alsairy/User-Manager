@@ -1,11 +1,14 @@
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserManager.Api.Authorization;
 using UserManager.Api.Models.Users;
+using UserManager.Application.Commands;
 using UserManager.Application.Interfaces;
+using UserManager.Application.Queries;
 using UserManager.Domain.Entities;
-using UserManager.Domain.Enums;
+using PagedResult = UserManager.Application.Queries.PagedResult<UserManager.Api.Models.Users.UserResponse>;
 
 namespace UserManager.Api.Controllers;
 
@@ -14,74 +17,93 @@ namespace UserManager.Api.Controllers;
 [Authorize]
 public class UsersController : ControllerBase
 {
+    private readonly IMediator _mediator;
     private readonly IAppDbContext _dbContext;
-    private readonly IPasswordHasher _passwordHasher;
 
-    public UsersController(IAppDbContext dbContext, IPasswordHasher passwordHasher)
+    public UsersController(IMediator mediator, IAppDbContext dbContext)
     {
+        _mediator = mediator;
         _dbContext = dbContext;
-        _passwordHasher = passwordHasher;
     }
 
     [HttpGet]
     [HasPermission("users:read")]
-    public async Task<ActionResult<IReadOnlyList<UserResponse>>> List(CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResult<UserResponse>>> List(
+        [FromQuery] int page = 1,
+        [FromQuery] int limit = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] string? status = null,
+        CancellationToken cancellationToken = default)
     {
-        var users = await _dbContext.Users
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
-            .OrderBy(u => u.Email)
-            .ToListAsync(cancellationToken);
-
-        var result = users.Select(MapUser).ToList();
-        return Ok(result);
+        var result = await _mediator.Send(new GetUsersListQuery(page, limit, search, status), cancellationToken);
+        var items = result.Data.Select(u => new UserResponse(
+            u.Id, u.Email, u.FullName, u.Status, u.Roles, false, null, 0)).ToList();
+        return Ok(new PagedResult<UserResponse>(items, result.Total, result.Page, result.Limit));
     }
 
     [HttpGet("{id:guid}")]
     [HasPermission("users:read")]
     public async Task<ActionResult<UserResponse>> Get(Guid id, CancellationToken cancellationToken)
     {
-        var user = await _dbContext.Users
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
-
-        if (user is null)
+        var result = await _mediator.Send(new GetUserByIdQuery(id), cancellationToken);
+        if (result is null)
         {
             return NotFound();
         }
 
-        return Ok(MapUser(user));
+        return Ok(MapFromResult(result));
     }
 
     [HttpPost]
     [HasPermission("users:create")]
     public async Task<ActionResult<UserResponse>> Create([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
-        var roleName = string.IsNullOrWhiteSpace(request.Role) ? "User" : request.Role.Trim();
-        var role = await _dbContext.Roles.FirstOrDefaultAsync(r => r.Name == roleName, cancellationToken)
-                   ?? new Role { Name = roleName };
+        var command = new CreateUserCommand(
+            request.Email.Trim(),
+            request.FullName.Trim(),
+            request.Password,
+            request.Role);
 
-        var user = new User
-        {
-            Email = request.Email.Trim(),
-            FullName = request.FullName.Trim(),
-            Status = UserStatus.Active,
-            PasswordHash = _passwordHasher.Hash(request.Password)
-        };
+        var userId = await _mediator.Send(command, cancellationToken);
 
-        user.UserRoles.Add(new UserRole { User = user, Role = role });
-
-        await _dbContext.Users.AddAsync(user, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return CreatedAtAction(nameof(Get), new { id = user.Id }, MapUser(user));
+        var user = await _mediator.Send(new GetUserByIdQuery(userId), cancellationToken);
+        return CreatedAtAction(nameof(Get), new { id = userId }, MapFromResult(user!));
     }
 
     [HttpPut("{id:guid}")]
     [HasPermission("users:update")]
     public async Task<ActionResult<UserResponse>> Update(Guid id, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
     {
+        var command = new UpdateUserCommand(id, request.FullName, request.Status);
+        var success = await _mediator.Send(command, cancellationToken);
+
+        if (!success)
+        {
+            return NotFound();
+        }
+
+        var user = await _mediator.Send(new GetUserByIdQuery(id), cancellationToken);
+        return Ok(MapFromResult(user!));
+    }
+
+    [HttpDelete("{id:guid}")]
+    [HasPermission("users:delete")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var success = await _mediator.Send(new DeleteUserCommand(id), cancellationToken);
+        if (!success)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/unlock")]
+    [HasPermission("users:update")]
+    public async Task<ActionResult<UserResponse>> Unlock(Guid id, CancellationToken cancellationToken)
+    {
+        // Unlock still uses direct DbContext for the specific unlock operation
         var user = await _dbContext.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
@@ -92,39 +114,37 @@ public class UsersController : ControllerBase
             return NotFound();
         }
 
-        if (!string.IsNullOrWhiteSpace(request.FullName))
-        {
-            user.FullName = request.FullName.Trim();
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.Status) &&
-            Enum.TryParse<UserStatus>(request.Status, true, out var status))
-        {
-            user.Status = status;
-        }
-
+        user.ResetFailedLoginAttempts();
         await _dbContext.SaveChangesAsync(cancellationToken);
+
         return Ok(MapUser(user));
     }
 
-    [HttpDelete("{id:guid}")]
-    [HasPermission("users:delete")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    private static UserResponse MapFromResult(UserResult result)
     {
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
-        if (user is null)
-        {
-            return NotFound();
-        }
-
-        _dbContext.Users.Remove(user);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        return NoContent();
+        return new UserResponse(
+            result.Id,
+            result.Email,
+            result.FullName,
+            result.Status,
+            result.Roles,
+            result.IsLockedOut,
+            result.LockoutEndAt,
+            result.FailedLoginAttempts);
     }
 
     private static UserResponse MapUser(User user)
     {
         var roles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
-        return new UserResponse(user.Id, user.Email, user.FullName, user.Status.ToString(), roles);
+        var isLockedOut = user.IsLockedOut(DateTimeOffset.UtcNow);
+        return new UserResponse(
+            user.Id,
+            user.Email,
+            user.FullName,
+            user.Status.ToString(),
+            roles,
+            isLockedOut,
+            user.LockoutEndAt,
+            user.FailedLoginAttempts);
     }
 }

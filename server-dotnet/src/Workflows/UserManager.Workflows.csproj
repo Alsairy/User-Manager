@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\UserManager.Application.csproj" />
     <ProjectReference Include="..\Domain\UserManager.Domain.csproj" />
+    <ProjectReference Include="..\Infrastructure\UserManager.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,32 +1,21 @@
 using Elsa.Extensions;
 using Elsa.Workflows;
 using Elsa.Workflows.Activities;
+using UserManager.Domain.Enums;
+using UserManager.Workflows.Activities;
 
 namespace UserManager.Workflows.Workflows;
 
 public class IsnadWorkflow : WorkflowBase
 {
-    // ISNAD 12-Stage Government Approval Process
-    private static readonly string[] Stages = new[]
-    {
-        "draft",
-        "pending_verification",
-        "verification_due",
-        "changes_requested",
-        "verified_filled",
-        "investment_agency_review",
-        "in_package",
-        "pending_ceo",
-        "pending_minister",
-        "approved"
-    };
-
     protected override void Build(IWorkflowBuilder builder)
     {
         var formId = builder.WithVariable<Guid>();
         var referenceNumber = builder.WithVariable<string>();
         var currentStage = builder.WithVariable<string>();
         var action = builder.WithVariable<string>();
+        var reason = builder.WithVariable<string>();
+        var performedBy = builder.WithVariable<string>();
 
         builder.Root = new Sequence
         {
@@ -37,148 +26,153 @@ public class IsnadWorkflow : WorkflowBase
                 new SetVariable<string>(referenceNumber, context => context.GetInput<string>("ReferenceNumber") ?? ""),
                 new SetVariable<string>(currentStage, context => context.GetInput<string>("CurrentStage") ?? "draft"),
                 new SetVariable<string>(action, context => context.GetInput<string>("Action") ?? "advance"),
+                new SetVariable<string>(reason, context => context.GetInput<string>("Reason") ?? ""),
+                new SetVariable<string>(performedBy, context => context.GetInput<string>("PerformedBy") ?? "workflow"),
 
-                new WriteLine(context => $"ISNAD Form: {referenceNumber.Get(context)}"),
-                new WriteLine(context => $"Current Stage: {currentStage.Get(context)}"),
+                new WriteLine(context => $"ISNAD Form: {referenceNumber.Get(context)}, Stage: {currentStage.Get(context)}, Action: {action.Get(context)}"),
 
-                // Stage: DRAFT
+                // Action: Submit (Draft -> PendingVerification)
                 new If
                 {
-                    Condition = new(context => currentStage.Get(context) == "draft"),
+                    Condition = new(context => action.Get(context) == "submit" && currentStage.Get(context) == "draft"),
                     Then = new Sequence
                     {
                         Activities =
                         {
-                            new WriteLine("Stage: DRAFT - Form being prepared"),
-                            new WriteLine("Awaiting submission to verification")
+                            new WriteLine("Submitting ISNAD form for verification"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.PendingVerification),
+                                Reason = new(context => null as string),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
                         }
                     }
                 },
 
-                // Stage: PENDING VERIFICATION
+                // Action: Verify (PendingVerification -> VerifiedFilled)
                 new If
                 {
-                    Condition = new(context => currentStage.Get(context) == "pending_verification"),
+                    Condition = new(context => action.Get(context) == "verify" &&
+                        (currentStage.Get(context) == "pending_verification" || currentStage.Get(context) == "verification_due")),
                     Then = new Sequence
                     {
                         Activities =
                         {
-                            new WriteLine("Stage: PENDING VERIFICATION"),
-                            new WriteLine("Assigned to School Planning department"),
-                            new WriteLine("SLA: 5 business days")
+                            new WriteLine("Verifying ISNAD form"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.VerifiedFilled),
+                                Reason = new(context => null as string),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
                         }
                     }
                 },
 
-                // Stage: VERIFICATION DUE
+                // Action: Send to Agency Review (VerifiedFilled -> InvestmentAgencyReview)
                 new If
                 {
-                    Condition = new(context => currentStage.Get(context) == "verification_due"),
+                    Condition = new(context => action.Get(context) == "send_to_agency" && currentStage.Get(context) == "verified_filled"),
                     Then = new Sequence
                     {
                         Activities =
                         {
-                            new WriteLine("Stage: VERIFICATION DUE"),
-                            new WriteLine("Verification deadline approaching"),
-                            new WriteLine("Escalation may be triggered")
+                            new WriteLine("Sending to Investment Agency for review"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.InvestmentAgencyReview),
+                                Reason = new(context => null as string),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
                         }
                     }
                 },
 
-                // Stage: VERIFIED & FILLED
+                // Action: Add to Package (InvestmentAgencyReview -> InPackage)
                 new If
                 {
-                    Condition = new(context => currentStage.Get(context) == "verified_filled"),
+                    Condition = new(context => action.Get(context) == "add_to_package" && currentStage.Get(context) == "investment_agency_review"),
                     Then = new Sequence
                     {
                         Activities =
                         {
-                            new WriteLine("Stage: VERIFIED & FILLED"),
-                            new WriteLine("Ready for Investment Agency review")
+                            new WriteLine("Adding to approval package"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.InPackage),
+                                Reason = new(context => null as string),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
                         }
                     }
                 },
 
-                // Stage: INVESTMENT AGENCY REVIEW
+                // Action: Send to CEO (InPackage -> PendingCeo)
                 new If
                 {
-                    Condition = new(context => currentStage.Get(context) == "investment_agency_review"),
+                    Condition = new(context => action.Get(context) == "send_to_ceo" && currentStage.Get(context) == "in_package"),
                     Then = new Sequence
                     {
                         Activities =
                         {
-                            new WriteLine("Stage: INVESTMENT AGENCY REVIEW"),
-                            new WriteLine("Asset Manager reviewing for packaging")
+                            new WriteLine("Submitting package to CEO"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.PendingCeo),
+                                Reason = new(context => null as string),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
                         }
                     }
                 },
 
-                // Stage: IN PACKAGE
+                // Action: CEO Approve (PendingCeo -> PendingMinister)
                 new If
                 {
-                    Condition = new(context => currentStage.Get(context) == "in_package"),
+                    Condition = new(context => action.Get(context) == "ceo_approve" && currentStage.Get(context) == "pending_ceo"),
                     Then = new Sequence
                     {
                         Activities =
                         {
-                            new WriteLine("Stage: IN PACKAGE"),
-                            new WriteLine("Form included in approval package"),
-                            new WriteLine("Awaiting CEO/Minister batch review")
+                            new WriteLine("CEO approved - sending to Minister"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.PendingMinister),
+                                Reason = new(context => null as string),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
                         }
                     }
                 },
 
-                // Stage: PENDING CEO APPROVAL
+                // Action: Minister Approve (PendingMinister -> Approved)
                 new If
                 {
-                    Condition = new(context => currentStage.Get(context) == "pending_ceo"),
+                    Condition = new(context => action.Get(context) == "minister_approve" && currentStage.Get(context) == "pending_minister"),
                     Then = new Sequence
                     {
                         Activities =
                         {
-                            new WriteLine("Stage: PENDING CEO APPROVAL"),
-                            new WriteLine("Package submitted to CEO")
+                            new WriteLine("Minister approved - ISNAD complete"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.Approved),
+                                Reason = new(context => null as string),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
                         }
                     }
                 },
 
-                // Stage: PENDING MINISTER APPROVAL
-                new If
-                {
-                    Condition = new(context => currentStage.Get(context) == "pending_minister"),
-                    Then = new Sequence
-                    {
-                        Activities =
-                        {
-                            new WriteLine("Stage: PENDING MINISTER APPROVAL"),
-                            new WriteLine("Final approval stage")
-                        }
-                    }
-                },
-
-                // Stage: APPROVED
-                new If
-                {
-                    Condition = new(context => currentStage.Get(context) == "approved"),
-                    Then = new Sequence
-                    {
-                        Activities =
-                        {
-                            new WriteLine("Stage: APPROVED"),
-                            new WriteLine("ISNAD form fully approved"),
-                            new WriteLine("Contract can now be created")
-                        }
-                    }
-                },
-
-                // Handle actions: advance
-                new If
-                {
-                    Condition = new(context => action.Get(context) == "advance"),
-                    Then = new WriteLine("Action: Advancing to next stage")
-                },
-
-                // Handle actions: return
+                // Action: Return for Changes (any stage -> ChangesRequested)
                 new If
                 {
                     Condition = new(context => action.Get(context) == "return"),
@@ -186,25 +180,76 @@ public class IsnadWorkflow : WorkflowBase
                     {
                         Activities =
                         {
-                            new WriteLine("Action: Returning for changes"),
-                            new WriteLine("Incrementing return count"),
-                            new WriteLine("Notifying submitter")
+                            new WriteLine(context => $"Returning form for changes: {reason.Get(context)}"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.ChangesRequested),
+                                Reason = new(context => reason.Get(context)),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
                         }
                     }
                 },
 
-                // Handle actions: reject
+                // Action: Resubmit after changes (ChangesRequested -> PendingVerification)
+                new If
+                {
+                    Condition = new(context => action.Get(context) == "resubmit" && currentStage.Get(context) == "changes_requested"),
+                    Then = new Sequence
+                    {
+                        Activities =
+                        {
+                            new WriteLine("Resubmitting after changes"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.PendingVerification),
+                                Reason = new(context => null as string),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
+                        }
+                    }
+                },
+
+                // Action: Reject (any stage -> Rejected)
                 new If
                 {
                     Condition = new(context => action.Get(context) == "reject"),
-                    Then = new WriteLine("Action: Form rejected")
+                    Then = new Sequence
+                    {
+                        Activities =
+                        {
+                            new WriteLine(context => $"Rejecting form: {reason.Get(context)}"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.Rejected),
+                                Reason = new(context => reason.Get(context)),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
+                        }
+                    }
                 },
 
-                // Handle actions: escalate
+                // Action: Cancel (any stage -> Cancelled)
                 new If
                 {
-                    Condition = new(context => action.Get(context) == "escalate"),
-                    Then = new WriteLine("Action: SLA breach - escalating")
+                    Condition = new(context => action.Get(context) == "cancel"),
+                    Then = new Sequence
+                    {
+                        Activities =
+                        {
+                            new WriteLine(context => $"Cancelling form: {reason.Get(context)}"),
+                            new UpdateIsnadStatusActivity
+                            {
+                                FormId = new(context => formId.Get(context)),
+                                NewStatus = new(IsnadStatus.Cancelled),
+                                Reason = new(context => reason.Get(context)),
+                                PerformedBy = new(context => performedBy.Get(context))
+                            }
+                        }
+                    }
                 },
 
                 new WriteLine("ISNAD Workflow Step Completed")

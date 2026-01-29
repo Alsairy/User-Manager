@@ -1,6 +1,8 @@
 using Elsa.Extensions;
 using Elsa.Workflows;
 using Elsa.Workflows.Activities;
+using UserManager.Domain.Enums;
+using UserManager.Workflows.Activities;
 
 namespace UserManager.Workflows.Workflows;
 
@@ -17,6 +19,7 @@ public class ContractWorkflow : WorkflowBase
         var contractCode = builder.WithVariable<string>();
         var status = builder.WithVariable<string>();
         var action = builder.WithVariable<string>();
+        var reason = builder.WithVariable<string>();
 
         builder.Root = new Sequence
         {
@@ -27,87 +30,11 @@ public class ContractWorkflow : WorkflowBase
                 new SetVariable<string>(contractCode, context => context.GetInput<string>("ContractCode") ?? ""),
                 new SetVariable<string>(status, context => context.GetInput<string>("Status") ?? "draft"),
                 new SetVariable<string>(action, context => context.GetInput<string>("Action") ?? ""),
+                new SetVariable<string>(reason, context => context.GetInput<string>("Reason") ?? ""),
 
-                new WriteLine(context => $"Contract: {contractCode.Get(context)}"),
-                new WriteLine(context => $"Status: {status.Get(context)}"),
+                new WriteLine(context => $"Contract: {contractCode.Get(context)}, Status: {status.Get(context)}, Action: {action.Get(context)}"),
 
-                // Status: DRAFT
-                new If
-                {
-                    Condition = new(context => status.Get(context) == "draft"),
-                    Then = new Sequence
-                    {
-                        Activities =
-                        {
-                            new WriteLine("Status: DRAFT"),
-                            new WriteLine("Validating contract completeness"),
-                            new WriteLine("Awaiting signing")
-                        }
-                    }
-                },
-
-                // Status: ACTIVE
-                new If
-                {
-                    Condition = new(context => status.Get(context) == "active"),
-                    Then = new Sequence
-                    {
-                        Activities =
-                        {
-                            new WriteLine("Status: ACTIVE"),
-                            new WriteLine("Contract is in force"),
-                            new WriteLine("Monitoring installment payments"),
-                            new WriteLine("Checking for expiry (30 days before end)")
-                        }
-                    }
-                },
-
-                // Status: EXPIRING
-                new If
-                {
-                    Condition = new(context => status.Get(context) == "expiring"),
-                    Then = new Sequence
-                    {
-                        Activities =
-                        {
-                            new WriteLine("Status: EXPIRING"),
-                            new WriteLine("Contract ending in 30 days"),
-                            new WriteLine("Sending renewal notifications")
-                        }
-                    }
-                },
-
-                // Status: EXPIRED
-                new If
-                {
-                    Condition = new(context => status.Get(context) == "expired"),
-                    Then = new Sequence
-                    {
-                        Activities =
-                        {
-                            new WriteLine("Status: EXPIRED"),
-                            new WriteLine("Contract has ended"),
-                            new WriteLine("Archiving contract")
-                        }
-                    }
-                },
-
-                // Status: CANCELLED
-                new If
-                {
-                    Condition = new(context => status.Get(context) == "cancelled"),
-                    Then = new Sequence
-                    {
-                        Activities =
-                        {
-                            new WriteLine("Status: CANCELLED"),
-                            new WriteLine("Contract terminated"),
-                            new WriteLine("Notifying all parties")
-                        }
-                    }
-                },
-
-                // Handle specific actions: activate
+                // Action: Activate contract (Draft -> Active)
                 new If
                 {
                     Condition = new(context => action.Get(context) == "activate"),
@@ -115,14 +42,20 @@ public class ContractWorkflow : WorkflowBase
                     {
                         Activities =
                         {
-                            new WriteLine("Action: Activating contract"),
-                            new WriteLine("Generating installment plan"),
-                            new WriteLine("Notifying investor and admin")
+                            new WriteLine(context => $"Activating contract {contractCode.Get(context)}"),
+                            new UpdateContractStatusActivity
+                            {
+                                ContractId = new(context => contractId.Get(context)),
+                                NewStatus = new(ContractStatus.Active),
+                                Reason = new(context => null as string),
+                                GenerateInstallments = new(true)
+                            },
+                            new WriteLine("Contract activated with installment plan generated")
                         }
                     }
                 },
 
-                // Handle specific actions: cancel
+                // Action: Cancel contract
                 new If
                 {
                     Condition = new(context => action.Get(context) == "cancel"),
@@ -130,24 +63,96 @@ public class ContractWorkflow : WorkflowBase
                     {
                         Activities =
                         {
-                            new WriteLine("Action: Cancelling contract"),
-                            new WriteLine("Validating cancellation reason"),
-                            new WriteLine("Archiving and notifying parties")
+                            new WriteLine(context => $"Cancelling contract {contractCode.Get(context)}: {reason.Get(context)}"),
+                            new UpdateContractStatusActivity
+                            {
+                                ContractId = new(context => contractId.Get(context)),
+                                NewStatus = new(ContractStatus.Cancelled),
+                                Reason = new(context => reason.Get(context)),
+                                GenerateInstallments = new(false)
+                            },
+                            new WriteLine("Contract cancelled")
                         }
                     }
                 },
 
-                // Handle specific actions: installment_overdue
+                // Action: Complete contract
                 new If
                 {
-                    Condition = new(context => action.Get(context) == "installment_overdue"),
+                    Condition = new(context => action.Get(context) == "complete"),
                     Then = new Sequence
                     {
                         Activities =
                         {
-                            new WriteLine("Action: Installment overdue"),
-                            new WriteLine("Marking installment as overdue"),
-                            new WriteLine("Sending reminder notifications")
+                            new WriteLine(context => $"Completing contract {contractCode.Get(context)}"),
+                            new UpdateContractStatusActivity
+                            {
+                                ContractId = new(context => contractId.Get(context)),
+                                NewStatus = new(ContractStatus.Completed),
+                                Reason = new(context => null as string),
+                                GenerateInstallments = new(false)
+                            },
+                            new WriteLine("Contract completed successfully")
+                        }
+                    }
+                },
+
+                // Action: Archive contract
+                new If
+                {
+                    Condition = new(context => action.Get(context) == "archive"),
+                    Then = new Sequence
+                    {
+                        Activities =
+                        {
+                            new WriteLine(context => $"Archiving contract {contractCode.Get(context)}"),
+                            new UpdateContractStatusActivity
+                            {
+                                ContractId = new(context => contractId.Get(context)),
+                                NewStatus = new(ContractStatus.Archived),
+                                Reason = new(context => reason.Get(context)),
+                                GenerateInstallments = new(false)
+                            },
+                            new WriteLine("Contract archived")
+                        }
+                    }
+                },
+
+                // Action: Mark as expiring
+                new If
+                {
+                    Condition = new(context => action.Get(context) == "mark_expiring"),
+                    Then = new Sequence
+                    {
+                        Activities =
+                        {
+                            new WriteLine(context => $"Marking contract {contractCode.Get(context)} as expiring"),
+                            new UpdateContractStatusActivity
+                            {
+                                ContractId = new(context => contractId.Get(context)),
+                                NewStatus = new(ContractStatus.Expiring),
+                                Reason = new(context => null as string),
+                                GenerateInstallments = new(false)
+                            },
+                            new WriteLine("Contract marked as expiring - renewal notifications sent")
+                        }
+                    }
+                },
+
+                // Action: Mark installments as overdue
+                new If
+                {
+                    Condition = new(context => action.Get(context) == "check_overdue"),
+                    Then = new Sequence
+                    {
+                        Activities =
+                        {
+                            new WriteLine("Checking for overdue installments"),
+                            new MarkInstallmentOverdueActivity
+                            {
+                                ContractId = new(context => contractId.Get(context))
+                            },
+                            new WriteLine("Overdue installments processed")
                         }
                     }
                 },

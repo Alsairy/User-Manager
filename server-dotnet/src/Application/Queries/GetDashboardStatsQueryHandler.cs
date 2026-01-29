@@ -8,13 +8,24 @@ namespace UserManager.Application.Queries;
 public class GetDashboardStatsQueryHandler : IRequestHandler<GetDashboardStatsQuery, DashboardStatsResult>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly ICacheService _cacheService;
 
-    public GetDashboardStatsQueryHandler(IAppDbContext dbContext)
+    public GetDashboardStatsQueryHandler(IAppDbContext dbContext, ICacheService cacheService)
     {
         _dbContext = dbContext;
+        _cacheService = cacheService;
     }
 
     public async Task<DashboardStatsResult> Handle(GetDashboardStatsQuery request, CancellationToken cancellationToken)
+    {
+        return await _cacheService.GetOrSetAsync(
+            CacheKeys.DashboardStats,
+            async () => await FetchStatsFromDatabase(cancellationToken),
+            CacheDurations.Short,
+            cancellationToken);
+    }
+
+    private async Task<DashboardStatsResult> FetchStatsFromDatabase(CancellationToken cancellationToken)
     {
         var totalUsers = await _dbContext.Users.CountAsync(cancellationToken);
         var activeUsers = await _dbContext.Users.CountAsync(u => u.Status == UserStatus.Active, cancellationToken);
