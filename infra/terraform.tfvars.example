@@ -1,0 +1,5 @@
+project_id   = "your-gcp-project-id"
+project_name = "user-manager"
+region       = "me-central1"
+environment  = "staging"
+db_tier      = "db-custom-2-4096"

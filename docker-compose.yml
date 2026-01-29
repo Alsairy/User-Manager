@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    ports:
+      - "1434:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $$MSSQL_SA_PASSWORD -C -Q 'SELECT 1' || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P $$MSSQL_SA_PASSWORD -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  api:
+    build: .
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__Default: "Server=db,1433;Database=UserManager;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=true;Encrypt=True;MultipleActiveResultSets=true"
+      ConnectionStrings__Elsa: "Server=db,1433;Database=UserManager_Elsa;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=true;Encrypt=True;MultipleActiveResultSets=true"
+      ConnectionStrings__Redis: "redis:6379"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      Seed__Enabled: ${SEED_ENABLED:-true}
+      Seed__AdminEmail: ${SEED_ADMIN_EMAIL:-admin@madares.sa}
+      Seed__AdminPassword: ${SEED_ADMIN_PASSWORD}
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN:-http://localhost:5173}
+      Email__SendGridApiKey: ${SENDGRID_API_KEY:-}
+      Email__Enabled: ${EMAIL_ENABLED:-false}
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  sqldata:
+  redisdata:

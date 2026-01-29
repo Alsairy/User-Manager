@@ -1,0 +1,26 @@
+{
+  "ConnectionStrings": {
+    "Default": "Server=127.0.0.1,1434;Database=UserManager;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true;Encrypt=True;MultipleActiveResultSets=true",
+    "Elsa": "Server=127.0.0.1,1434;Database=UserManager_Elsa;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true;Encrypt=True;MultipleActiveResultSets=true",
+    "Redis": ""
+  },
+  "Jwt": {
+    "Issuer": "UserManager",
+    "Audience": "UserManager",
+    "SigningKey": "REPLACE_WITH_A_STRONG_SECRET_KEY_AT_LEAST_32_CHARS",
+    "AccessTokenMinutes": 60,
+    "RefreshTokenDays": 30
+  },
+  "Seed": {
+    "Enabled": true,
+    "AdminEmail": "admin@example.com",
+    "AdminPassword": "CHANGE_ME_Admin123!",
+    "AdminName": "System Admin"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  }
+}
