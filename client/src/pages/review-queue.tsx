@@ -41,8 +41,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { AssetWithDetails, WorkflowStage } from "@shared/schema";
-import { workflowStageLabels, workflowStageEnum } from "@shared/schema";
+import type { AssetWithDetails, WorkflowStage } from "@/lib/schema";
+import { workflowStageLabels, workflowStageEnum } from "@/lib/schema";
 
 type SlaStatus = "on_time" | "warning" | "urgent" | "overdue";
 

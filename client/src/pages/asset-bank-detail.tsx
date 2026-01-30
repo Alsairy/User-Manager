@@ -37,11 +37,11 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { 
   AssetWithDetails, AssetWorkflowHistory, AssetVisibilityHistory, 
   IsnadFormWithDetails, ContractWithDetails, IsnadStatus, ContractStatus 
-} from "@shared/schema";
+} from "@/lib/schema";
 import { 
   workflowStageLabels, featureLabels, PredefinedFeature, 
   isnadStatusLabels, isnadStageLabels, contractStatusLabels 
-} from "@shared/schema";
+} from "@/lib/schema";
 
 const isnadStatusColors: Record<IsnadStatus, string> = {
   draft: "bg-muted text-muted-foreground",

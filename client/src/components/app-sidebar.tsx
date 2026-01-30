@@ -25,7 +25,8 @@ import {
   TrendingUp,
   Database,
 } from "lucide-react";
-import madaresLogo from "@assets/madares_business_1766959895640.png";
+// Logo placeholder - add actual logo to public folder if needed
+const madaresLogo = "/favicon.png";
 import {
   Sidebar,
   SidebarContent,
@@ -189,12 +190,16 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar side={direction === "rtl" ? "right" : "left"}>
+    <Sidebar
+      side={direction === "rtl" ? "right" : "left"}
+      role="navigation"
+      aria-label={t("sidebarNavigation", { defaultValue: "Sidebar navigation" })}
+    >
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <img 
-            src={madaresLogo} 
-            alt="Madares Business" 
+          <img
+            src={madaresLogo}
+            alt="Madares Business - Home"
             className="h-10 w-auto"
             data-testid="img-logo"
           />
@@ -215,7 +220,7 @@ export function AppSidebar() {
                     isActive={location === item.url || (item.url !== "/" && location.startsWith(item.url))}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -237,7 +242,7 @@ export function AppSidebar() {
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -259,7 +264,7 @@ export function AppSidebar() {
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -281,7 +286,7 @@ export function AppSidebar() {
                     isActive={location === item.url || (item.url !== "/contracts" && location.startsWith(item.url))}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -303,7 +308,7 @@ export function AppSidebar() {
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -325,7 +330,7 @@ export function AppSidebar() {
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -347,7 +352,7 @@ export function AppSidebar() {
                     isActive={location === item.url}
                   >
                     <Link href={item.url} data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2 w-full">
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span className="truncate">{t(item.titleKey)}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -376,8 +381,10 @@ export function AppSidebar() {
             className="h-8 w-8 p-0"
             data-testid="button-logout"
             onClick={handleLogout}
+            aria-label={t("logout", { defaultValue: "Sign out" })}
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            <span className="sr-only">{t("logout", { defaultValue: "Sign out" })}</span>
           </SidebarMenuButton>
         </div>
       </SidebarFooter>

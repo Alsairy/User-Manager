@@ -44,7 +44,7 @@ import {
   IsnadStatus,
   WorkflowStep,
   IsnadStage,
-} from "@shared/schema";
+} from "@/lib/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";

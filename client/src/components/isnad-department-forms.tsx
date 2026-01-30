@@ -19,7 +19,7 @@ import type {
   FinanceSection, 
   LandRegistrySection, 
   SecurityFacilitiesSection 
-} from "@shared/schema";
+} from "@/lib/schema";
 
 interface DepartmentFormProps {
   initialData?: any;

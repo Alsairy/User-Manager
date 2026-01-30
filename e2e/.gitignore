@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Test results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Screenshots and videos (generated on failure)
+screenshots/
+videos/
+
+# Temporary files
+*.tmp
+*.log

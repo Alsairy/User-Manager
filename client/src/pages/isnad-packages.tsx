@@ -55,7 +55,7 @@ import {
   packageStatusLabels,
   PackageStatus,
   PackagePriority,
-} from "@shared/schema";
+} from "@/lib/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 

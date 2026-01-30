@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Building2, MapPin, Ruler, Calendar, Heart, HeartOff, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { AssetWithDetails } from "@shared/schema";
+import type { AssetWithDetails } from "@/lib/schema";
 
 const DEMO_INVESTOR_ACCOUNT_ID = "demo-investor-001";
 

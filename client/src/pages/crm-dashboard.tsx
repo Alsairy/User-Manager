@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Users, FileText, Landmark, Heart, TrendingUp, BarChart3 } from "lucide-react";
-import type { CrmDashboardStats } from "@shared/schema";
+import type { CrmDashboardStats } from "@/lib/schema";
 
 export default function CrmDashboard() {
   const { data: stats, isLoading } = useQuery<CrmDashboardStats>({

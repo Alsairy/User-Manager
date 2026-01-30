@@ -85,7 +85,51 @@ builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "UserManager API", Version = "v1" });
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "UserManager API",
+        Version = "v1.0.0",
+        Description = "A comprehensive API for managing users, roles, assets, contracts, and ISNAD forms. This API provides authentication, authorization, and CRUD operations for all major entities in the system.",
+        Contact = new OpenApiContact
+        {
+            Name = "API Support",
+            Email = "support@usermanager.com",
+            Url = new Uri("https://usermanager.com/support")
+        },
+        License = new OpenApiLicense
+        {
+            Name = "Proprietary",
+            Url = new Uri("https://usermanager.com/license")
+        }
+    });
+
+    // Include XML comments for API documentation
+    var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
+
+    // Group endpoints by tags
+    options.TagActionsBy(api =>
+    {
+        if (api.GroupName != null)
+        {
+            return new[] { api.GroupName };
+        }
+
+        if (api.ActionDescriptor is Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor controllerActionDescriptor)
+        {
+            return new[] { controllerActionDescriptor.ControllerName };
+        }
+
+        return new[] { "Other" };
+    });
+
+    options.DocInclusionPredicate((name, api) => true);
+
+    // Add security definition for JWT Bearer
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -93,7 +137,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "JWT Authorization header using the Bearer scheme."
+        Description = "Enter your JWT token in the format: Bearer {your_token}\n\nExample: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {

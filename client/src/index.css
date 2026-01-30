@@ -174,6 +174,34 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 
+  /* Improved focus states for accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+
+  /* Remove default focus outline and use custom focus-visible */
+  button:focus:not(:focus-visible),
+  a:focus:not(:focus-visible),
+  input:focus:not(:focus-visible),
+  select:focus:not(:focus-visible),
+  textarea:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Enhanced focus states for interactive elements */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary ring-2 ring-primary/20;
+  }
+
+  /* Focus state for form inputs */
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-2 outline-offset-0 outline-primary ring-1 ring-primary/30;
+  }
+
   html[dir="rtl"] {
     direction: rtl;
     text-align: right;

@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { ArrowLeft, Send, Building2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { AssetWithDetails } from "@shared/schema";
+import type { AssetWithDetails } from "@/lib/schema";
 import { 
   investmentPurposeEnum, 
   investmentPurposeLabels, 
@@ -21,7 +21,7 @@ import {
   investmentAmountRangeLabels,
   investmentTimelineEnum,
   investmentTimelineLabels
-} from "@shared/schema";
+} from "@/lib/schema";
 
 const DEMO_INVESTOR_ACCOUNT_ID = "demo-investor-001";
 

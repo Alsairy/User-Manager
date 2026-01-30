@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Notification } from "@shared/schema";
+import type { Notification } from "@/lib/schema";
 
 interface NotificationsResponse {
   notifications: Notification[];
@@ -104,16 +104,23 @@ export function NotificationsDropdown() {
           size="icon"
           className="relative"
           data-testid="button-notifications"
+          aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+          aria-haspopup="true"
+          aria-expanded={open}
         >
-          <Bell className="h-5 w-5" />
+          <Bell className="h-5 w-5" aria-hidden="true" />
           {unreadCount > 0 && (
             <Badge
               className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
               variant="destructive"
+              aria-hidden="true"
             >
               {unreadCount > 9 ? "9+" : unreadCount}
             </Badge>
           )}
+          <span className="sr-only">
+            {unreadCount > 0 ? `${unreadCount} unread notifications` : 'No unread notifications'}
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
@@ -174,6 +181,15 @@ export function NotificationsDropdown() {
                         markAsReadMutation.mutate(notification.id);
                       }
                     }}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && !notification.read) {
+                        e.preventDefault();
+                        markAsReadMutation.mutate(notification.id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${notification.title}${!notification.read ? ', unread' : ''}`}
                     data-testid={`notification-item-${notification.id}`}
                   >
                     <div className="flex gap-3">

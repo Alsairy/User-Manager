@@ -42,7 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Investor, InvestorStatus } from "@shared/schema";
+import type { Investor, InvestorStatus } from "@/lib/schema";
 
 const investorSchema = z.object({
   investorCode: z.string().min(1, "Investor code is required"),

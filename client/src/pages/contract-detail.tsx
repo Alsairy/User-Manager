@@ -56,8 +56,8 @@ import type {
   Installment,
   InstallmentStatus,
   CancellationReason,
-} from "@shared/schema";
-import { cancellationReasonLabels } from "@shared/schema";
+} from "@/lib/schema";
+import { cancellationReasonLabels } from "@/lib/schema";
 
 const statusConfig: Record<ContractStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle2 }> = {
   draft: { label: "Draft", variant: "secondary", icon: FileSignature },

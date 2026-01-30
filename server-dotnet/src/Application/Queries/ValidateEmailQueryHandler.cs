@@ -15,7 +15,7 @@ public class ValidateEmailQueryHandler : IRequestHandler<ValidateEmailQuery, boo
 
     public async Task<bool> Handle(ValidateEmailQuery request, CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.Users.AnyAsync(u => u.Email == request.Email, cancellationToken);
+        var exists = await _dbContext.Users.AsNoTracking().AnyAsync(u => u.Email == request.Email, cancellationToken);
         return !exists; // returns true if email is available
     }
 }

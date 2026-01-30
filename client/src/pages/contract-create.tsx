@@ -37,7 +37,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import type { Asset, AssetWithDetails, Investor } from "@shared/schema";
+import type { Asset, AssetWithDetails, Investor } from "@/lib/schema";
 
 const steps = [
   { id: 1, title: "Asset Selection", description: "Select asset and land code" },

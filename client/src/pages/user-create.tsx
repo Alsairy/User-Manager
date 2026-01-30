@@ -60,14 +60,14 @@ import type {
   Permission,
   AccessLevel,
   PermissionGroup,
-} from "@shared/schema";
+} from "@/lib/schema";
 import {
   insertUserSchema,
   permissionGroups,
   permissionGroupLabels,
   accessLevelLabels,
   accessLevelEnum,
-} from "@shared/schema";
+} from "@/lib/schema";
 
 const steps = [
   { id: 1, name: "Basic Info", icon: Mail },

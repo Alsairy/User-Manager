@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
@@ -33,7 +33,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/status-badge";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { UserWithDetails, Organization, Role, UserStatus } from "@shared/schema";
+import type { UserWithDetails, Organization, Role } from "@/lib/schema";
 import { format } from "date-fns";
 
 interface UsersResponse {
@@ -42,6 +42,101 @@ interface UsersResponse {
   page: number;
   limit: number;
 }
+
+// Memoized table row component to prevent unnecessary re-renders
+interface UserRowProps {
+  user: UserWithDetails;
+  isSelected: boolean;
+  onToggleSelect: (userId: string) => void;
+  onResendInvitation: (userId: string) => void;
+  onDeactivate: (userId: string) => void;
+  getRoleName: (roleId: string | null) => string;
+  isResendPending: boolean;
+  isDeactivatePending: boolean;
+  t: (key: string) => string;
+}
+
+const UserRow = memo(function UserRow({
+  user,
+  isSelected,
+  onToggleSelect,
+  onResendInvitation,
+  onDeactivate,
+  getRoleName,
+  isResendPending,
+  isDeactivatePending,
+  t,
+}: UserRowProps) {
+  return (
+    <TableRow key={user.id} className="group" data-testid={`row-user-${user.id}`}>
+      <TableCell>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelect(user.id)}
+          data-testid={`checkbox-user-${user.id}`}
+        />
+      </TableCell>
+      <TableCell className="font-medium" data-testid={`text-email-${user.id}`}>
+        {user.email}
+      </TableCell>
+      <TableCell>{user.organization?.name ?? "-"}</TableCell>
+      <TableCell>{user.workUnit?.name ?? "-"}</TableCell>
+      <TableCell>
+        <span className={user.hasCustomPermissions ? "text-muted-foreground italic" : ""}>
+          {getRoleName(user.roleId)}
+        </span>
+      </TableCell>
+      <TableCell>
+        <StatusBadge status={user.status} />
+      </TableCell>
+      <TableCell className="text-muted-foreground">
+        {user.lastLoginAt
+          ? format(new Date(user.lastLoginAt), "MMM d, yyyy")
+          : "Never"}
+      </TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="opacity-0 group-hover:opacity-100"
+              data-testid={`button-actions-${user.id}`}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={`/users/${user.id}/edit`}>
+                <Edit className="me-2 h-4 w-4" />
+                {t("pages:users.editUser")}
+              </Link>
+            </DropdownMenuItem>
+            {user.status === "pending" && (
+              <DropdownMenuItem
+                onClick={() => onResendInvitation(user.id)}
+                disabled={isResendPending}
+              >
+                <Mail className="me-2 h-4 w-4" />
+                {t("pages:users.resendInvitation")}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => onDeactivate(user.id)}
+              disabled={isDeactivatePending}
+            >
+              <Trash2 className="me-2 h-4 w-4" />
+              {t("pages:users.deactivate")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+});
 
 export default function UsersList() {
   const { t } = useTranslation(["pages", "common"]);
@@ -112,33 +207,63 @@ export default function UsersList() {
     },
   });
 
-  const users = usersData?.users ?? [];
+  // Memoize derived values
+  const users = useMemo(() => usersData?.users ?? [], [usersData?.users]);
   const total = usersData?.total ?? 0;
-  const totalPages = Math.ceil(total / 25);
+  const totalPages = useMemo(() => Math.ceil(total / 25), [total]);
 
-  const toggleSelectAll = () => {
+  // Memoize callbacks to prevent unnecessary re-renders of child components
+  const toggleSelectAll = useCallback(() => {
     if (selectedUsers.size === users.length) {
       setSelectedUsers(new Set());
     } else {
       setSelectedUsers(new Set(users.map((u) => u.id)));
     }
-  };
+  }, [selectedUsers.size, users]);
 
-  const toggleSelect = (userId: string) => {
-    const newSet = new Set(selectedUsers);
-    if (newSet.has(userId)) {
-      newSet.delete(userId);
-    } else {
-      newSet.add(userId);
-    }
-    setSelectedUsers(newSet);
-  };
+  const toggleSelect = useCallback((userId: string) => {
+    setSelectedUsers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  }, []);
 
-  const getRoleName = (roleId: string | null) => {
+  const handleResendInvitation = useCallback((userId: string) => {
+    resendInvitationMutation.mutate(userId);
+  }, [resendInvitationMutation]);
+
+  const handleDeactivate = useCallback((userId: string) => {
+    deactivateUserMutation.mutate(userId);
+  }, [deactivateUserMutation]);
+
+  const getRoleName = useCallback((roleId: string | null) => {
     if (!roleId) return t("pages:users.customPermissions");
     const role = roles?.find((r) => r.id === roleId);
     return role?.name ?? t("pages:users.unknown");
-  };
+  }, [roles, t]);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1);
+  }, []);
+
+  const handleStatusChange = useCallback((v: string) => {
+    setStatusFilter(v);
+    setPage(1);
+  }, []);
+
+  const handleOrgChange = useCallback((v: string) => {
+    setOrgFilter(v);
+    setPage(1);
+  }, []);
+
+  const handlePrevPage = useCallback(() => setPage(p => p - 1), []);
+  const handleNextPage = useCallback(() => setPage(p => p + 1), []);
 
   return (
     <div className="space-y-6">
@@ -165,15 +290,12 @@ export default function UsersList() {
               <Input
                 placeholder={t("pages:users.searchByEmail")}
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
+                onChange={handleSearchChange}
                 className="ps-9"
                 data-testid="input-search-users"
               />
             </div>
-            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="w-[140px]" data-testid="select-status-filter">
                 <Filter className="me-2 h-4 w-4" />
                 <SelectValue placeholder={t("common:status")} />
@@ -185,7 +307,7 @@ export default function UsersList() {
                 <SelectItem value="pending">{t("common:pending")}</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={orgFilter} onValueChange={(v) => { setOrgFilter(v); setPage(1); }}>
+            <Select value={orgFilter} onValueChange={handleOrgChange}>
               <SelectTrigger className="w-[180px]" data-testid="select-org-filter">
                 <SelectValue placeholder={t("pages:users.organization")} />
               </SelectTrigger>
@@ -254,73 +376,18 @@ export default function UsersList() {
                 </TableRow>
               ) : (
                 users.map((user) => (
-                  <TableRow key={user.id} className="group" data-testid={`row-user-${user.id}`}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedUsers.has(user.id)}
-                        onCheckedChange={() => toggleSelect(user.id)}
-                        data-testid={`checkbox-user-${user.id}`}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium" data-testid={`text-email-${user.id}`}>
-                      {user.email}
-                    </TableCell>
-                    <TableCell>{user.organization?.name ?? "-"}</TableCell>
-                    <TableCell>{user.workUnit?.name ?? "-"}</TableCell>
-                    <TableCell>
-                      <span className={user.hasCustomPermissions ? "text-muted-foreground italic" : ""}>
-                        {getRoleName(user.roleId)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={user.status} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {user.lastLoginAt
-                        ? format(new Date(user.lastLoginAt), "MMM d, yyyy")
-                        : "Never"}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="opacity-0 group-hover:opacity-100"
-                            data-testid={`button-actions-${user.id}`}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/users/${user.id}/edit`}>
-                              <Edit className="me-2 h-4 w-4" />
-                              {t("pages:users.editUser")}
-                            </Link>
-                          </DropdownMenuItem>
-                          {user.status === "pending" && (
-                            <DropdownMenuItem
-                              onClick={() => resendInvitationMutation.mutate(user.id)}
-                              disabled={resendInvitationMutation.isPending}
-                            >
-                              <Mail className="me-2 h-4 w-4" />
-                              {t("pages:users.resendInvitation")}
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => deactivateUserMutation.mutate(user.id)}
-                            disabled={deactivateUserMutation.isPending}
-                          >
-                            <Trash2 className="me-2 h-4 w-4" />
-                            {t("pages:users.deactivate")}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                  <UserRow
+                    key={user.id}
+                    user={user}
+                    isSelected={selectedUsers.has(user.id)}
+                    onToggleSelect={toggleSelect}
+                    onResendInvitation={handleResendInvitation}
+                    onDeactivate={handleDeactivate}
+                    getRoleName={getRoleName}
+                    isResendPending={resendInvitationMutation.isPending}
+                    isDeactivatePending={deactivateUserMutation.isPending}
+                    t={t}
+                  />
                 ))
               )}
             </TableBody>
@@ -334,7 +401,7 @@ export default function UsersList() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage(page - 1)}
+                  onClick={handlePrevPage}
                   disabled={page <= 1}
                   data-testid="button-prev-page"
                 >
@@ -346,7 +413,7 @@ export default function UsersList() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage(page + 1)}
+                  onClick={handleNextPage}
                   disabled={page >= totalPages}
                   data-testid="button-next-page"
                 >

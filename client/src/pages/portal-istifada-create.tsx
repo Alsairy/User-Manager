@@ -12,8 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { ArrowLeft, Send, Landmark, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { AssetWithDetails } from "@shared/schema";
-import { istifadaProgramTypeEnum, istifadaProgramTypeLabels } from "@shared/schema";
+import type { AssetWithDetails } from "@/lib/schema";
+import { istifadaProgramTypeEnum, istifadaProgramTypeLabels } from "@/lib/schema";
 
 const DEMO_INVESTOR_ACCOUNT_ID = "demo-investor-001";
 

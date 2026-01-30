@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Users, Eye, ChevronLeft, ChevronRight, Mail, Phone, Building2, User } from "lucide-react";
 import { format } from "date-fns";
-import type { InvestorAccount } from "@shared/schema";
+import type { InvestorAccount } from "@/lib/schema";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   active: { label: "Active", variant: "default" },

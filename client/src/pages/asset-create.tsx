@@ -39,8 +39,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Region, City, District, Asset } from "@shared/schema";
-import { predefinedFeatures, featureLabels, PredefinedFeature } from "@shared/schema";
+import type { Region, City, District, Asset } from "@/lib/schema";
+import { predefinedFeatures, featureLabels, PredefinedFeature } from "@/lib/schema";
 
 const steps = [
   { id: 1, title: "Basic Info", description: "Asset identification" },

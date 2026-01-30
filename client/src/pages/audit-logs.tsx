@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { AuditLog } from "@shared/schema";
+import type { AuditLog } from "@/lib/schema";
 
 interface AuditLogsResponse {
   logs: AuditLog[];

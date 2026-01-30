@@ -52,7 +52,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { AssetWithDetails, Region, City, District } from "@shared/schema";
+import type { AssetWithDetails, Region, City, District } from "@/lib/schema";
 
 export default function AssetBank() {
   const [search, setSearch] = useState("");

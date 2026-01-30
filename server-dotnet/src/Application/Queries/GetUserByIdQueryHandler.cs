@@ -16,6 +16,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserRes
     public async Task<UserResult?> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
     {
         var user = await _dbContext.Users
+            .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);

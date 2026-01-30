@@ -17,6 +17,7 @@ public class GetUsersListQueryHandler : IRequestHandler<GetUsersListQuery, Paged
     public async Task<PagedResult<UserListItem>> Handle(GetUsersListQuery request, CancellationToken cancellationToken)
     {
         var query = _dbContext.Users
+            .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .AsQueryable();

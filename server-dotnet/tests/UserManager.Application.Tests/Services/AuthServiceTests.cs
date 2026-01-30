@@ -17,6 +17,7 @@ public class AuthServiceTests
     private readonly Mock<IJwtTokenService> _jwtTokenServiceMock;
     private readonly Mock<IDateTimeProvider> _dateTimeProviderMock;
     private readonly Mock<ILogger<AuthService>> _loggerMock;
+    private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly AuthService _authService;
     private readonly DateTimeOffset _currentTime;
 
@@ -27,6 +28,7 @@ public class AuthServiceTests
         _jwtTokenServiceMock = new Mock<IJwtTokenService>();
         _dateTimeProviderMock = new Mock<IDateTimeProvider>();
         _loggerMock = new Mock<ILogger<AuthService>>();
+        _cacheServiceMock = new Mock<ICacheService>();
 
         _currentTime = new DateTimeOffset(2024, 1, 15, 12, 0, 0, TimeSpan.Zero);
         _dateTimeProviderMock.Setup(x => x.UtcNow).Returns(_currentTime);
@@ -36,7 +38,8 @@ public class AuthServiceTests
             _passwordHasherMock.Object,
             _jwtTokenServiceMock.Object,
             _dateTimeProviderMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _cacheServiceMock.Object);
     }
 
     #region Helper Methods

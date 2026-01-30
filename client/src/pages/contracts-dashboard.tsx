@@ -16,7 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ContractDashboardStats } from "@shared/schema";
+import type { ContractDashboardStats } from "@/lib/schema";
 
 export default function ContractsDashboardPage() {
   const { t } = useTranslation(["pages", "common"]);

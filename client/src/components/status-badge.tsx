@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { UserStatus } from "@shared/schema";
+import type { UserStatus } from "@/lib/schema";
 
 interface StatusBadgeProps {
   status: UserStatus;

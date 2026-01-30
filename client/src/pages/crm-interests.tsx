@@ -14,7 +14,7 @@ import { Search, FileText, Eye, Check, X, ChevronLeft, ChevronRight, Building2, 
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { InvestorInterestWithDetails } from "@shared/schema";
+import type { InvestorInterestWithDetails } from "@/lib/schema";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   new: { label: "New", variant: "secondary" },

@@ -9,20 +9,56 @@ using UserManager.Domain.Enums;
 
 namespace UserManager.Api.Controllers;
 
+/// <summary>
+/// Manages contracts between investors and assets, including installment tracking.
+/// Contracts represent legal agreements for asset investments with payment schedules.
+/// </summary>
 [ApiController]
 [Route("api/v1/contracts")]
 [Authorize]
+[Produces("application/json")]
+[Tags("Contracts")]
 public class ContractsController : ControllerBase
 {
     private readonly IAppDbContext _dbContext;
 
+    /// <summary>
+    /// Initializes a new instance of the ContractsController.
+    /// </summary>
+    /// <param name="dbContext">The application database context.</param>
     public ContractsController(IAppDbContext dbContext)
     {
         _dbContext = dbContext;
     }
 
+    /// <summary>
+    /// Retrieves a paginated list of contracts with optional filtering.
+    /// </summary>
+    /// <remarks>
+    /// Returns contracts with filtering options and status counts for dashboard views.
+    ///
+    /// Sample request:
+    ///
+    ///     GET /api/v1/contracts?page=1&amp;limit=20&amp;status=active&amp;search=CTR-2024
+    ///
+    /// </remarks>
+    /// <param name="search">Optional search term to filter by contract code or land code.</param>
+    /// <param name="status">Optional status filter (draft, incomplete, active, expiring, expired, archived, cancelled). Use "all" for no filter.</param>
+    /// <param name="investorId">Optional investor ID to filter contracts by investor.</param>
+    /// <param name="page">The page number (1-based). Defaults to 1.</param>
+    /// <param name="limit">The number of items per page (1-100). Defaults to 20.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>A paginated list of contracts with status counts.</returns>
+    /// <response code="200">Returns the paginated list of contracts.</response>
+    /// <response code="400">If the query parameters are invalid.</response>
+    /// <response code="401">If the user is not authenticated.</response>
+    /// <response code="403">If the user lacks the 'contracts:read' permission.</response>
     [HttpGet]
     [HasPermission("contracts:read")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> List(
         [FromQuery] string? search,
         [FromQuery] string? status,
@@ -79,8 +115,25 @@ public class ContractsController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Retrieves a specific contract by its unique identifier.
+    /// </summary>
+    /// <remarks>
+    /// Returns detailed contract information including associated asset and investor details.
+    /// </remarks>
+    /// <param name="id">The unique identifier of the contract.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The contract details with related entities.</returns>
+    /// <response code="200">Returns the contract details.</response>
+    /// <response code="401">If the user is not authenticated.</response>
+    /// <response code="403">If the user lacks the 'contracts:read' permission.</response>
+    /// <response code="404">If the contract with the specified ID was not found.</response>
     [HttpGet("{id:guid}")]
     [HasPermission("contracts:read")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
     {
         var contract = await _dbContext.Contracts.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
@@ -153,8 +206,42 @@ public class ContractsController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Creates a new contract.
+    /// </summary>
+    /// <remarks>
+    /// Creates a new contract linking an investor to an asset with financial terms.
+    /// The contract will be created with a 'draft' status.
+    ///
+    /// Sample request:
+    ///
+    ///     POST /api/v1/contracts
+    ///     {
+    ///         "assetId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    ///         "investorId": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
+    ///         "annualRentalAmount": 100000,
+    ///         "vatRate": 15,
+    ///         "contractDuration": 5,
+    ///         "signingDate": "2024-01-15",
+    ///         "startDate": "2024-02-01",
+    ///         "endDate": "2029-01-31",
+    ///         "notes": "Standard commercial lease"
+    ///     }
+    ///
+    /// </remarks>
+    /// <param name="payload">The contract creation payload as JSON.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The ID of the newly created contract.</returns>
+    /// <response code="201">Returns the newly created contract ID.</response>
+    /// <response code="400">If the request is invalid (e.g., missing required fields).</response>
+    /// <response code="401">If the user is not authenticated.</response>
+    /// <response code="403">If the user lacks the 'contracts:create' permission.</response>
     [HttpPost]
     [HasPermission("contracts:create")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] JsonElement payload, CancellationToken cancellationToken)
     {
         var assetId = TryGetGuid(payload, "assetId");
@@ -204,8 +291,36 @@ public class ContractsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = contract.Id }, new { id = contract.Id });
     }
 
+    /// <summary>
+    /// Updates an existing contract.
+    /// </summary>
+    /// <remarks>
+    /// Updates contract properties. Currently supports updating the contract status.
+    ///
+    /// Sample request:
+    ///
+    ///     PUT /api/v1/contracts/{id}
+    ///     {
+    ///         "status": "active"
+    ///     }
+    ///
+    /// </remarks>
+    /// <param name="id">The unique identifier of the contract to update.</param>
+    /// <param name="payload">The contract update payload as JSON.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>A success indicator.</returns>
+    /// <response code="200">The contract was successfully updated.</response>
+    /// <response code="400">If the request is invalid.</response>
+    /// <response code="401">If the user is not authenticated.</response>
+    /// <response code="403">If the user lacks the 'contracts:update' permission.</response>
+    /// <response code="404">If the contract with the specified ID was not found.</response>
     [HttpPut("{id:guid}")]
     [HasPermission("contracts:update")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] JsonElement payload, CancellationToken cancellationToken)
     {
         var contract = await _dbContext.Contracts.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
@@ -223,8 +338,26 @@ public class ContractsController : ControllerBase
         return Ok(new { success = true });
     }
 
+    /// <summary>
+    /// Deletes a contract.
+    /// </summary>
+    /// <remarks>
+    /// Permanently deletes the contract and all associated data.
+    /// This operation cannot be undone. Consider archiving or cancelling instead.
+    /// </remarks>
+    /// <param name="id">The unique identifier of the contract to delete.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>No content on successful deletion.</returns>
+    /// <response code="204">The contract was successfully deleted.</response>
+    /// <response code="401">If the user is not authenticated.</response>
+    /// <response code="403">If the user lacks the 'contracts:delete' permission.</response>
+    /// <response code="404">If the contract with the specified ID was not found.</response>
     [HttpDelete("{id:guid}")]
     [HasPermission("contracts:delete")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var contract = await _dbContext.Contracts.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
@@ -238,8 +371,24 @@ public class ContractsController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Retrieves all installments for a specific contract.
+    /// </summary>
+    /// <remarks>
+    /// Returns the list of payment installments associated with the contract,
+    /// ordered by due date. Includes payment status and any partial payments.
+    /// </remarks>
+    /// <param name="contractId">The unique identifier of the contract.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>A list of installments for the contract.</returns>
+    /// <response code="200">Returns the list of installments.</response>
+    /// <response code="401">If the user is not authenticated.</response>
+    /// <response code="403">If the user lacks the 'contracts:read' permission.</response>
     [HttpGet("{contractId:guid}/installments")]
     [HasPermission("contracts:read")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ListInstallments(Guid contractId, CancellationToken cancellationToken)
     {
         var installments = await _dbContext.Installments
@@ -272,8 +421,39 @@ public class ContractsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Creates a new installment for a contract.
+    /// </summary>
+    /// <remarks>
+    /// Adds a payment installment to the contract's payment schedule.
+    ///
+    /// Sample request:
+    ///
+    ///     POST /api/v1/contracts/{contractId}/installments
+    ///     {
+    ///         "installmentNumber": 1,
+    ///         "amountDue": 25000,
+    ///         "dueDate": "2024-03-01",
+    ///         "status": "pending"
+    ///     }
+    ///
+    /// </remarks>
+    /// <param name="contractId">The unique identifier of the contract.</param>
+    /// <param name="payload">The installment creation payload as JSON.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The ID of the newly created installment.</returns>
+    /// <response code="200">Returns the newly created installment ID.</response>
+    /// <response code="400">If the request is invalid.</response>
+    /// <response code="401">If the user is not authenticated.</response>
+    /// <response code="403">If the user lacks the 'contracts:create' permission.</response>
+    /// <response code="404">If the contract with the specified ID was not found.</response>
     [HttpPost("{contractId:guid}/installments")]
     [HasPermission("contracts:create")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateInstallment(Guid contractId, [FromBody] JsonElement payload, CancellationToken cancellationToken)
     {
         var contract = await _dbContext.Contracts.FirstOrDefaultAsync(c => c.Id == contractId, cancellationToken);

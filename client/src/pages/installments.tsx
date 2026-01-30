@@ -43,7 +43,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Installment, InstallmentStatus, ContractWithDetails } from "@shared/schema";
+import type { Installment, InstallmentStatus, ContractWithDetails } from "@/lib/schema";
 
 const statusConfig: Record<InstallmentStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle2 }> = {
   pending: { label: "Pending", variant: "secondary", icon: Clock },

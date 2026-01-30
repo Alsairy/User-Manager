@@ -72,8 +72,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { AssetWithDetails, AssetStatus, AssetType, Region, City, District } from "@shared/schema";
-import { workflowStageLabels } from "@shared/schema";
+import type { AssetWithDetails, AssetStatus, AssetType, Region, City, District } from "@/lib/schema";
+import { workflowStageLabels } from "@/lib/schema";
 
 const statusColors: Record<AssetStatus, string> = {
   draft: "bg-muted text-muted-foreground",

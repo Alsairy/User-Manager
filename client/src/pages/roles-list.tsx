@@ -25,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Role } from "@shared/schema";
+import type { Role } from "@/lib/schema";
 
 interface RoleWithUsage extends Role {
   userCount: number;

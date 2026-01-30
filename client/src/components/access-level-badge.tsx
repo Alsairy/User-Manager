@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
-import type { AccessLevel } from "@shared/schema";
-import { accessLevelLabels } from "@shared/schema";
+import type { AccessLevel } from "@/lib/schema";
+import { accessLevelLabels } from "@/lib/schema";
 
 interface AccessLevelBadgeProps {
   level: AccessLevel;

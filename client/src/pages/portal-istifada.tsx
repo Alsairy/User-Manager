@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Landmark, Plus, Building2, Calendar, Clock, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import type { IstifadaRequestWithDetails } from "@shared/schema";
+import type { IstifadaRequestWithDetails } from "@/lib/schema";
 
 const DEMO_INVESTOR_ACCOUNT_ID = "demo-investor-001";
 

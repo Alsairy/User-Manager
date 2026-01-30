@@ -30,8 +30,8 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { AssetWithDetails, AssetWorkflowHistory } from "@shared/schema";
-import { workflowStageLabels, featureLabels, PredefinedFeature } from "@shared/schema";
+import type { AssetWithDetails, AssetWorkflowHistory } from "@/lib/schema";
+import { workflowStageLabels, featureLabels, PredefinedFeature } from "@/lib/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

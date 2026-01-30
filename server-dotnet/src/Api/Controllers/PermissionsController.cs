@@ -22,9 +22,11 @@ public class PermissionsController : ControllerBase
 
     [HttpGet]
     [HasPermission("permissions:manage")]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, VaryByHeader = "Authorization")]
     public async Task<ActionResult<IReadOnlyList<PermissionResponse>>> List(CancellationToken cancellationToken)
     {
         var permissions = await _dbContext.Permissions
+            .AsNoTracking()
             .OrderBy(p => p.Key)
             .Select(p => new PermissionResponse(p.Id, p.Key, p.Description))
             .ToListAsync(cancellationToken);
@@ -36,7 +38,7 @@ public class PermissionsController : ControllerBase
     [HasPermission("permissions:manage")]
     public async Task<ActionResult<PermissionResponse>> Get(Guid id, CancellationToken cancellationToken)
     {
-        var permission = await _dbContext.Permissions.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        var permission = await _dbContext.Permissions.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
         if (permission is null)
         {
             return NotFound();

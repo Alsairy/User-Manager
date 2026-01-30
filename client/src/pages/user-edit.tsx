@@ -41,9 +41,8 @@ import type {
   Organization,
   WorkUnit,
   Role,
-  UserStatus,
-} from "@shared/schema";
-import { userStatusEnum } from "@shared/schema";
+} from "@/lib/schema";
+import { userStatusEnum } from "@/lib/schema";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),

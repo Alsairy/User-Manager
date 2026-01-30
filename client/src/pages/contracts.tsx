@@ -52,7 +52,7 @@ import type {
   ContractWithDetails,
   ContractStatus,
   Investor,
-} from "@shared/schema";
+} from "@/lib/schema";
 
 const statusVariants: Record<ContractStatus, { variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle2 }> = {
   draft: { variant: "secondary", icon: FileSignature },

@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, X, ShieldCheck, ScrollText, Banknote } from "lucide-react";
 import { LanguageToggle } from "@/components/language-toggle";
-import madaresLogo from "@assets/madares_business_1766959895640.png";
+// Logo placeholder - add actual logo to public folder if needed
+const madaresLogo = "/favicon.png";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();

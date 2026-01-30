@@ -26,7 +26,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, Save, Send, Building2, Banknote, ClipboardList, Wrench } from "lucide-react";
-import { insertIsnadFormSchema, InsertIsnadForm, AssetWithDetails } from "@shared/schema";
+import { insertIsnadFormSchema, InsertIsnadForm, AssetWithDetails } from "@/lib/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";

@@ -20,8 +20,12 @@ public class DashboardController : ControllerBase
         _mediator = mediator;
     }
 
+    /// <summary>
+    /// Gets dashboard statistics. Data is cached server-side for 5 minutes.
+    /// </summary>
     [HttpGet("stats")]
     [HasPermission("dashboard:read")]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, VaryByHeader = "Authorization")]
     public async Task<IActionResult> GetStats(CancellationToken ct)
     {
         var result = await _mediator.Send(new GetDashboardStatsQuery(), ct);

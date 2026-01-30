@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, Plus, Building2, Calendar, Clock } from "lucide-react";
 import { format } from "date-fns";
-import type { InvestorInterestWithDetails } from "@shared/schema";
+import type { InvestorInterestWithDetails } from "@/lib/schema";
 
 const DEMO_INVESTOR_ACCOUNT_ID = "demo-investor-001";
 

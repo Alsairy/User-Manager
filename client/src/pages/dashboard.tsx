@@ -1,38 +1,48 @@
+import { memo, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, UserCheck, Clock, Shield, Activity } from "lucide-react";
-import type { DashboardStats, AuditLog } from "@shared/schema";
+import type { DashboardStats, AuditLog } from "@/lib/schema";
 import { formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  description,
-  isLoading,
-}: {
+// Memoized stat card component to prevent unnecessary re-renders
+interface StatCardProps {
   title: string;
   value: number | string;
   icon: typeof Users;
   description?: string;
   isLoading?: boolean;
-}) {
+}
+
+const StatCard = memo(function StatCard({
+  title,
+  value,
+  icon: Icon,
+  description,
+  isLoading,
+}: StatCardProps) {
+  const cardId = useMemo(() => `stat-${title.toLowerCase().replace(/\s+/g, "-")}`, [title]);
+
   return (
-    <Card>
+    <Card role="region" aria-labelledby={`${cardId}-title`}>
       <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+        <CardTitle id={`${cardId}-title`} className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-20" aria-label="Loading value" />
         ) : (
-          <div className="text-2xl font-semibold" data-testid={`stat-${title.toLowerCase().replace(/\s+/g, "-")}`}>
+          <div
+            className="text-2xl font-semibold"
+            data-testid={cardId}
+            aria-live="polite"
+          >
             {value}
           </div>
         )}
@@ -42,25 +52,36 @@ function StatCard({
       </CardContent>
     </Card>
   );
+});
+
+// Helper functions moved outside component to avoid recreation
+const getActionColor = (actionType: string): string => {
+  if (actionType.includes("create")) return "bg-green-500";
+  if (actionType.includes("update")) return "bg-blue-500";
+  if (actionType.includes("delete")) return "bg-red-500";
+  if (actionType.includes("login")) return "bg-purple-500";
+  return "bg-gray-500";
+};
+
+const getActionLabel = (actionType: string): string => {
+  return actionType
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+// Memoized activity item component
+interface ActivityItemProps {
+  log: AuditLog;
+  locale: string;
 }
 
-function ActivityItem({ log, locale }: { log: AuditLog; locale: string }) {
-  const getActionColor = (actionType: string) => {
-    if (actionType.includes("create")) return "bg-green-500";
-    if (actionType.includes("update")) return "bg-blue-500";
-    if (actionType.includes("delete")) return "bg-red-500";
-    if (actionType.includes("login")) return "bg-purple-500";
-    return "bg-gray-500";
-  };
-
-  const getActionLabel = (actionType: string) => {
-    return actionType
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
-
+const ActivityItem = memo(function ActivityItem({ log, locale }: ActivityItemProps) {
   const dateLocale = locale === "ar" ? ar : enUS;
+  const formattedDate = useMemo(
+    () => formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: dateLocale }),
+    [log.createdAt, dateLocale]
+  );
 
   return (
     <div className="flex items-start gap-3 py-3">
@@ -74,11 +95,11 @@ function ActivityItem({ log, locale }: { log: AuditLog; locale: string }) {
         </p>
       </div>
       <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-        {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: dateLocale })}
+        {formattedDate}
       </span>
     </div>
   );
-}
+});
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation(["pages", "common"]);
@@ -87,15 +108,15 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:dashboard.title")}</h1>
+    <div className="space-y-6" role="region" aria-labelledby="dashboard-title">
+      <header>
+        <h1 id="dashboard-title" className="text-2xl font-semibold" data-testid="text-page-title">{t("pages:dashboard.title")}</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {t("pages:dashboard.overview")}
         </p>
-      </div>
+      </header>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <section aria-label={t("pages:dashboard.statistics", { defaultValue: "Statistics" })} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t("pages:dashboard.totalUsers")}
           value={stats?.totalUsers ?? 0}
@@ -124,13 +145,13 @@ export default function Dashboard() {
           description={t("pages:dashboard.definedInSystem", { defaultValue: "Defined in the system" })}
           isLoading={isLoading}
         />
-      </div>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card role="region" aria-labelledby="recent-activity-title">
           <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-            <CardTitle className="text-lg font-semibold">{t("pages:dashboard.recentActivity")}</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle id="recent-activity-title" as="h2" className="text-lg font-semibold">{t("pages:dashboard.recentActivity")}</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -163,17 +184,18 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card role="region" aria-labelledby="quick-actions-title">
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold">{t("pages:dashboard.quickActions")}</CardTitle>
+            <CardTitle id="quick-actions-title" as="h2" className="text-lg font-semibold">{t("pages:dashboard.quickActions")}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
             <a
               href="/users/create"
-              className="flex items-center gap-3 rounded-md border p-4 hover-elevate"
+              className="flex items-center gap-3 rounded-md border p-4 hover-elevate focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               data-testid="link-quick-create-user"
+              aria-label={t("pages:dashboard.createNewUser", { defaultValue: "Create New User" })}
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10" aria-hidden="true">
                 <Users className="h-5 w-5 text-primary" />
               </div>
               <div className="text-start">
@@ -185,10 +207,11 @@ export default function Dashboard() {
             </a>
             <a
               href="/roles"
-              className="flex items-center gap-3 rounded-md border p-4 hover-elevate"
+              className="flex items-center gap-3 rounded-md border p-4 hover-elevate focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               data-testid="link-quick-manage-roles"
+              aria-label={t("pages:dashboard.manageRoles", { defaultValue: "Manage Roles" })}
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10" aria-hidden="true">
                 <Shield className="h-5 w-5 text-primary" />
               </div>
               <div className="text-start">

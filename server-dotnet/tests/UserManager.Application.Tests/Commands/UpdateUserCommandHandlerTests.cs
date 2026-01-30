@@ -12,12 +12,14 @@ namespace UserManager.Application.Tests.Commands;
 public class UpdateUserCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _dbContextMock;
+    private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly UpdateUserCommandHandler _handler;
 
     public UpdateUserCommandHandlerTests()
     {
         _dbContextMock = new Mock<IAppDbContext>();
-        _handler = new UpdateUserCommandHandler(_dbContextMock.Object);
+        _cacheServiceMock = new Mock<ICacheService>();
+        _handler = new UpdateUserCommandHandler(_dbContextMock.Object, _cacheServiceMock.Object);
     }
 
     [Fact]

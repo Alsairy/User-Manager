@@ -9,10 +9,12 @@ namespace UserManager.Application.Commands;
 public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, bool>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly ICacheService _cacheService;
 
-    public UpdateUserCommandHandler(IAppDbContext dbContext)
+    public UpdateUserCommandHandler(IAppDbContext dbContext, ICacheService cacheService)
     {
         _dbContext = dbContext;
+        _cacheService = cacheService;
     }
 
     public async Task<bool> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
@@ -38,6 +40,9 @@ public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, bool>
             if (previousStatus != newStatus)
             {
                 user.AddDomainEvent(new UserStatusChangedEvent(user.Id, previousStatus.ToString(), newStatus.ToString()));
+
+                // Invalidate user permissions cache when status changes
+                await _cacheService.RemoveAsync(CacheKeys.UserPermissions(user.Id), cancellationToken);
             }
         }
 

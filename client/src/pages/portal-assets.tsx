@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Building2, MapPin, Ruler, Heart, ChevronLeft, ChevronRight, Grid3X3 } from "lucide-react";
-import type { AssetWithDetails } from "@shared/schema";
+import type { AssetWithDetails } from "@/lib/schema";
 
 export default function PortalAssets() {
   const { t } = useTranslation(["pages", "common"]);

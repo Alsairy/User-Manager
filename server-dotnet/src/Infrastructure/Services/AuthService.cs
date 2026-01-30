@@ -14,6 +14,7 @@ public class AuthService : IAuthService
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IDateTimeProvider _timeProvider;
     private readonly ILogger<AuthService> _logger;
+    private readonly ICacheService _cacheService;
 
     private const int MaxFailedAttempts = 5;
     private const int LockoutMinutes = 15;
@@ -23,13 +24,15 @@ public class AuthService : IAuthService
         IPasswordHasher passwordHasher,
         IJwtTokenService jwtTokenService,
         IDateTimeProvider timeProvider,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        ICacheService cacheService)
     {
         _dbContext = dbContext;
         _passwordHasher = passwordHasher;
         _jwtTokenService = jwtTokenService;
         _timeProvider = timeProvider;
         _logger = logger;
+        _cacheService = cacheService;
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, string? ipAddress, CancellationToken cancellationToken)
@@ -98,6 +101,9 @@ public class AuthService : IAuthService
             .Select(rp => rp.Permission.Key)
             .Distinct()
             .ToList();
+
+        // Cache user permissions for faster JWT validation
+        await CacheUserPermissionsAsync(user.Id, permissions, cancellationToken);
 
         var (accessToken, expiresAt) = _jwtTokenService.CreateAccessToken(user, roles, permissions);
         var refreshToken = _jwtTokenService.CreateRefreshToken(ipAddress);
@@ -180,6 +186,9 @@ public class AuthService : IAuthService
             .Distinct()
             .ToList();
 
+        // Refresh cached permissions on token refresh
+        await CacheUserPermissionsAsync(user.Id, permissions, cancellationToken);
+
         var (accessToken, expiresAt) = _jwtTokenService.CreateAccessToken(user, roles, permissions);
         var newRefreshToken = _jwtTokenService.CreateRefreshToken(ipAddress);
         newRefreshToken.UserId = user.Id;
@@ -242,6 +251,38 @@ public class AuthService : IAuthService
         existing.ReasonRevoked = "User logout";
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        // Invalidate cached permissions on logout
+        await InvalidateUserPermissionsCacheAsync(existing.UserId, cancellationToken);
+
         _logger.LogInformation("User {UserId} logged out from IP {IpAddress}", existing.UserId, ipAddress);
+    }
+
+    /// <summary>
+    /// Caches user permissions for faster authorization checks.
+    /// </summary>
+    private async Task CacheUserPermissionsAsync(Guid userId, List<string> permissions, CancellationToken cancellationToken)
+    {
+        var cacheKey = CacheKeys.UserPermissions(userId);
+        await _cacheService.SetAsync(cacheKey, permissions, CacheDurations.Medium, cancellationToken);
+        _logger.LogDebug("Cached {Count} permissions for user {UserId}", permissions.Count, userId);
+    }
+
+    /// <summary>
+    /// Invalidates the cached permissions for a user.
+    /// </summary>
+    private async Task InvalidateUserPermissionsCacheAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var cacheKey = CacheKeys.UserPermissions(userId);
+        await _cacheService.RemoveAsync(cacheKey, cancellationToken);
+        _logger.LogDebug("Invalidated permission cache for user {UserId}", userId);
+    }
+
+    /// <summary>
+    /// Gets cached permissions for a user, or null if not cached.
+    /// </summary>
+    public async Task<List<string>?> GetCachedUserPermissionsAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var cacheKey = CacheKeys.UserPermissions(userId);
+        return await _cacheService.GetAsync<List<string>>(cacheKey, cancellationToken);
     }
 }

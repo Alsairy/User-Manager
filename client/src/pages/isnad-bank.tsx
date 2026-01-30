@@ -34,8 +34,8 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import type { IsnadFormWithDetails, IsnadPackageWithDetails, SlaStatus, Region } from "@shared/schema";
-import { isnadStatusLabels, isnadStageLabels, packageStatusLabels } from "@shared/schema";
+import type { IsnadFormWithDetails, IsnadPackageWithDetails, SlaStatus, Region } from "@/lib/schema";
+import { isnadStatusLabels, isnadStageLabels, packageStatusLabels } from "@/lib/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const slaStatusColors: Record<SlaStatus, string> = {
