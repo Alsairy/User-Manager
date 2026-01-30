@@ -17,3 +17,14 @@ artifacts/
 **/*.csproj.user
 node_modules/
 appsettings.Development.json
+
+# Local configuration
+.local/
+
+# Test coverage
+coverage/
+**/coverage/
+
+# Root-level package files (client has its own)
+/package.json
+/package-lock.json
