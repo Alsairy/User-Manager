@@ -75,20 +75,12 @@ public class PasswordComplexityValidatorTests
     }
 
     [Fact]
-    public void Validate_NullPassword_ShouldThrowOrFail()
+    public void Validate_NullPassword_ShouldThrow()
     {
-        // FluentValidation may throw on null or return invalid result
+        // FluentValidation throws InvalidOperationException on null model
         var action = () => _validator.Validate((string)null!);
 
-        // Either throws or returns invalid result
-        try
-        {
-            var result = action();
-            result.IsValid.Should().BeFalse();
-        }
-        catch (ArgumentNullException)
-        {
-            // This is also acceptable behavior
-        }
+        action.Should().Throw<InvalidOperationException>()
+            .WithMessage("*null*");
     }
 }

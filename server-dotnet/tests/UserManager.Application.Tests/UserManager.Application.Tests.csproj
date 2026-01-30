@@ -25,5 +25,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Application\UserManager.Application.csproj" />
     <ProjectReference Include="..\..\src\Infrastructure\UserManager.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Workflows\UserManager.Workflows.csproj" />
   </ItemGroup>
 </Project>
