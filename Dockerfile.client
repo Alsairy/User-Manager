@@ -2,9 +2,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY client/package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 COPY client/ .
-RUN npm run build
+RUN npm run build:docker
 
 # Production stage
 FROM nginx:alpine AS runtime
@@ -21,7 +21,7 @@ server {
     }
 
     location /api {
-        proxy_pass http://user-manager-api:5000;
+        proxy_pass http://api:5050;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
