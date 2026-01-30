@@ -64,6 +64,15 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Transform API URLs to use versioned endpoint
+function transformApiUrl(url: string): string {
+  // Add /v1 prefix to /api/ URLs if not already present
+  if (url.startsWith('/api/') && !url.startsWith('/api/v1/')) {
+    return url.replace('/api/', '/api/v1/');
+  }
+  return url;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
@@ -79,7 +88,7 @@ export async function apiRequest(
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(url, {
+  const res = await fetch(transformApiUrl(url), {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
@@ -102,7 +111,8 @@ export const getQueryFn: <T>(options: {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const res = await fetch(queryKey.join("/") as string, {
+    const url = transformApiUrl(queryKey.join("/"));
+    const res = await fetch(url, {
       headers,
     });
 
