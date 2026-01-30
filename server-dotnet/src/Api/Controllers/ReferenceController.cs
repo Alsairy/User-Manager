@@ -17,10 +17,9 @@ public class ReferenceController : ControllerBase
     public IActionResult Regions() => Ok(ReferenceData.Regions);
 
     /// <summary>
-    /// Gets cities, optionally filtered by region. Static reference data cached for 24 hours.
+    /// Gets cities, optionally filtered by region.
     /// </summary>
     [HttpGet("cities")]
-    [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "regionId" }, VaryByHeader = "Authorization")]
     public IActionResult Cities([FromQuery] string? regionId)
     {
         if (string.IsNullOrWhiteSpace(regionId))
@@ -32,10 +31,9 @@ public class ReferenceController : ControllerBase
     }
 
     /// <summary>
-    /// Gets districts, optionally filtered by city IDs. Static reference data cached for 24 hours.
+    /// Gets districts, optionally filtered by city IDs.
     /// </summary>
     [HttpGet("districts")]
-    [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "cityIds" }, VaryByHeader = "Authorization")]
     public IActionResult Districts([FromQuery] string? cityIds)
     {
         if (string.IsNullOrWhiteSpace(cityIds))
